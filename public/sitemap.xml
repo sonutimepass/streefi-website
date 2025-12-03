@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage - Highest Priority -->
+  <url>
+    <loc>https://streefi.in/</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://streefi.in/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://streefi.in/hi/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://streefi.in/" />
+    <image:image>
+      <image:loc>https://streefi.in/assets/streefi-logo.png</image:loc>
+      <image:caption>Streefi - Discover Street Food Near You</image:caption>
+      <image:title>Streefi Logo</image:title>
+    </image:image>
+  </url>
+  
+  <!-- Support Page -->
+  <url>
+    <loc>https://streefi.in/support/</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://streefi.in/support/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://streefi.in/hi/support/" />
+  </url>
+  
+  <!-- Policies Page -->
+  <url>
+    <loc>https://streefi.in/policies/</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://streefi.in/policies/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://streefi.in/hi/policies/" />
+  </url>
+  
+  <!-- Privacy Policy Page -->
+  <url>
+    <loc>https://streefi.in/policies/policy/</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Vendor Registration -->
+  <url>
+    <loc>https://streefi.in/vendor/</loc>
+    <lastmod>2025-12-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+</urlset>

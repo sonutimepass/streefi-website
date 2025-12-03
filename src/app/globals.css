@@ -1,0 +1,323 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-ubuntu);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* Focus indicators for accessibility */
+*:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+/* Ensure minimum tap target size for mobile */
+button,
+a,
+input[type="button"],
+input[type="submit"] {
+  min-height: 44px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  font-family: "Ubuntu", sans-serif;
+  background: #06C167;
+}
+
+/* Smooth Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.2) 100%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border-radius: 10px;
+  border: 2px solid rgba(15, 23, 42, 0.5);
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #059669 0%, #047857 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-color: #10b981 rgba(15, 23, 42, 0.5);
+  scrollbar-width: thin;
+}
+
+/* Floating animation */
+.floating {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Streefi click animation */
+#streefi-click {
+  display: inline-block;
+  cursor: pointer;
+  color: #06C167;
+  font-weight: 800;
+  transition: transform 0.3s ease, color 0.3s ease;
+  position: relative;
+}
+
+@keyframes streefiBounce {
+  0% { transform: scale(1) rotate(0deg); color: #f97316; }
+  25% { transform: scale(1.1) rotate(5deg); color: #facc15; }
+  50% { transform: scale(1.2) rotate(-5deg); color: #4ade80; }
+  75% { transform: scale(1.1) rotate(5deg); color: #38bdf8; }
+  100% { transform: scale(1) rotate(0deg); color: #f97316; }
+}
+
+.streefi-animate {
+  animation: streefiBounce 0.8s ease;
+}
+
+/* Dropping food emoji */
+.food-emoji {
+  position: absolute;
+  font-size: 24px;
+  animation: dropFood 1s ease-out forwards;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes dropFood {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(100px); opacity: 0; }
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(6, 193, 103, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px 4px rgba(6, 193, 103, 0.4);
+  }
+}
+
+.pulse-hover:hover {
+  animation: pulse 1s infinite;
+}
+
+/* Mobile menu animations */
+#mobileMenu {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#mobileMenu a:hover {
+  background-color: #f9fafb;
+  padding-left: 1.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+#mobileMenuBtn svg {
+  transition: transform 0.2s ease-in-out;
+}
+
+#mobileMenuBtn:hover svg {
+  transform: scale(1.1);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Policy page specific styles */
+.policy-link {
+  @apply text-white bg-green-600 px-5 py-2 rounded-full text-sm font-semibold border border-white 
+         shadow hover:bg-white hover:text-green-600 hover:scale-105 
+         transition-transform transition-colors duration-300 whitespace-nowrap;
+}
+
+.policy-section {
+  @apply bg-white rounded-2xl shadow-md border border-gray-200 p-6 sm:p-8 hover:shadow-lg transition;
+  scroll-margin-top: 6rem;
+}
+
+.policy-section h1 {
+  @apply text-3xl font-bold text-gray-800 mb-4;
+}
+
+.policy-section h2 {
+  @apply text-2xl font-bold text-green-600 mb-4 pb-2 border-b border-gray-200;
+}
+
+.policy-section h3 {
+  @apply text-xl font-semibold text-gray-700 mt-6 mb-2;
+}
+
+.policy-section p, .policy-section li {
+  @apply text-gray-600 leading-relaxed;
+}
+
+.policy-section ul {
+  @apply list-disc list-inside pl-4 space-y-2;
+}
+
+.policy-section ul ul {
+  @apply mt-2;
+}
+
+.policy-section a {
+  @apply text-green-600 hover:underline;
+}
+
+.policy-section strong {
+  @apply text-gray-800 font-semibold;
+}
+
+/* Hide scrollbar for policy navigation */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar for auto-scrolling elements */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes scroll-screenshots {
+  0%, 25% {
+    transform: translateY(0);
+  }
+  33%, 58% {
+    transform: translateY(-100%);
+  }
+  66%, 91% {
+    transform: translateY(-200%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-scroll-screenshots {
+  animation: scroll-screenshots 12s infinite ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Overscroll/Rubber-banding effect - Active state during overscroll */
+@keyframes overscrollPulse {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.02);
+  }
+}
+
+body.overscroll-active {
+  animation: overscrollPulse 0.3s ease-out;
+}
+
+/* Smooth scrolling containers */
+main, .smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-top: 80px;
+}
+
+/* Fade in sections on scroll */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+section {
+  scroll-margin-top: 80px;
+  scroll-behavior: smooth;
+}
+
+/* Smooth link click scrolling */
+a[href^="#"] {
+  scroll-behavior: smooth;
+}
+
+/* Optional: Custom smooth momentum scrolling for mobile */
+@media (max-width: 768px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}

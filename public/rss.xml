@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Streefi - Street Food Discovery Updates</title>
+    <description>Latest updates, news, and features from Streefi - Your ultimate street food discovery platform</description>
+    <link>https://streefi.in</link>
+    <atom:link href="https://streefi.in/rss.xml" rel="self" type="application/rss+xml"/>
+    <language>en-in</language>
+    <webMaster>support@streefi.in (Streefi Team)</webMaster>
+    <managingEditor>support@streefi.in (Streefi Team)</managingEditor>
+    <pubDate>Mon, 02 Dec 2025 12:00:00 GMT</pubDate>
+    <lastBuildDate>Mon, 02 Dec 2025 12:00:00 GMT</lastBuildDate>
+    <category>Food &amp; Beverage</category>
+    <ttl>1440</ttl>
+    
+    <image>
+      <title>Streefi</title>
+      <url>https://streefi.in/assets/streefi-logo.png</url>
+      <link>https://streefi.in</link>
+      <width>144</width>
+      <height>144</height>
+      <description>Streefi Logo</description>
+    </image>
+
+    <item>
+      <title>Streefi App Now Live - Discover Street Food Near You!</title>
+      <description>Download the Streefi app on iOS and Android to discover authentic street food vendors, support local food heroes, and enjoy exclusive dine-in offers.</description>
+      <link>https://streefi.in</link>
+      <guid>https://streefi.in/news/app-launch-2024</guid>
+      <pubDate>Mon, 25 Nov 2025 12:00:00 GMT</pubDate>
+      <category>App Launch</category>
+      <author>support@streefi.in (Streefi Team)</author>
+    </item>
+
+    <item>
+      <title>Supporting Local Food Heroes - Our Mission</title>
+      <description>Learn how Streefi is empowering local street food vendors and creating a community of food lovers who support authentic street food culture.</description>
+      <link>https://streefi.in/#aboutus</link>
+      <guid>https://streefi.in/news/supporting-vendors-2024</guid>
+      <pubDate>Sun, 24 Nov 2025 12:00:00 GMT</pubDate>
+      <category>Community</category>
+      <author>support@streefi.in (Streefi Team)</author>
+    </item>
+  </channel>
+</rss>

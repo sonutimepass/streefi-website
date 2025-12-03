@@ -1,0 +1,57 @@
+# robots.txt for streefi.in - Street Food Discovery Platform
+
+User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /policies/
+Allow: /support/
+
+# Disallow error and temporary pages
+Disallow: /error.html
+Disallow: /*.tmp
+Disallow: /*.log
+
+# Sitemap location
+Sitemap: https://streefi.in/sitemap.xml
+
+# Major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /assets/
+Crawl-delay: 1
+
+User-agent: Googlebot-Mobile
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2
+
+# Social media crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Bad bots (optional security)
+User-agent: BadBot
+Disallow: /
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+# General crawl delay for other bots
+Crawl-delay: 2
