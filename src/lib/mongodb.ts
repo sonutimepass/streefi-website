@@ -1,3 +1,7 @@
+// MongoDB connection disabled - using mock data only
+// Uncomment this file when you're ready to use MongoDB
+
+/*
 import { MongoClient, Db } from 'mongodb';
 
 let cachedDb: Db | null = null;
@@ -21,3 +25,4 @@ export async function connectDB(): Promise<Db> {
 
   return db;
 }
+*/
