@@ -183,7 +183,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
       )}
       
       {/* Decorative Bottom Border */}
-      <div className="mt-12 pt-8 border-t-2 border-gray-200">
+      <div className="mt-12 pt-8">
         <div className="flex justify-center items-center gap-2">
           <div className="h-1 w-16 bg-gradient-to-r from-transparent to-[#06c167] rounded-full"></div>
           <div className="h-2 w-2 bg-[#06c167] rounded-full"></div>

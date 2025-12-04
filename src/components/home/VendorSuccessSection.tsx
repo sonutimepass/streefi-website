@@ -64,7 +64,7 @@ export default function VendorSuccessSection() {
 
           <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
             While you're googling "food near me" and getting the same boring results, 
-            <span className="text-[#06c167] font-semibold"> 50,000+ foodies</span> are eating at hidden gems with exclusive discounts.
+            <span className="text-[#06c167] font-semibold"> 500+ foodies</span> are eating at hidden gems with exclusive discounts.
           </p>
         </div>
 
@@ -89,7 +89,7 @@ export default function VendorSuccessSection() {
             </p>
             <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
-              1,200+ vendors added this month
+              1,20+ vendors added this month
             </p>
           </div>
 
@@ -134,7 +134,7 @@ export default function VendorSuccessSection() {
             </p>
             <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
               <BadgeCheck className="w-4 h-4" />
-              Live updates every 15 mins
+              Live updates from 00+ vendors
             </p>
           </div>
 
@@ -154,7 +154,7 @@ export default function VendorSuccessSection() {
             </p>
             <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
               <Heart className="w-4 h-4" />
-              50K+ verified reviews
+              500+ verified reviews
             </p>
           </div>
 
@@ -195,11 +195,11 @@ export default function VendorSuccessSection() {
             </h3>
             <p className="text-gray-700 text-base leading-relaxed mb-3">
               Flash your app, get <span className="text-[#06c167] font-semibold">instant discounts</span> at 
-              partner restaurants & cafes.
+              partner restaurants, stalls, foodtrucks & cafes.
             </p>
             <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
-              500+ partner restaurants
+              50+ partners onboarded
             </p>
           </div>
         </div>

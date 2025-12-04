@@ -85,7 +85,7 @@ export default function FloatingDownloadButton() {
         {/* Right side - Download buttons */}
         <div className="flex flex-col gap-3 xl:scale-105">
           <a
-            href="https://play.google.com/store"
+            href="https://play.google.com/store/apps/details?id=com.streefi.customer&pcampaignid=web_share"
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-[36px] w-[130px] items-center justify-center gap-2 rounded-xl bg-black hover:bg-gray-800 transition-colors xl:h-[42px] xl:w-[140px] 2xl:h-[52px] 2xl:w-[170px]"
@@ -100,7 +100,7 @@ export default function FloatingDownloadButton() {
             <span className="text-[10px] font-semibold text-white xl:text-[11px] 2xl:text-[12px]">Google Play Store</span>
           </a>
           <a
-            href="https://apps.apple.com"
+            href="https://apps.apple.com/in/app/streefi/id6747432924"
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-[36px] w-[130px] items-center justify-center gap-2 rounded-xl bg-black hover:bg-gray-800 transition-colors xl:h-[42px] xl:w-[140px] 2xl:h-[52px] 2xl:w-[170px]"

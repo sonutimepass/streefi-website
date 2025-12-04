@@ -68,14 +68,14 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Discover</h3>
             <ul className="space-y-3">
-              <li>
+              {/* <li>
                 <button
                   onClick={() => window.open('https://streefiadmin.github.io/QR-CODE/', '_blank')}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                 >
                   Download Our App
                 </button>
-              </li>
+              </li> */}
               
               <li>
                 <button
