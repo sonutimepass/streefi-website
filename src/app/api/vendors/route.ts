@@ -29,7 +29,7 @@ const mockVendors = [
     specialty: "Gujarati Nasto",
     rating: 4.6,
     image: "/assets/vendor/vendor2.jpg",
-    description: "Authentic Gujarati snacks prepared fresh daily",
+    description: "Authentic Gujarati snacks prepared fresh daily for you.",
     location: "G-4, Gandhinagar",
     experience: 5,
     revenueGrowth: 145
