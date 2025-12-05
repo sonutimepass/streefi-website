@@ -146,6 +146,7 @@
   "share_target": {
     "action": "/share-vendor/",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "vendor",
       "text": "description",

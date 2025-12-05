@@ -3,6 +3,7 @@ import { Ubuntu } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import ConditionalFloatingButton from "@/components/common/ConditionalFloatingButton";
+import ParticleBackground from "@/components/common/ParticleBackground";
 
 const ubuntu = Ubuntu({
   weight: ["300", "400", "500", "700"],

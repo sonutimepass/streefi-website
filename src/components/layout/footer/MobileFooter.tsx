@@ -66,14 +66,7 @@ export default function MobileFooter() {
           <div>
             <h3 className="text-sm font-semibold text-white mb-3">Discover</h3>
             <ul className="space-y-2">
-              {/* <li>
-                <button 
-                  onClick={() => window.location.href = 'https://streefiadmin.github.io/QR-CODE/'}
-                  className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
-                >
-                  Download App
-                </button>
-              </li> */}
+
               <li>
                 <button 
                   onClick={() => window.location.href = '/vendor'}

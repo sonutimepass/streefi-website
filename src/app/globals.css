@@ -60,9 +60,15 @@ html {
   scroll-padding-top: 80px;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   font-family: "Ubuntu", sans-serif;
-  background: #06C167;
+  background: #ffffff;
 }
 
 /* Smooth Custom Scrollbar */

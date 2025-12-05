@@ -1,12 +1,13 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
+import ParticleBackground from '@/components/common/ParticleBackground';
 
 export default function HeroSection() {
   return (
     <section className="relative pt-22 md:pt-28 pb-8 px-6 bg-black overflow-hidden" aria-label="Hero section">
-      Background Image
-      <div className="absolute inset-0 opacity-50" aria-hidden="true">
+      {/* Background Image */}
+      <div className="absolute inset-0 opacity-50 z-0" aria-hidden="true">
         <Image
           src="/assets/background-image-3.jpeg"
           alt="Street Food Background"
@@ -14,6 +15,15 @@ export default function HeroSection() {
           className="object-cover"
           priority
           quality={90}
+        />
+      </div>
+
+      {/* Particle Effect - Above background image, below content */}
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <ParticleBackground 
+          particleColor="#ffffff"
+          particleCount={800}
+          speed={1.5}
         />
       </div>
 
@@ -31,15 +41,10 @@ export default function HeroSection() {
         </video>
       </div> */}
 
-      {/* Animated Background */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-1/3 right-0 w-80 h-80 bg-emerald-400 rounded-full blur-3xl animate-bounce" style={{ animationDuration: '4s' }}></div>
-        <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-amber-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
+
       
       {/* Grid lines animation */}
-      <div className="absolute inset-0 opacity-5">
+      <div className="absolute inset-0 opacity-5 z-5">
         <svg className="w-full h-full" width="100%" height="100%">
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -49,12 +54,12 @@ export default function HeroSection() {
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
       </div>
- <div className="pt-30"></div>
-{/* <br></br><br></br><br></br><br></br><br></br><br></br><br></br><br></br><br></br><br></br><br></br><br></br><br></br> */}
-      <div className="max-w-7xl mx-auto relative z-10 ">
+ 
+      {/* Content */}
+      <div className="max-w-7xl mx-auto relative z-20 pt-30">
         <div className="flex flex-col items-center text-center">
           {/* Content - Centered */}
-          <div className="space-y-6 pt-8 max-w-10xl "> <div className= "pt-13"></div>
+          <div className="space-y-6 pt-8 max-w-10xl"> <div className="pt-13"></div>
             {/* Badge */}
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-[#06c167]/20 backdrop-blur-sm border border-[#06c167]/30 text-[#06c167] px-6 py-3 rounded-full inline-block">
               India's #1 Street Food Finder App*

@@ -42,7 +42,7 @@ function Header() {
 
   return (
     <header
-      className="hidden md:flex fixed left-1/2 top-[4svh] z-[999] items-center justify-center gap-8 bg-[#06C167] text-white rounded-full h-[50px] xl:h-[58px] 2xl:h-[62px] w-[620px] xl:w-[750px] 2xl:w-[850px] px-8"
+      className="hidden md:flex fixed left-1/2 top-[4svh] z-[999] items-center justify-between bg-[#06C167] text-white rounded-full h-[50px] xl:h-[58px] 2xl:h-[62px] w-[90vw] max-w-[620px] xl:max-w-[750px] 2xl:max-w-[850px] px-4 md:px-6 xl:px-8"
       style={{ 
         boxShadow: '0px 34px 34px 0px rgba(0, 0, 0, 0.08)',
         transform: `translate(-50%, ${isVisible ? '0' : '-200%'})`,
@@ -52,42 +52,42 @@ function Header() {
     >
       <button 
         onClick={() => scrollToSection('why-streefi')} 
-        className="hover:text-slate-900 transition-colors duration-200 whitespace-nowrap text-base xl:text-lg font-medium"
+        className="hover:text-slate-900 transition-colors duration-200 whitespace-nowrap text-sm md:text-base xl:text-lg font-medium"
       >
         How it works
       </button>
 
       <button 
         onClick={() => scrollToSection('features')} 
-        className="hover:text-slate-900 transition-colors duration-200 text-base xl:text-lg font-medium"
+        className="hover:text-slate-900 transition-colors duration-200 text-sm md:text-base xl:text-lg font-medium"
       >
         Features
       </button>
 
       <button 
         onClick={() => router.push('/')} 
-        className="font-bold text-3xl xl:text-4xl 2xl:text-5xl hover:text-slate-900 transition-colors duration-200 px-4"
+        className="font-bold text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl hover:text-slate-900 transition-colors duration-200 px-2 md:px-4"
       >
         Streefi
       </button>
 
       <button 
         onClick={() => router.push('/policies/support')} 
-        className="hover:text-slate-900 transition-colors duration-200 text-base xl:text-lg font-medium"
+        className="hover:text-slate-900 transition-colors duration-200 text-sm md:text-base xl:text-lg font-medium"
       >
         Support
       </button>
 
       <button 
         onClick={() => router.push('/policies/policy')} 
-        className="hover:text-slate-900 transition-colors duration-200 text-base xl:text-lg font-medium"
+        className="hover:text-slate-900 transition-colors duration-200 text-sm md:text-base xl:text-lg font-medium"
       >
         Policies
       </button>
 
       <button 
         onClick={() => router.push('/vendor')} 
-        className="hover:text-slate-900 transition-colors duration-200 text-base xl:text-lg font-medium"
+        className="hover:text-slate-900 transition-colors duration-200 text-sm md:text-base xl:text-lg font-medium"
       >
         Vendor
       </button>

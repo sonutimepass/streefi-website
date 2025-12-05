@@ -2,44 +2,40 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Star, Clock, MapPin, Users, Award, TrendingUp } from 'lucide-react';
-
 const vendors = [
   {
     id: 1,
-    name: "Sagar's Pav Bhaji",
-    specialty: "Pav Bhaji & Masala Dosa",
+    name: "Hema's Sweet Creation",
+    specialty: "Cake & Pastry",
     rating: 4.8,
-    reviews: 287,
-    since: "2017",
-    image: "/assets/vendor1.jpg",
+    since: "2020",
+    image: "/assets/vendor/vendor1.jpg",
     waitTime: "5-10 min",
-    location: "GH-4, Swarnim Park, Gandhinagar",
+    location: "Gandhinagar",
     tags: ["Family Recipe", "Local Favorite"],
     status: "open",
     trending: true
   },
   {
     id: 2,
-    name: "Taste of Gujarat",
-    specialty: "Dhokla & Khandvi",
+    name: "Rasraj",
+    specialty: "Fast Food",
     rating: 4.7,
-    reviews: 234,
-    since: "2021",
-    image: "/assets/vendor2.jpg",
+    since: "2015",
+    image: "/assets/vendor/vendor11.jpg",
     waitTime: "10-15 min",
-    location: "GH-4, Swarnim Park, Gandhinagar",
-    tags: ["Authentic", "Chef's Choice"],
+    location: "Ahmedabad",
+    tags: ["Authentic", "Street Favourite"],
     status: "open",
     trending: false
   },
   {
     id: 3,
-    name: "Mohan's Sandwich Corner",
-    specialty: "Grilled Sandwich & Dabeli",
+    name: "S.R Dabeli Vadapav",
+    specialty: "Dabeli & Vada Pav",
     rating: 4.6,
-    reviews: 198,
     since: "2020",
-    image: "/assets/vendor3.jpg",
+    image: "/assets/vendor/vendor3.jpg",
     waitTime: "8-12 min",
     location: "GH-4, Swarnim Park, Gandhinagar",
     tags: ["Quick Bite", "Best Seller"],
@@ -48,71 +44,66 @@ const vendors = [
   },
   {
     id: 4,
-    name: "Chai Sutta Bar",
-    specialty: "Cutting Chai & Maggi",
+    name: "Pizza Farm",
+    specialty: "Pizza & Garlic Bread",
     rating: 4.9,
-    reviews: 456,
-    since: "2015",
-    image: "/assets/vendor4.jpg",
+    since: "2020",
+    image: "/assets/vendor/vendor4.jpg",
     waitTime: "2-5 min",
     location: "GH-4, Swarnim Park, Gandhinagar",
-    tags: ["Quick Bite", "Local Favorite", "Highest Rated"],
+    tags: ["Run By Family", "Local Favorite", "Highest Rated"],
     status: "open",
     trending: true
   },
   {
     id: 5,
-    name: "Rajkot Dabeli Wala",
-    specialty: "Kutchi Dabeli & Vada Pav",
+    name: "Shawarma Junction",
+    specialty: "Shawarma & Burger",
     rating: 4.8,
-    reviews: 312,
-    since: "2013",
-    image: "/assets/vendor5.jpg",
+    since: "2019",
+    image: "/assets/vendor/vendor5.jpg",
     waitTime: "5-8 min",
     location: "GH-4, Swarnim Park, Gandhinagar",
-    tags: ["Award Winning", "Authentic"],
+    tags: ["Local Favorite"],
     status: "open",
     trending: false
   },
   {
     id: 6,
-    name: "Fresh Juice Corner",
-    specialty: "Fresh Juice & Milkshakes",
+    name: "Shakti Food Zone",
+    specialty: "Fast Food",
     rating: 4.6,
-    reviews: 267,
     since: "2018",
-    image: "/assets/vendor6.jpg",
+    image: "/assets/vendor/vendor12.jpg",
     waitTime: "3-5 min",
-    location: "GH-4, Swarnim Park, Gandhinagar",
-    tags: ["Healthy Choice", "Refreshing"],
+    location: "Ahmedabad",
+    tags: ["Famous", "Local Choice"],
     status: "open",
     trending: false
   },
   {
     id: 7,
-    name: "Fresh Juice Corner",
-    specialty: "Fresh Juice & Milkshakes",
+    name: "Mom's Kitchen",
+    specialty: "Sandwich, Ghughra, Burger",
     rating: 4.6,
-    reviews: 267,
     since: "2018",
-    image: "/assets/vendor6.jpg",
+    image: "/assets/vendor/vendor7.jpg",
     waitTime: "3-5 min",
     location: "GH-4, Swarnim Park, Gandhinagar",
-    tags: ["Healthy Choice", "Refreshing"],
+    tags: ["Homely Taste", "Local Choice"],
     status: "open",
     trending: false
   },
   {
     id: 8,
-    name: "Fresh Juice Corner",
-    specialty: "Fresh Juice & Milkshakes",
+    name: "Burger Boys",
+    specialty: "Burgers",
     rating: 4.6,
-    reviews: 267,
     since: "2018",
-    image: "/assets/vendor6.jpg",
+    image: "/assets/vendor/vendor8.jpg",
     waitTime: "3-5 min",
-    location: "GH-4, Swarnim Park, Gandhinagar",
-    tags: ["Healthy Choice", "Refreshing"],
+    location: "Gandhinagar",
+    tags: ["Local Famous"],
     status: "open",
     trending: false
   }
@@ -280,8 +271,8 @@ export default function FeaturesSection() {
                     </div>
                     <span className="text-gray-900 font-bold">{vendor.rating}</span>
                   </div>
-                  <span className="text-gray-600 text-sm">
-                    ({vendor.reviews.toLocaleString()} reviews)
+                  <span className="text-gray-900 font-medium text-sm">
+                    Verified
                   </span>
                 </div>
 
@@ -289,7 +280,7 @@ export default function FeaturesSection() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-gray-700">
                     <MapPin className="w-4 h-4 text-[#06c167]" />
-                    Gandhinagar
+                    {vendor.location}
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
                     <Clock className="w-4 h-4 text-[#06c167]" />

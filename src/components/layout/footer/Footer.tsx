@@ -1,6 +1,7 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
+import ParticleBackground from '@/components/common/ParticleBackground';
 
 function handleContactClick() {
   const phoneNumber = "917777933650";
@@ -16,8 +17,17 @@ function handleContactClick() {
 
 export default function Footer() {
   return (
-    <footer className="py-8 px-6 bg-slate-950 text-gray-300 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto">
+    <footer className="relative py-8 px-6 bg-slate-950 text-gray-300 border-t border-slate-800 overflow-hidden">
+      {/* Particle Effect - Footer background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <ParticleBackground 
+          particleColor="#06c167"
+          particleCount={500}
+          speed={1}
+        />
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
           
@@ -68,14 +78,7 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Discover</h3>
             <ul className="space-y-3">
-              {/* <li>
-                <button
-                  onClick={() => window.open('https://streefiadmin.github.io/QR-CODE/', '_blank')}
-                  className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
-                >
-                  Download Our App
-                </button>
-              </li> */}
+             
               
               <li>
                 <button
