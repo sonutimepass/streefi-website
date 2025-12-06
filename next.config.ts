@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     qualities: [75, 90],
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.streefi.in' }],
+        destination: 'https://streefi.in/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

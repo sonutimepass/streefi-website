@@ -21,10 +21,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://streefi.in'),
   title: {
-    default: "Streefi - Discover Street Food Near You | Local Vendors & Best Offers",
+    default: "Streefi - Find Best Street Food Near You",
     template: "%s | Streefi"
   },
-  description: "Discover authentic street food vendors near you with Streefi! Explore local food heroes, enjoy dine-in experiences, and get exclusive offers on chaat, vada pav, momos & more. Download our app to find the best street food vendors in your city.",
+  description: "Find local street food vendors, reviews, and dine-in offers with Streefi. Download the app to explore India's best street food culture.",
   keywords: "street food near me, local food vendors, street food vendors, discover street food, dine in restaurants near me, food offers near me, best street food, chaat near me, vada pav near me, momos near me, samosa near me, dosa near me, local restaurants, food heroes, support local vendors, street food app, food delivery app, authentic street food, street food market, food culture, local food exploration, restaurant deals, food discounts, street food discovery, Indian street food, roadside food, food truck finder, local cuisine, traditional food, street food Mumbai, street food Delhi, street food Bangalore, food vendor app, hawker food, local food culture, street eats",
   authors: [{ name: "Streefi Team" }],
   creator: "Streefi",
@@ -56,8 +56,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     siteName: "Streefi - Street Food Discovery",
-    title: "Streefi - Discover Street Food Near You | Local Vendors & Dine-In Offers",
-    description: "Find and explore local street food vendors with Streefi. Support food heroes in your community while enjoying authentic chaat, vada pav, momos and more. Get exclusive dine-in offers and discover the best street food culture near you.",
+    title: "Streefi - Find Best Street Food Near You",
+    description: "Find local street food vendors, reviews, and dine-in offers with Streefi. Download the app to explore India's best street food culture.",
     url: "https://streefi.in/",
     type: "website",
     locale: "en_IN",
@@ -75,14 +75,15 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@streefifoods",
     creator: "@streefifoods",
-    title: "Streefi - Discover Street Food Near You | Local Vendors & Best Offers",
-    description: "Explore local street food vendors and support food heroes in your community. Get exclusive dine-in offers on authentic street food with Streefi app.",
+    title: "Streefi - Find Best Street Food Near You",
+    description: "Find local street food vendors, reviews, and dine-in offers with Streefi. Download the app to explore India's best street food culture.",
     images: ["/assets/streefi-logo.png"],
   },
   alternates: {
     canonical: "https://streefi.in/",
     languages: {
       "en": "https://streefi.in/",
+      "en-IN": "https://streefi.in/",
       "hi": "https://streefi.in/hi/",
     },
   },

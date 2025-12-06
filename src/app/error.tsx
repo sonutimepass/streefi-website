@@ -30,7 +30,7 @@ export default function Error({
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
             Oops! Something went wrong
           </h1>
-          
+
           <p className="text-gray-700 text-lg md:text-xl mb-8 max-w-xl mx-auto">
             We encountered an unexpected error. Don't worry, our team has been notified and we're working on it!
           </p>
