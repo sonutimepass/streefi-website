@@ -2,7 +2,7 @@ export default function SupportContactForm() {
   return (
     <div id="report" className="bg-white p-8 rounded-xl shadow-md border border-gray-200">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Send us a Message</h2>
-      <form action="https://formspree.io/f/xqalldgd" method="POST" className="space-y-6">
+      <form action="https://formspree.io/f/mgvgzqog" method="POST" className="space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
           <input 
