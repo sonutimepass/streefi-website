@@ -162,7 +162,7 @@ export default function FeaturesSection() {
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
-            Discover <span className="text-[#06c167]">Local Vendors</span>
+            Discover <span className="text-emerald-700">Local Vendors</span>
           </h2>
 
           <p className="text-gray-700 text-lg md:text-xl max-w-2xl mx-auto">
@@ -203,8 +203,8 @@ export default function FeaturesSection() {
               onMouseEnter={() => setHoveredCard(vendor.id)}
               onMouseLeave={() => setHoveredCard(null)}
               className={`group relative bg-white backdrop-blur-sm p-6 rounded-3xl border-2 transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-xl ${index === currentVendor
-                  ? 'border-[#ff6b35] shadow-lg'
-                  : 'border-gray-200 hover:border-[#06c167]'
+                ? 'border-[#ff6b35] shadow-lg'
+                : 'border-gray-200 hover:border-[#06c167]'
                 } ${hoveredCard === vendor.id ? 'shadow-xl' : ''}`}
             >
               {/* Trending Badge - Social Proof */}
@@ -236,7 +236,7 @@ export default function FeaturesSection() {
                   )}
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#06c167] transition-colors">
+                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-emerald-700 transition-colors">
                   {vendor.name}
                 </h3>
 

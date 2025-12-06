@@ -19,7 +19,7 @@ export default function VendorCTASection() {
       <section className="py-12 px-6 bg-gradient-to-br from-green-50 to-emerald-50 border-y-2 border-green-200">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-            Ready to Join Our <span className="text-[#06c167]">Vendor Community</span>?
+            Ready to Join Our <span className="text-emerald-700">Vendor Community</span>?
           </h2>
           <p className="text-gray-700 text-lg mb-8 max-w-2xl mx-auto">
             Become a Streefi vendor and grow your street food business. Get discovered by thousands of customers, offer dine-in discounts, and complete business support.
@@ -34,7 +34,7 @@ export default function VendorCTASection() {
             </button>
             <button
               onClick={handleLearnMore}
-              className="px-8 py-4 border-2 border-[#06c167] text-[#06c167] font-semibold rounded-xl hover:bg-green-50 transition-all duration-200"
+              className="px-8 py-4 border-2 border-[#06c167] text-emerald-700 font-semibold rounded-xl hover:bg-green-50 transition-all duration-200"
             >
               Learn More
             </button>

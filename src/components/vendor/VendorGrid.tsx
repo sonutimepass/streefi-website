@@ -32,7 +32,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Featured <span className="text-[#06c167]">Vendors</span>
+            Featured <span className="text-emerald-700">Vendors</span>
           </h2>
           <p className="text-gray-600 text-lg">Discover authentic street food from our verified vendors</p>
         </div>
@@ -71,7 +71,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
                 {/* Vendor Info */}
                 <div className="p-3">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{vendor.name}</h3>
-                  <p className="text-[#06c167] font-semibold text-sm mb-2">{vendor.specialty}</p>
+                  <p className="text-emerald-700 font-semibold text-sm mb-2">{vendor.specialty}</p>
 
                   <div className="space-y-1 mb-3">
                     <p className="text-gray-700 text-xs line-clamp-2">{vendor.description}</p>
