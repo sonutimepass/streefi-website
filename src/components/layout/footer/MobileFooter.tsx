@@ -6,7 +6,7 @@ function handleContactClick() {
   const phoneNumber = "917777933650";
   const email = "support@streefi.in";
   const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-  
+
   if (isMobile) {
     window.open(`https://wa.me/${phoneNumber}`, "_blank");
   } else {
@@ -20,13 +20,13 @@ export default function MobileFooter() {
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Brand Section */}
         <div className="mb-8">
-          <button 
+          <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="flex items-center justify-center space-x-3 mb-4 mx-auto cursor-pointer"
           >
-            <Image 
-              src="/assets/streefi-logo.png" 
-              alt="Streefi Logo" 
+            <Image
+              src="/assets/streefi-logo.png"
+              alt="Streefi Logo"
               width={40}
               height={40}
               className="w-10 h-10"
@@ -36,26 +36,26 @@ export default function MobileFooter() {
           <p className="text-gray-400 text-center text-sm mb-6">
             Discover the best street food near you and support local vendors with Streefi.
           </p>
-          
+
           {/* Social Links */}
           <div className="flex justify-center space-x-4">
-            <a 
-              href="https://www.instagram.com/streefifoods?igsh=cjdyMHp6eTNxdGk5" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://www.instagram.com/streefifoods?igsh=cjdyMHp6eTNxdGk5"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-emerald-500/20 hover:border-emerald-500/40 border border-slate-700 transition-all duration-200"
               aria-label="Instagram"
             >
-              <img src="/assets/instagram.svg" alt="Instagram" className="w-5 h-5" />
+              <Image src="/assets/instagram.svg" alt="Instagram" width={20} height={20} className="w-5 h-5" />
             </a>
-            <a 
-              href="https://www.linkedin.com/company/streefi/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://www.linkedin.com/company/streefi/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-emerald-500/20 hover:border-emerald-500/40 border border-slate-700 transition-all duration-200"
               aria-label="LinkedIn"
             >
-              <img src="/assets/linkedin.svg" alt="LinkedIn" className="w-5 h-5" />
+              <Image src="/assets/linkedin.svg" alt="LinkedIn" width={20} height={20} className="w-5 h-5" />
             </a>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function MobileFooter() {
             <ul className="space-y-2">
 
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/vendor'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -83,7 +83,7 @@ export default function MobileFooter() {
             <h3 className="text-sm font-semibold text-white mb-3">Support</h3>
             <ul className="space-y-2">
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/support/#help'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -91,7 +91,7 @@ export default function MobileFooter() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/support/#report'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -99,7 +99,7 @@ export default function MobileFooter() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   onClick={handleContactClick}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -107,7 +107,7 @@ export default function MobileFooter() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/support/#FAQs'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -122,7 +122,7 @@ export default function MobileFooter() {
             <h3 className="text-sm font-semibold text-white mb-3">Policies</h3>
             <ul className="space-y-2">
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/policies'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -130,7 +130,7 @@ export default function MobileFooter() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/policies'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -138,7 +138,7 @@ export default function MobileFooter() {
                 </button>
               </li>
               <li>
-                <button 
+                <button
                   onClick={() => window.location.href = '/policies'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors text-xs block text-left w-full"
                 >
@@ -152,30 +152,30 @@ export default function MobileFooter() {
         {/* App Download Section */}
         <div className="border-t border-slate-800 pt-6 mb-6">
           <p className="text-white font-semibold text-center mb-4 text-sm">Get the Streefi App</p>
-          
+
           <div className="flex flex-col gap-3">
             {/* Google Play Button */}
-            <a 
-              href="https://play.google.com/store/apps/details?id=com.streefi.customer&pcampaignid=web_share" 
+            <a
+              href="https://play.google.com/store/apps/details?id=com.streefi.customer&pcampaignid=web_share"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center space-x-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-4 py-3 rounded-xl transition-all duration-200"
             >
-              <img src="/assets/playstore.svg" alt="Google Play" className="w-6 h-6" />
+              <Image src="/assets/playstore.svg" alt="Google Play" width={24} height={24} className="w-6 h-6" />
               <div className="text-left">
                 <p className="text-xs text-gray-300">Get It On</p>
                 <p className="text-sm font-semibold">Google Play</p>
               </div>
             </a>
-            
+
             {/* App Store Button */}
-            <a 
-              href="https://apps.apple.com/in/app/streefi/id6747432924" 
+            <a
+              href="https://apps.apple.com/in/app/streefi/id6747432924"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center space-x-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-4 py-3 rounded-xl transition-all duration-200"
             >
-              <img src="/assets/appstore.svg" alt="App Store" className="w-6 h-6" />
+              <Image src="/assets/appstore.svg" alt="App Store" width={24} height={24} className="w-6 h-6" />
               <div className="text-left">
                 <p className="text-xs text-gray-300">Download on the</p>
                 <p className="text-sm font-semibold">App Store</p>

@@ -1,0 +1,27 @@
+
+> streefl-website@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Γû▓ Next.js 16.0.5 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ Γ£ô Compiled successfully in 7.9s
+   Running TypeScript ...
+Failed to compile.
+
+./src/app/vendor/layout.tsx:7:5
+Type error: Type '{ title: string; description: string; url: string; type: "business.business"; }' is not assignable to type 'OpenGraph | null | undefined'.
+  Types of property 'type' are incompatible.
+    Type '"business.business"' is not assignable to type '"article" | "website" | "book" | "profile" | "music.song" | "music.album" | "music.playlist" | "music.radio_station" | "video.movie" | "video.episode" | "video.tv_show" | "video.other" | undefined'.
+
+[0m [90m  5 |[39m     description[33m:[39m [32m"Join Streefi to connect with thousands of foodies. List your stall, get dine-in orders, and manage your business with our dedicated vendor app."[39m[33m,[39m
+ [90m  6 |[39m     keywords[33m:[39m [32m"street food vendor registration, sell food online, streefi vendor, restaurant partner, food business growth"[39m[33m,[39m
+[31m[1m>[22m[39m[90m  7 |[39m     openGraph[33m:[39m {
+ [90m    |[39m     [31m[1m^[22m[39m
+ [90m  8 |[39m         title[33m:[39m [32m"Become a Streefi Vendor | Grow Your Business"[39m[33m,[39m
+ [90m  9 |[39m         description[33m:[39m [32m"Join India's fastest growing street food network. Zero listing fees, instant onboarding, and dedicated support for vendors."[39m[33m,[39m
+ [90m 10 |[39m         url[33m:[39m [32m"https://streefi.in/vendor"[39m[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null

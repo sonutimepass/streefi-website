@@ -47,15 +47,15 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {vendors.map((vendor) => (
-              <div 
-                key={vendor._id} 
+              <div
+                key={vendor._id}
                 className="group bg-white rounded-xl overflow-hidden border-2 border-gray-200 hover:border-[#06c167] transition-all duration-300 hover:shadow-lg shadow-md"
               >
                 {/* Vendor Image */}
                 <div className="relative h-32 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                   {vendor.image ? (
-                    <Image 
-                      src={vendor.image} 
+                    <Image
+                      src={vendor.image}
                       alt={vendor.name}
                       fill
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
@@ -72,7 +72,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
                 <div className="p-3">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{vendor.name}</h3>
                   <p className="text-[#06c167] font-semibold text-sm mb-2">{vendor.specialty}</p>
-                  
+
                   <div className="space-y-1 mb-3">
                     <p className="text-gray-700 text-xs line-clamp-2">{vendor.description}</p>
                     <div className="flex items-center text-gray-600 text-xs">
@@ -103,7 +103,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
                   </div>
 
                   {/* CTA Button */}
-                  <button 
+                  <button
                     onClick={handleViewMenu}
                     className="w-full bg-gradient-to-r from-[#06c167] to-emerald-600 hover:from-[#05a857] hover:to-emerald-700 text-white font-semibold py-2 text-sm rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25"
                   >
@@ -115,14 +115,14 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
           </div>
         )}
       </div>
-      
+
       {/* App Download Popup */}
       {showPopup && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setShowPopup(false)}
         >
-          <div 
+          <div
             className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all"
             onClick={(e) => e.stopPropagation()}
           >
@@ -141,7 +141,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center space-x-3 bg-black hover:bg-gray-900 text-white px-6 py-4 rounded-xl transition-all duration-200 hover:shadow-lg"
               >
-                <img src="/assets/playstore.svg" alt="Google Play" className="w-7 h-7" />
+                <Image src="/assets/playstore.svg" alt="Google Play" width={28} height={28} className="w-7 h-7" />
                 <div className="text-left">
                   <p className="text-xs text-gray-300">Get it on</p>
                   <p className="text-base font-semibold">Google Play</p>
@@ -154,7 +154,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center space-x-3 bg-black hover:bg-gray-900 text-white px-6 py-4 rounded-xl transition-all duration-200 hover:shadow-lg"
               >
-                <img src="/assets/appstore.svg" alt="App Store" className="w-7 h-7" />
+                <Image src="/assets/appstore.svg" alt="App Store" width={28} height={28} className="w-7 h-7" />
                 <div className="text-left">
                   <p className="text-xs text-gray-300">Download on the</p>
                   <p className="text-base font-semibold">App Store</p>
@@ -171,7 +171,7 @@ export default function VendorGrid({ vendors, loading }: VendorGridProps) {
           </div>
         </div>
       )}
-      
+
       {/* Decorative Bottom Border */}
       <div className="mt-12 pt-8">
         <div className="flex justify-center items-center gap-2">

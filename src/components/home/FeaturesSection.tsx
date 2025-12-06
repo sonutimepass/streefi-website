@@ -136,7 +136,7 @@ export default function FeaturesSection() {
 
   // Status color mapping
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'open': return 'bg-emerald-500';
       case 'busy': return 'bg-amber-500';
       case 'closed': return 'bg-rose-500';
@@ -157,14 +157,14 @@ export default function FeaturesSection() {
         <div className="absolute top-20 left-10 w-64 h-64 border-2 border-amber-300 rotate-45 rounded-3xl"></div>
         <div className="absolute bottom-20 right-10 w-80 h-80 border-2 border-emerald-300 rotate-12 rounded-full"></div>
       </div>
-      
+
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
             Discover <span className="text-[#06c167]">Local Vendors</span>
           </h2>
-          
+
           <p className="text-gray-700 text-lg md:text-xl max-w-2xl mx-auto">
             Find authentic street food vendors near you with live ratings and real-time status
           </p>
@@ -198,15 +198,14 @@ export default function FeaturesSection() {
         {/* Vendor Cards Grid with Enhanced Psychology */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredVendors.map((vendor, index) => (
-            <div 
+            <div
               key={vendor.id}
               onMouseEnter={() => setHoveredCard(vendor.id)}
               onMouseLeave={() => setHoveredCard(null)}
-              className={`group relative bg-white backdrop-blur-sm p-6 rounded-3xl border-2 transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-xl ${
-                index === currentVendor 
-                  ? 'border-[#ff6b35] shadow-lg' 
+              className={`group relative bg-white backdrop-blur-sm p-6 rounded-3xl border-2 transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-xl ${index === currentVendor
+                  ? 'border-[#ff6b35] shadow-lg'
                   : 'border-gray-200 hover:border-[#06c167]'
-              } ${hoveredCard === vendor.id ? 'shadow-xl' : ''}`}
+                } ${hoveredCard === vendor.id ? 'shadow-xl' : ''}`}
             >
               {/* Trending Badge - Social Proof */}
               {vendor.trending && (
@@ -222,8 +221,8 @@ export default function FeaturesSection() {
               <div className="text-center mb-6">
                 <div className="relative mb-4">
                   <div className="w-full h-40 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-300 border border-green-100">
-                    <Image 
-                      src={vendor.image} 
+                    <Image
+                      src={vendor.image}
                       alt={vendor.name}
                       width={320}
                       height={160}
@@ -236,17 +235,17 @@ export default function FeaturesSection() {
                     </div>
                   )}
                 </div>
-                
+
                 <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#06c167] transition-colors">
                   {vendor.name}
                 </h3>
-                
+
                 <p className="text-gray-600 text-sm mb-3">{vendor.specialty}</p>
-                
+
                 {/* Tags - Social Proof & Uniqueness */}
                 <div className="flex flex-wrap justify-center gap-2 mb-4">
                   {vendor.tags.map((tag, i) => (
-                    <span 
+                    <span
                       key={i}
                       className="px-2 py-1 bg-gray-50 text-gray-700 text-xs rounded-full border border-gray-200"
                     >
@@ -289,7 +288,7 @@ export default function FeaturesSection() {
                 </div>
 
                 {/* Call to Action Button - Clear Next Step */}
-                <button 
+                <button
                   onClick={handleViewMenu}
                   className="w-full mt-4 bg-[#06c167] text-white py-3 rounded-xl font-medium hover:bg-[#ff6b35] transition-all duration-300 shadow-md hover:shadow-lg"
                 >
@@ -302,11 +301,11 @@ export default function FeaturesSection() {
 
         {/* App Download Popup */}
         {showPopup && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowPopup(false)}
           >
-            <div 
+            <div
               className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all"
               onClick={(e) => e.stopPropagation()}
             >
@@ -325,7 +324,7 @@ export default function FeaturesSection() {
                   rel="noopener noreferrer"
                   className="flex items-center justify-center space-x-3 bg-black hover:bg-gray-900 text-white px-6 py-4 rounded-xl transition-all duration-200 hover:shadow-lg"
                 >
-                  <img src="/assets/playstore.svg" alt="Google Play" className="w-7 h-7" />
+                  <Image src="/assets/playstore.svg" alt="Google Play" width={28} height={28} className="w-7 h-7" />
                   <div className="text-left">
                     <p className="text-xs text-gray-300">Get it on</p>
                     <p className="text-base font-semibold">Google Play</p>
@@ -338,7 +337,7 @@ export default function FeaturesSection() {
                   rel="noopener noreferrer"
                   className="flex items-center justify-center space-x-3 bg-black hover:bg-gray-900 text-white px-6 py-4 rounded-xl transition-all duration-200 hover:shadow-lg"
                 >
-                  <img src="/assets/appstore.svg" alt="App Store" className="w-7 h-7" />
+                  <Image src="/assets/appstore.svg" alt="App Store" width={28} height={28} className="w-7 h-7" />
                   <div className="text-left">
                     <p className="text-xs text-gray-300">Download on the</p>
                     <p className="text-base font-semibold">App Store</p>
@@ -369,7 +368,7 @@ export default function FeaturesSection() {
 
         {/* Pagination & View More - Progressive Disclosure */}
         <div className="text-center mt-12">
-          <button 
+          <button
             onClick={() => {
               const vendorElement = document.getElementById('vendors');
               if (vendorElement) {
@@ -387,7 +386,7 @@ export default function FeaturesSection() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </button>
-          
+
           <p className="text-gray-600 text-sm mt-4">
             New vendors added daily • Real-time status updates • 100% verified
           </p>

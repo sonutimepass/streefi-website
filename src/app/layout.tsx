@@ -145,7 +145,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://www.clarity.ms" />
         <link rel="dns-prefetch" href="https://www.clarity.ms" />
-        
+
         {/* Preload critical assets */}
         <link rel="preload" href="/assets/streefi-logo-192.svg" as="image" type="image/svg+xml" />
         <link rel="preload" href="/assets/background-image3.png" as="image" />
@@ -206,111 +206,7 @@ export default function RootLayout({
                   "address": { "@type": "PostalAddress", "addressCountry": "IN", "addressRegion": "India" },
                   "geo": { "@type": "GeoCoordinates", "latitude": "20.5937", "longitude": "78.9629" },
                   "areaServed": { "@type": "Country", "name": "India" },
-                  "serviceType": "Food Discovery Platform"
-                }
-              ]
-            })
-          }}
-        />
-
-        <Script
-          id="mobile-app-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "MobileApplication",
-              "@id": "https://streefi.in/#mobileapp",
-              "name": "Streefi - Street Food Discovery",
-              "alternateName": "Streefi",
-              "description": "Discover authentic street food vendors near you, support local food heroes, and enjoy exclusive dine-in offers with Streefi mobile app",
-              "operatingSystem": ["Android 6.0+", "iOS 12.0+"],
-              "applicationCategory": ["Food & Drink", "Lifestyle"],
-              "applicationSubCategory": "Food Discovery",
-              "softwareVersion": "1.0+",
-              "datePublished": "2024-01-01",
-              "dateModified": "2025-11-25",
-              "inLanguage": ["en-IN", "hi-IN"],
-              "contentRating": "Everyone",
-              "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR", "availability": "https://schema.org/InStock" },
-              "downloadUrl": [
-                "https://play.google.com/store/apps/details?id=com.streefi.customer",
-                "https://apps.apple.com/in/app/streefi/id6747432924"
-              ],
-              "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.5", "ratingCount": "1000", "bestRating": "5", "worstRating": "1" }
-            })
-          }}
-        />
-
-        <Script
-          id="faq-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              "mainEntity": [
-                {
-                  "@type": "Question",
-                  "name": "What is Streefi?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "Streefi is a mobile app that helps you discover authentic street food vendors near you. We connect food lovers with local food heroes in their community, offering exclusive dine-in experiences and deals."
-                  }
-                },
-                {
-                  "@type": "Question",
-                  "name": "How does Streefi work?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "Simply download the Streefi app, explore street food vendors near you, pick your favorite dishes, and enjoy delicious meals with exclusive discounts. Support local food heroes while discovering authentic street food culture."
-                  }
-                },
-                {
-                  "@type": "Question",
-                  "name": "Is Streefi available on both Android and iOS?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "Yes! Streefi is available for free download on both Google Play Store for Android devices and App Store for iOS devices. The app works on Android 6.0+ and iOS 12.0+ versions."
-                  }
-                }
-              ]
-            })
-          }}
-        />
-
-        {/* BreadcrumbList Schema */}
-        <Script
-          id="breadcrumb-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "BreadcrumbList",
-              "itemListElement": [
-                {
-                  "@type": "ListItem",
-                  "position": 1,
-                  "name": "Home",
-                  "item": "https://streefi.in/"
-                },
-                {
-                  "@type": "ListItem",
-                  "position": 2,
-                  "name": "Support",
-                  "item": "https://streefi.in/support/"
-                },
-                {
-                  "@type": "ListItem",
-                  "position": 3,
-                  "name": "Vendor",
-                  "item": "https://streefi.in/vendor/"
-                },
-                {
-                  "@type": "ListItem",
-                  "position": 4,
-                  "name": "Policies",
-                  "item": "https://streefi.in/policies/"
+                  "serviceType": "Street Food Discovery Platform"
                 }
               ]
             })
