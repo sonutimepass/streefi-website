@@ -11,7 +11,7 @@ const benefits = [
   {
     emoji: "💰",
     title: "Steady Revenue Growth",
-    description: "Grow your business consistently. Our vendors see an average 150% revenue increase within 6 months.",
+    description: "Grow your business consistently. Our vendors see an average 50% revenue increase within 6 months.",
     result: "Average growth: ₹5,000 - ₹15,000/month",
     gradient: "from-orange-50 to-amber-50"
   },

@@ -1,14 +1,48 @@
 export default function SupportFAQSection() {
-  const faqs = [
-    {
-      question: 'How do I update my profile information?',
-      answer: 'You can update your profile information by navigating to the \'Settings\' section within the app. From there, select \'Edit Profile\' to change your name, email, or other personal details.'
-    },
-    {
-      question: 'Is my data secure?',
-      answer: 'Absolutely. We take data privacy and security very seriously. All data is encrypted both in transit and at rest. For more details, please review our Privacy Policy, which is available within the app and on our website.'
-    }
-  ];
+const faqs = [
+  {
+    question: 'How do I find nearby street food vendors?',
+    answer:
+      'Enable location permissions. The app reads your GPS once, fetches vendors within range, and shows them on the home screen. If nothing loads, your GPS accuracy is low or permissions are disabled.'
+  },
+  {
+    question: 'How does the dine-in module work?',
+    answer:
+      'If a vendor supports dine-in, you’ll see them Offers Section.'
+  },
+  {
+    question: 'Can I explore different cuisines?',
+    answer:
+      'Yes. Use the Explore tab, which indexes vendors by cuisine and dish tags. Filters update results instantly—no reloads.'
+  },
+
+  {
+    question: 'How do I update my profile information?',
+    answer:
+      'Go to Settings → Edit Profile. You can change your name, and other basic details. Updates sync to the server instantly.'
+  },
+  {
+    question: 'Is my data secure?',
+    answer:
+      'All API requests use HTTPS. Sensitive data is encrypted at rest. Only essential permissions are requested. Nothing is shared with vendors except your bill details.'
+  },
+  {
+    question: 'Why can’t I see some vendors?',
+    answer:
+      'Either the vendor is offline, out of your radius, or temporarily disabled by the admin panel. The app hides inactive vendors automatically.'
+  },
+  {
+    question: 'How are vendor ratings calculated?',
+    answer:
+      'Ratings are an average of verified customer reviews. Spam detection removes duplicate or suspicious ratings before aggregation.'
+  },
+  {
+    question: 'How do I report an issue with a vendor?',
+    answer:
+      'Open the profile → Report. The complaint is logged in the admin panel for review.'
+  },
+];
+
 
   return (
     <div id="FAQs" className="bg-white p-8 rounded-xl shadow-md border border-gray-200">

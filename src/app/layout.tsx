@@ -129,9 +129,22 @@ export default function RootLayout({
           `}
         </Script>
 
+        {/* Microsoft Clarity */}
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`
+            (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "uh6jomdw1m");
+          `}
+        </Script>
+
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://www.clarity.ms" />
+        <link rel="dns-prefetch" href="https://www.clarity.ms" />
         
         {/* Preload critical assets */}
         <link rel="preload" href="/assets/streefi-logo-192.svg" as="image" type="image/svg+xml" />
@@ -344,7 +357,7 @@ export default function RootLayout({
 
         {/* Google Analytics */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-0MJHMRHYPR"
+          src="https://www.googletagmanager.com/gtag/js?id=G-23ZXPRW9QQ"
           strategy="afterInteractive"
         />
         <Script id="google-analytics" strategy="afterInteractive">
@@ -352,7 +365,7 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-0MJHMRHYPR');
+            gtag('config', 'G-23ZXPRW9QQ');
           `}
         </Script>
       </body>

@@ -1,6 +1,7 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
+import ParticleBackground from '@/components/common/ParticleBackground';
 
 function handleContactClick() {
   const phoneNumber = "917777933650";
@@ -16,8 +17,17 @@ function handleContactClick() {
 
 export default function MobileFooter() {
   return (
-    <footer className="md:hidden py-8 px-6 bg-slate-950 text-gray-300 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto">
+    <footer className="md:hidden relative py-8 px-6 bg-slate-950 text-gray-300 border-t border-slate-800 overflow-hidden">
+      {/* Particle Background */}
+      <div className="absolute inset-0 opacity-30">
+        <ParticleBackground 
+          particleColor="#06c167"
+          particleCount={500}
+          speed={0.3}
+        />
+      </div>
+      
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Brand Section */}
         <div className="mb-8">
           <button 
@@ -77,7 +87,7 @@ export default function MobileFooter() {
               </li>
             </ul>
           </div>
-
+{typeof window !== 'undefined' && <ParticleBackground />}
           {/* Support Links */}
           <div>
             <h3 className="text-sm font-semibold text-white mb-3">Support</h3>

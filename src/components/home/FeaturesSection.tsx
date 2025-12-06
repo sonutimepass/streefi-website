@@ -37,7 +37,7 @@ const vendors = [
     since: "2020",
     image: "/assets/vendor/vendor3.jpg",
     waitTime: "8-12 min",
-    location: "GH-4, Swarnim Park, Gandhinagar",
+    location: "PDPU, Gandhinagar",
     tags: ["Quick Bite", "Best Seller"],
     status: "busy",
     trending: true

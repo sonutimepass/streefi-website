@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 export default function PolicyNavigation() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(true);
+  const [showDesktopNav, setShowDesktopNav] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +14,14 @@ export default function PolicyNavigation() {
       
       setShowScrollTop(scrollTop > 300);
       setShowScrollBottom(scrollTop + windowHeight < documentHeight - 300);
+
+      // Check if footer is visible for desktop navigation
+      const footer = document.querySelector('footer');
+      if (footer) {
+        const footerRect = footer.getBoundingClientRect();
+        const isFooterVisible = footerRect.top < windowHeight;
+        setShowDesktopNav(!isFooterVisible);
+      }
     };
 
     handleScroll();
@@ -49,9 +58,10 @@ export default function PolicyNavigation() {
   return (
     <>
       {/* Sticky Sidebar Navigation - Desktop */}
-      <div className="hidden lg:block fixed right-0 top-1/2 -translate-y-1/2 z-30">
-        <div className="bg-gray-50 shadow-2xl rounded-l-2xl overflow-hidden ">
-          <div className="flex flex-col">
+      {showDesktopNav && (
+        <div className="hidden lg:block fixed right-0 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-300">
+          <div className="bg-gray-50 shadow-2xl rounded-l-2xl overflow-hidden ">
+            <div className="flex flex-col">
             {links.map((link, index) => (
               <button
                 key={link.id}
@@ -81,6 +91,7 @@ export default function PolicyNavigation() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Mobile Sticky Top Navigation */}
       <div className="block lg:hidden bg-gradient-to-r from-green-600 to-emerald-600 sticky top-0 z-30 shadow-lg backdrop-blur-sm">

@@ -89,7 +89,7 @@ export default function VendorSuccessSection() {
             </p>
             <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
-              1,20+ vendors added this month
+              120+ vendors added this month
             </p>
           </div>
 
@@ -134,7 +134,7 @@ export default function VendorSuccessSection() {
             </p>
             <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
               <BadgeCheck className="w-4 h-4" />
-              Live updates from 00+ vendors
+              Live updates from 300+ vendors
             </p>
           </div>
 
