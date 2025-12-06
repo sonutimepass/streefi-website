@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 interface ParticleBackgroundProps {
@@ -15,8 +15,15 @@ export default function ParticleBackground({
   speed = 2                  // Speed of the "liftoff"
 }: ParticleBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    
     const container = containerRef.current;
     if (!container) return;
 
@@ -144,7 +151,16 @@ export default function ParticleBackground({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [particleColor, particleCount, speed]);
+  }, [particleColor, particleCount, speed, isMounted]);
+
+  if (!isMounted) {
+    return (
+      <div 
+        className="absolute inset-0 w-full h-full -z-10"
+        style={{ background: 'transparent' }}
+      />
+    );
+  }
 
   return (
     <div 

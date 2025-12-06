@@ -1,7 +1,12 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
-import ParticleBackground from '@/components/common/ParticleBackground';
+import dynamic from 'next/dynamic';
+
+const ParticleBackground = dynamic(
+  () => import('@/components/common/ParticleBackground'),
+  { ssr: false }
+);
 
 function handleContactClick() {
   const phoneNumber = "917777933650";

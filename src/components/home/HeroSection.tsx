@@ -1,7 +1,12 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
-import ParticleBackground from '@/components/common/ParticleBackground';
+import dynamic from 'next/dynamic';
+
+const ParticleBackground = dynamic(
+  () => import('@/components/common/ParticleBackground'),
+  { ssr: false }
+);
 
 export default function HeroSection() {
   return (

@@ -148,7 +148,7 @@ export default function RootLayout({
         
         {/* Preload critical assets */}
         <link rel="preload" href="/assets/streefi-logo-192.svg" as="image" type="image/svg+xml" />
-        <link rel="preload" href="/assets/background-image.png" as="image" />
+        <link rel="preload" href="/assets/background-image3.png" as="image" />
 
         {/* Structured Data */}
         <Script
