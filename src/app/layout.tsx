@@ -21,11 +21,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://streefi.in'),
   title: {
-    default: "Streefi - Find Best Street Food Near You",
+    default: "Streefi - Find Best Street Food Near You | Verified Vendors & Offers",
     template: "%s | Streefi"
   },
-  description: "Find local street food vendors, reviews, and dine-in offers with Streefi. Download the app to explore India's best street food culture.",
-  keywords: "street food near me, local food vendors, street food vendors, discover street food, dine in restaurants near me, food offers near me, best street food, chaat near me, vada pav near me, momos near me, samosa near me, dosa near me, local restaurants, food heroes, support local vendors, street food app, food delivery app, authentic street food, street food market, food culture, local food exploration, restaurant deals, food discounts, street food discovery, Indian street food, roadside food, food truck finder, local cuisine, traditional food, street food Mumbai, street food Delhi, street food Bangalore, food vendor app, hawker food, local food culture, street eats",
+  description: "Find local street food vendors in Gandhinagar & Ahmedabad using Streefi. Discover verified food heroes, read reviews, and get exclusive dine-in offers on the app.",
+  keywords: "street food near me, street food Gandhinagar, street food Ahmedabad, local food vendors, street food app, verified street food vendors, best street food in Gandhinagar, best street food in Ahmedabad, dine in restaurants near me, food offers near me, chaat, vada pav, momos, samosa, dosa, food heroes, support local vendors, food delivery app, authentic street food, Indian street food, street food discovery, food truck finder, local cuisine, traditional food, hawker food, local food culture, street eats",
   authors: [{ name: "Streefi Team" }],
   creator: "Streefi",
   publisher: "Streefi",

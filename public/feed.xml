@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+<channel>
+ <title>Streefi - Street Food Discovery Updates</title>
+ <description>Latest updates from Streefi - Discover authentic street food vendors near you.</description>
+ <link>https://streefi.in/</link>
+ <lastBuildDate>Mon, 02 Dec 2025 00:00:00 +0000</lastBuildDate>
+ <pubDate>Mon, 02 Dec 2025 00:00:00 +0000</pubDate>
+ <ttl>1440</ttl>
+
+ <item>
+  <title>Welcome to Streefi</title>
+  <description>We are live! Streefi connects food lovers with authentic local street food vendors.</description>
+  <link>https://streefi.in/</link>
+  <guid isPermaLink="true">https://streefi.in/</guid>
+  <pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate>
+ </item>
+ 
+ <item>
+  <title>Vendor Registration Now Open</title>
+  <description>Street food vendors can now register on Streefi to grow their business.</description>
+  <link>https://streefi.in/vendor/</link>
+  <guid isPermaLink="true">https://streefi.in/vendor/</guid>
+  <pubDate>Thu, 01 Feb 2024 00:00:00 +0000</pubDate>
+ </item>
+
+</channel>
+</rss>

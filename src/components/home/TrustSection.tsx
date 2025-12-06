@@ -60,120 +60,119 @@ export default function TrustSection() {
   }, [isVisible]);
 
   // Row 1 testimonials - scrolls left
- // Row 1 testimonials - scrolls left
-const testimonialsRow1 = [
-  {
-    name: "Kinjal Patel",
-    location: "Gandhinagar",
-    text: "Amazing food and staff!! Loved loved it very much!! Service is outstanding!! Thank you streefi for this wonderful food and behaviour!! ♥️👌🏻👌🏻",
-    avatar: "https://ui-avatars.com/api/?name=Kinjal+Patel&background=FF6B6B&color=fff&size=100",
-    rating: 5,
-    date: "September 18, 2025"
-  },
-  {
-    name: "Manish Ninama",
-    location: "Gandhinagar",
-    text: "good service",
-    avatar: "https://ui-avatars.com/api/?name=Manish+Ninama&background=4ECDC4&color=fff&size=100",
-    rating: 5,
-    date: "November 27, 2025"
-  },
-  {
-    name: "Mann Patel",
-    location: "Gandhinagar",
-    text: "must try app for local food experience with convince at home. loved it!!",
-    avatar: "https://ui-avatars.com/api/?name=Mann+Patel&background=95E1D3&color=fff&size=100",
-    rating: 5,
-    date: "September 19, 2025"
-  },
-  {
-    name: "Bhavana Patel",
-    location: "Gandhinagar",
-    text: "great use of this app",
-    avatar: "https://ui-avatars.com/api/?name=Bhavana+Patel&background=F38181&color=fff&size=100",
-    rating: 5,
-    date: "September 20, 2025"
-  },
-  {
-    name: "Indrajeet Patel",
-    location: "Gandhinagar",
-    text: "One stop solution for your Street Cravings.",
-    avatar: "https://ui-avatars.com/api/?name=Indrajeet+Patel&background=AA96DA&color=fff&size=100",
-    rating: 5,
-    date: "September 18, 2025"
-  },
-  {
-    name: "Devam Prajapati",
-    location: "Gandhinagar",
-    text: "best app👍🏻👍🏻",
-    avatar: "https://ui-avatars.com/api/?name=Devam+Prajapati&background=FCBAD3&color=fff&size=100",
-    rating: 5,
-    date: "September 18, 2025"
-  },
-];
+  const testimonialsRow1 = [
+    {
+      name: "Kinjal Patel",
+      location: "Gandhinagar",
+      text: "Amazing food and staff!! Loved loved it very much!! Service is outstanding!! Thank you streefi for this wonderful food and behaviour!! ♥️👌🏻👌🏻",
+      avatar: "https://ui-avatars.com/api/?name=Kinjal+Patel&background=FF6B6B&color=fff&size=100",
+      rating: 5,
+      date: "September 18, 2025"
+    },
+    {
+      name: "Manish Ninama",
+      location: "Ahmedabad",
+      text: "good service",
+      avatar: "https://ui-avatars.com/api/?name=Manish+Ninama&background=4ECDC4&color=fff&size=100",
+      rating: 5,
+      date: "November 27, 2025"
+    },
+    {
+      name: "Mann Patel",
+      location: "Gandhinagar",
+      text: "must try app for local food experience with convince at home. loved it!!",
+      avatar: "https://ui-avatars.com/api/?name=Mann+Patel&background=95E1D3&color=fff&size=100",
+      rating: 5,
+      date: "September 19, 2025"
+    },
+    {
+      name: "Bhavana Patel",
+      location: "Ahmedabad",
+      text: "great use of this app",
+      avatar: "https://ui-avatars.com/api/?name=Bhavana+Patel&background=F38181&color=fff&size=100",
+      rating: 5,
+      date: "September 20, 2025"
+    },
+    {
+      name: "Indrajeet Patel",
+      location: "Gandhinagar",
+      text: "One stop solution for your Street Cravings.",
+      avatar: "https://ui-avatars.com/api/?name=Indrajeet+Patel&background=AA96DA&color=fff&size=100",
+      rating: 5,
+      date: "September 18, 2025"
+    },
+    {
+      name: "Devam Prajapati",
+      location: "Ahmedabad",
+      text: "best app👍🏻👍🏻",
+      avatar: "https://ui-avatars.com/api/?name=Devam+Prajapati&background=FCBAD3&color=fff&size=100",
+      rating: 5,
+      date: "September 18, 2025"
+    },
+  ];
 
-// Row 2 testimonials - scrolls right
-const testimonialsRow2 = [
-  {
-    name: "Patel Jay",
-    location: "Gandhinagar",
-    text: "Nice App",
-    avatar: "https://ui-avatars.com/api/?name=Patel+Jay&background=FFFFD2&color=333&size=100",
-    rating: 5,
-    date: "September 28, 2025"
-  },
-  {
-    name: "Hardev Vinzuda",
-    location: "Gandhinagar",
-    text: "Nice App",
-    avatar: "https://ui-avatars.com/api/?name=Hardev+Vinzuda&background=A8D8EA&color=fff&size=100",
-    rating: 5,
-    date: "September 21, 2025"
-  },
-  {
-    name: "Krish Patel",
-    location: "Gandhinagar",
-    text: "Excellent service and great food recommendations! The app makes finding street food so easy.",
-    avatar: "https://ui-avatars.com/api/?name=Krish+Patel&background=FFB6B9&color=fff&size=100",
-    rating: 5,
-    date: "October 5, 2025"
-  },
-  {
-    name: "Jash Patel",
-    location: "Gandhinagar",
-    text: "Love the convenience and variety of options. Delivery is always quick and food is fresh!",
-    avatar: "https://ui-avatars.com/api/?name=Jash+Patel&background=BAE1FF&color=fff&size=100",
-    rating: 5,
-    date: "October 12, 2025"
-  },
-  {
-    name: "Ravi Sharma",
-    location: "Gandhinagar",
-    text: "Best app for discovering local food gems. The discounts are amazing too!",
-    avatar: "https://ui-avatars.com/api/?name=Ravi+Sharma&background=C7CEEA&color=fff&size=100",
-    rating: 5,
-    date: "October 18, 2025"
-  },
-  {
-    name: "Neha Shah",
-    location: "Gandhinagar",
-    text: "User-friendly interface and authentic reviews. Makes ordering street food much easier!",
-    avatar: "https://ui-avatars.com/api/?name=Neha+Shah&background=FFDAC1&color=fff&size=100",
-    rating: 5,
-    date: "October 25, 2025"
-  },
-];
+  // Row 2 testimonials - scrolls right
+  const testimonialsRow2 = [
+    {
+      name: "Patel Jay",
+      location: "Gandhinagar",
+      text: "Nice App",
+      avatar: "https://ui-avatars.com/api/?name=Patel+Jay&background=FFFFD2&color=333&size=100",
+      rating: 5,
+      date: "September 28, 2025"
+    },
+    {
+      name: "Hardev Vinzuda",
+      location: "Ahmedabad",
+      text: "Nice App",
+      avatar: "https://ui-avatars.com/api/?name=Hardev+Vinzuda&background=A8D8EA&color=fff&size=100",
+      rating: 5,
+      date: "September 21, 2025"
+    },
+    {
+      name: "Krish Patel",
+      location: "Gandhinagar",
+      text: "Excellent service and great food recommendations! The app makes finding street food so easy.",
+      avatar: "https://ui-avatars.com/api/?name=Krish+Patel&background=FFB6B9&color=fff&size=100",
+      rating: 5,
+      date: "October 5, 2025"
+    },
+    {
+      name: "Jash Patel",
+      location: "Ahmedabad",
+      text: "Love the convenience and variety of options. Delivery is always quick and food is fresh!",
+      avatar: "https://ui-avatars.com/api/?name=Jash+Patel&background=BAE1FF&color=fff&size=100",
+      rating: 5,
+      date: "October 12, 2025"
+    },
+    {
+      name: "Ravi Sharma",
+      location: "Gandhinagar",
+      text: "Best app for discovering local food gems. The discounts are amazing too!",
+      avatar: "https://ui-avatars.com/api/?name=Ravi+Sharma&background=C7CEEA&color=fff&size=100",
+      rating: 5,
+      date: "October 18, 2025"
+    },
+    {
+      name: "Neha Shah",
+      location: "Ahmedabad",
+      text: "User-friendly interface and authentic reviews. Makes ordering street food much easier!",
+      avatar: "https://ui-avatars.com/api/?name=Neha+Shah&background=FFDAC1&color=fff&size=100",
+      rating: 5,
+      date: "October 25, 2025"
+    },
+  ];
 
   // Quote SVG Component
   const QuoteIcon = ({ className }: { className?: string }) => (
-    <svg 
-      className={className} 
-      width="32" 
-      height="32" 
-      viewBox="0 0 24 24" 
+    <svg
+      className={className}
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
       fill="currentColor"
     >
-      <path d="M11.192 15.757c0-.88-.23-1.618-.69-2.217-.326-.412-.768-.683-1.327-.812-.55-.128-1.07-.137-1.54-.028-.16-.95.1-1.956.76-3.022.66-1.065 1.515-1.867 2.558-2.403L9.373 5c-.8.396-1.56.898-2.26 1.505-.71.607-1.34 1.305-1.9 2.094s-.98 1.68-1.25 2.69-.346 2.04-.217 3.1c.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l.002.003zm9.124 0c0-.88-.23-1.618-.69-2.217-.326-.42-.77-.692-1.327-.817-.56-.124-1.074-.13-1.54-.022-.16-.94.09-1.95.75-3.02.66-1.06 1.514-1.86 2.557-2.4L18.49 5c-.8.396-1.555.898-2.26 1.505-.708.607-1.34 1.305-1.894 2.094-.556.79-.97 1.68-1.24 2.69-.273 1-.345 2.04-.217 3.1.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l-.007.006z"/>
+      <path d="M11.192 15.757c0-.88-.23-1.618-.69-2.217-.326-.412-.768-.683-1.327-.812-.55-.128-1.07-.137-1.54-.028-.16-.95.1-1.956.76-3.022.66-1.065 1.515-1.867 2.558-2.403L9.373 5c-.8.396-1.56.898-2.26 1.505-.71.607-1.34 1.305-1.9 2.094s-.98 1.68-1.25 2.69-.346 2.04-.217 3.1c.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l.002.003zm9.124 0c0-.88-.23-1.618-.69-2.217-.326-.42-.77-.692-1.327-.817-.56-.124-1.074-.13-1.54-.022-.16-.94.09-1.95.75-3.02.66-1.06 1.514-1.86 2.557-2.4L18.49 5c-.8.396-1.555.898-2.26 1.505-.708.607-1.34 1.305-1.894 2.094-.556.79-.97 1.68-1.24 2.69-.273 1-.345 2.04-.217 3.1.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l-.007.006z" />
     </svg>
   );
 
@@ -185,11 +184,11 @@ const testimonialsRow2 = [
         <QuoteIcon className="text-[#06c167] w-6 h-6" />
         <QuoteIcon className="text-[#06c167] w-6 h-6 rotate-180" />
       </div>
-      
+
       {/* User Info */}
       <div className="flex items-center gap-2 mb-3">
-        <img 
-          src={testimonial.avatar} 
+        <img
+          src={testimonial.avatar}
           alt={testimonial.name}
           className="w-10 h-10 rounded-full object-cover border-2 border-[#06c167] group-hover:border-[#05a857] transition-colors"
         />
@@ -209,11 +208,10 @@ const testimonialsRow2 = [
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`w-4 h-4 ${
-              i < testimonial.rating 
-                ? 'text-[#ff6b35] fill-[#ff6b35]' 
+            className={`w-4 h-4 ${i < testimonial.rating
+                ? 'text-[#ff6b35] fill-[#ff6b35]'
                 : 'text-gray-300'
-            }`}
+              }`}
           />
         ))}
         <span className="text-gray-500 text-xs ml-2">Verified User</span>
@@ -270,13 +268,13 @@ const testimonialsRow2 = [
 
         {/* Infinite Scroll Container */}
         <div className="space-y-6">
-          
+
           {/* Row 1 - Scrolls Left */}
           <div className="relative overflow-hidden">
             {/* Gradient Masks */}
             <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-            
+
             <div className="flex gap-6 animate-scroll-left">
               {/* First set */}
               {testimonialsRow1.map((testimonial, index) => (
@@ -294,7 +292,7 @@ const testimonialsRow2 = [
             {/* Gradient Masks */}
             <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-            
+
             <div className="flex gap-6 animate-scroll-right">
               {/* First set */}
               {testimonialsRow2.map((testimonial, index) => (

@@ -1,0 +1,23 @@
+# Streefi
+
+> Street food exploration and dine-in discount application.
+
+## Overview
+Streefi connects foodies with authentic local street food vendors. Users can discover vendors, view menus, and get exclusive dine-in discounts. Vendors can list their business to reach more customers.
+
+## Core Features
+- **Discovery**: Find authentic street food vendors nearby.
+- **Discounts**: Exclusive dine-in offers and deals.
+- **Vendor Platform**: Dedicated app for vendors to manage their business.
+
+## Site Structure
+- [Home](https://streefi.in/) - Main landing page, feature showcase, and app download links.
+- [Vendor Partner](https://streefi.in/vendor) - Information for street food vendors to join the platform.
+- [Support](https://streefi.in/policies/support) - Customer support and contact information.
+- [Policies](https://streefi.in/policies/policy) - Privacy policy, terms of service, and refund policies.
+
+## App Links
+- [Android App](https://play.google.com/store/apps/details?id=com.streefi.customer)
+- [iOS App](https://apps.apple.com/in/app/streefi/id6747432924)
+- [Vendor App (Android)](https://play.google.com/store/apps/details?id=com.streefi.vendor)
+- [Vendor App (iOS)](https://apps.apple.com/in/app/streefi-vendor-partners/id6747433347)
