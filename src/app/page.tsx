@@ -41,9 +41,7 @@ export default function Home() {
       <div className="md:hidden">
         <MobileFooter />
       </div>
-      <div className="md:hidden">
-        <MobileFooter />
-      </div>
+
 
       <JsonLd<FAQPage>
         id="faq-schema"
