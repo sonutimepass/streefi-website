@@ -1,0 +1,16 @@
+# ads.txt file for streefi.in
+# This file declares authorized digital sellers for advertising inventory
+# Format: <domain>, <publisher_id>, <relationship>, <certification_authority_id>
+
+# Google AdSense (if using Google ads)
+# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+
+# For now, this is a placeholder. Update with your actual ad network details when monetizing.
+# Common ad networks:
+# - Google AdSense: google.com, pub-ID, DIRECT, f08c47fec0942fa0
+# - Google Ad Manager: google.com, pub-ID, DIRECT, f08c47fec0942fa0
+
+# If you don't run ads, you can leave this file with just comments
+# or add a single placeholder line to prevent crawler errors.
+
+# Contact: support@streefi.in

@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header/Header';
 import MobileHeader from '@/components/layout/header/MobileHeader';
 import VendorHeroSection from '@/components/vendor/VendorHeroSection';
+import Breadcrumb from '@/components/common/Breadcrumb';
 import { useVendors } from '@/lib/useVendors';
 
 // Lazy load below-the-fold components
@@ -28,6 +29,12 @@ export default function VendorPage() {
       </div>
       <div className="md:hidden">
         <MobileHeader />
+      </div>
+      <div className="pt-24 px-6 max-w-7xl mx-auto">
+        <Breadcrumb
+          items={[{ label: 'Vendors', href: '/vendor' }]}
+          className="text-gray-400"
+        />
       </div>
       <VendorHeroSection />
       <VendorBenefitsSection />

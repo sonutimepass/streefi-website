@@ -80,7 +80,7 @@ export default function HeroSection() {
               <button
                 onClick={() => window.scrollBy({ top: 400, behavior: 'smooth' })}
                 className="flex items-center gap-1 animate-bounce hover:scale-110 transition-transform cursor-pointer"
-                aria-label="Scroll down"
+                aria-label="Swipe down"
               >
                 <span className="text-white text-xs font-medium tracking-wider">SWIPE DOWN</span>
                 <svg className="w-5 h-5 text-[#06c167]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

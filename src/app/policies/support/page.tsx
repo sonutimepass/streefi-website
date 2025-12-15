@@ -2,6 +2,7 @@ import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header/Header';
 import MobileHeader from '@/components/layout/header/MobileHeader';
 import SupportHeroSection from '@/components/support/SupportHeroSection';
+import Breadcrumb from '@/components/common/Breadcrumb';
 
 // Lazy load below-the-fold components
 const SupportQuickHelpCards = dynamic(() => import('@/components/support/SupportQuickHelpCards'), {
@@ -22,9 +23,15 @@ export default function Support() {
       <div className="md:hidden">
         <MobileHeader />
       </div>
+      <div className="pt-24 px-6 max-w-7xl mx-auto">
+        <Breadcrumb
+          items={[{ label: 'Support', href: '/policies/support' }]}
+          className="text-gray-600"
+        />
+      </div>
       <SupportHeroSection />
       <SupportQuickHelpCards />
-      
+
       <section className="container mx-auto px-6 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-8">

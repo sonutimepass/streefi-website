@@ -290,7 +290,7 @@ export default function FeaturesSection() {
                 {/* Call to Action Button - Clear Next Step */}
                 <button
                   onClick={handleViewMenu}
-                  className="w-full mt-4 bg-[#06c167] text-white py-3 rounded-xl font-medium hover:bg-[#ff6b35] transition-all duration-300 shadow-md hover:shadow-lg"
+                  className="w-full mt-4 bg-[#048a46] text-white py-3 rounded-xl font-medium hover:bg-[#c75429] transition-all duration-300 shadow-md hover:shadow-lg"
                 >
                   View Menu & Location
                 </button>
@@ -379,7 +379,7 @@ export default function FeaturesSection() {
                 window.location.href = '/vendor#vendors';
               }
             }}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-[#06c167] text-white rounded-full font-medium hover:bg-[#ff6b35] transition-all duration-300 shadow-md hover:shadow-lg group"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-[#048a46] text-white rounded-full font-medium hover:bg-[#c75429] transition-all duration-300 shadow-md hover:shadow-lg group"
           >
             <span>View All Verified Vendors</span>
             <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

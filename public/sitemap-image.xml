@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- Homepage Images -->
+  <url>
+    <loc>https://streefi.in/</loc>
+    <image:image>
+      <image:loc>https://streefi.in/assets/streefi-logo.png</image:loc>
+      <image:caption>Streefi - India's #1 Street Food Finder App Logo</image:caption>
+      <image:title>Streefi Logo</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/background-image-3.jpeg</image:loc>
+      <image:caption>Authentic Indian street food background - Streefi app hero section</image:caption>
+      <image:title>Street Food Background</image:title>
+    </image:image>
+  </url>
+
+  <!-- Vendor Page Images -->
+  <url>
+    <loc>https://streefi.in/vendor/</loc>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor1.jpg</image:loc>
+      <image:caption>Hema's Sweet Creation - Cake and Pastry vendor in Gandhinagar</image:caption>
+      <image:title>Hema's Sweet Creation Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor3.jpg</image:loc>
+      <image:caption>S.R Dabeli Vadapav - Best dabeli and vada pav in PDPU Gandhinagar</image:caption>
+      <image:title>S.R Dabeli Vadapav Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor4.jpg</image:loc>
+      <image:caption>Pizza Farm - Fresh pizza and garlic bread in Swarnim Park Gandhinagar</image:caption>
+      <image:title>Pizza Farm Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor5.jpg</image:loc>
+      <image:caption>Shawarma Junction - Best shawarma and burgers in Swarnim Park Gandhinagar</image:caption>
+      <image:title>Shawarma Junction Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor7.jpg</image:loc>
+      <image:caption>Mom's Kitchen - Homemade sandwiches and ghughra in Swarnim Park Gandhinagar</image:caption>
+      <image:title>Mom's Kitchen Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor8.jpg</image:loc>
+      <image:caption>Burger Boys - Popular burgers in Gandhinagar</image:caption>
+      <image:title>Burger Boys Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor11.jpg</image:loc>
+      <image:caption>Rasraj - Fast food restaurant in Ahmedabad</image:caption>
+      <image:title>Rasraj Vendor</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/vendor/vendor12.jpg</image:loc>
+      <image:caption>Shakti Food Zone - Popular fast food in Ahmedabad</image:caption>
+      <image:title>Shakti Food Zone Vendor</image:title>
+    </image:image>
+  </url>
+
+  <!-- App Store Icons -->
+  <url>
+    <loc>https://streefi.in/</loc>
+    <image:image>
+      <image:loc>https://streefi.in/assets/appstore.svg</image:loc>
+      <image:caption>Download Streefi on Apple App Store</image:caption>
+      <image:title>App Store Download Button</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://streefi.in/assets/playstore.svg</image:loc>
+      <image:caption>Download Streefi on Google Play Store</image:caption>
+      <image:title>Google Play Download Button</image:title>
+    </image:image>
+  </url>
+
+</urlset>

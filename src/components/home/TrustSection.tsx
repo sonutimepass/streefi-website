@@ -193,7 +193,7 @@ export default function TrustSection() {
           className="w-10 h-10 rounded-full object-cover border-2 border-[#06c167] group-hover:border-[#05a857] transition-colors"
         />
         <div>
-          <h4 className="text-gray-900 font-semibold text-sm">{testimonial.name}</h4>
+          <p className="text-gray-900 font-semibold text-sm">{testimonial.name}</p>
           <p className="text-gray-600 text-xs">{testimonial.location}</p>
         </div>
       </div>
@@ -209,8 +209,8 @@ export default function TrustSection() {
           <Star
             key={i}
             className={`w-4 h-4 ${i < testimonial.rating
-                ? 'text-[#ff6b35] fill-[#ff6b35]'
-                : 'text-gray-300'
+              ? 'text-[#ff6b35] fill-[#ff6b35]'
+              : 'text-gray-300'
               }`}
           />
         ))}
