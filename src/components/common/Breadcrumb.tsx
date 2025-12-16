@@ -37,9 +37,9 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
             {/* Visual breadcrumb navigation */}
             <nav
                 aria-label="Breadcrumb"
-                className={`flex items-center text-sm text-gray-600 ${className}`}
+                className={`flex items-center text-sm text-gray-600 py-2 px-3 sm:py-1 sm:px-0 ${className}`}
             >
-                <ol className="flex items-center flex-wrap gap-1" itemScope itemType="https://schema.org/BreadcrumbList">
+                <ol className="flex items-center flex-nowrap gap-2 sm:gap-1 overflow-x-auto" itemScope itemType="https://schema.org/BreadcrumbList">
                     {/* Home link */}
                     <li
                         className="flex items-center"
@@ -53,7 +53,7 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
                             itemProp="item"
                         >
                             <Home className="w-4 h-4" />
-                            <span className="sr-only" itemProp="name">Home</span>
+                            <span className="ml-2 text-sm" itemProp="name">Home</span>
                         </Link>
                         <meta itemProp="position" content="1" />
                     </li>
@@ -61,7 +61,7 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
                     {items.map((item, index) => (
                         <li
                             key={index}
-                            className="flex items-center"
+                            className="flex items-center whitespace-nowrap"
                             itemProp="itemListElement"
                             itemScope
                             itemType="https://schema.org/ListItem"
@@ -70,7 +70,7 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
                             {item.href ? (
                                 <Link
                                     href={item.href}
-                                    className="hover:text-[#06c167] transition-colors"
+                                    className="inline-flex items-center hover:text-[#06c167] transition-colors"
                                     itemProp="item"
                                 >
                                     <span itemProp="name">{item.label}</span>
