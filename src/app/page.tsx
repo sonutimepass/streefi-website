@@ -29,19 +29,16 @@ export default function Home() {
       <div className="md:hidden">
         <MobileHeader />
       </div>
-      <HeroSection />
-      <VendorSuccessSection />
-
-      <TrustSection />
-      <FeaturesSection />
-
+      
       <div className="hidden md:block">
         <Footer />
       </div>
       <div className="md:hidden">
         <MobileFooter />
       </div>
-
+      <div className="md:hidden">
+        <MobileFooter />
+      </div>
 
       <JsonLd<FAQPage>
         id="faq-schema"

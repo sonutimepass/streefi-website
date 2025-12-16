@@ -3,10 +3,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
-const ParticleBackground = dynamic(
-  () => import('@/components/common/ParticleBackground'),
-  { ssr: false }
-);
+// const ParticleBackground = dynamic(
+//   () => import('@/components/common/ParticleBackground'),
+//   { ssr: false }
+// );
 
 function handleContactClick() {
   const phoneNumber = "917777933650";
@@ -23,14 +23,7 @@ function handleContactClick() {
 export default function Footer() {
   return (
     <footer className="relative py-8 px-6 bg-slate-950 text-gray-300 border-t border-slate-800 overflow-hidden">
-      {/* Particle Effect - Footer background */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <ParticleBackground
-          particleColor="#06c167"
-          particleCount={500}
-          speed={1}
-        />
-      </div>
+
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Main Footer Content */}
