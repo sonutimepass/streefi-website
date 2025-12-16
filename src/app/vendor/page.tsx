@@ -33,7 +33,7 @@ export default function VendorPage() {
       <div className="pt-24 px-6 max-w-7xl mx-auto">
         <Breadcrumb
           items={[{ label: 'Vendors', href: '/vendor' }]}
-          className="text-gray-400"
+          className="hidden"
         />
       </div>
       <VendorHeroSection />
