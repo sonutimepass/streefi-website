@@ -23,13 +23,15 @@ export default function Support() {
       <div className="md:hidden">
         <MobileHeader />
       </div>
-      <div className="pt-24 px-6 max-w-7xl mx-auto">
-        <Breadcrumb
-          items={[{ label: 'Support', href: '/policies/support' }]}
-          className="text-gray-600"
-        />
-      </div>
-      <SupportHeroSection />
+      <section className="bg-green-600">
+        <div className="pt-10 px-7 max-w-7xl mx-auto">
+          <Breadcrumb
+            items={[{ label: 'Support', href: '/policies/support' }]}
+            className="text-white relative z-10"
+          />
+        </div>
+        <SupportHeroSection />
+      </section>
       <SupportQuickHelpCards />
 
       <section className="container mx-auto px-6 pb-16">
