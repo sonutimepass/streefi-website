@@ -37,7 +37,7 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
             {/* Visual breadcrumb navigation */}
             <nav
                 aria-label="Breadcrumb"
-                className={`flex items-center text-sm text-gray-600 py-2 px-3 sm:py-1 sm:px-0 ${className}`}
+                className={`flex items-center text-sm text-gray-600 py-1 px-1 sm:py-1 sm:px-0 ${className}`}
             >
                 <ol className="flex items-center flex-nowrap gap-2 sm:gap-1 overflow-x-auto" itemScope itemType="https://schema.org/BreadcrumbList">
                     {/* Home link */}
