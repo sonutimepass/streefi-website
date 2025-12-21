@@ -14,7 +14,7 @@ export default function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0 opacity-50 z-0" aria-hidden="true">
         <Image
-          src="/assets/background-image-3.jpeg"
+          src="/assets/qwerty.png"
           alt="Street Food Background"
           fill
           className="object-cover"
@@ -64,7 +64,7 @@ export default function HeroSection() {
       <div className="max-w-7xl mx-auto relative z-20 pt-30">
         <div className="flex flex-col items-center text-center">
           {/* Content - Centered */}
-          <div className="space-y-6 pt-8 max-w-10xl"> <div className="pt-13"></div>
+          <div className="space-y-6 pt-8 max-w-10xl"> <div className="pt-14"></div>
             {/* Badge */}
             <div className="text-2xl sm:text-3xl md:text-4xl font-bold bg-[#06c167]/20 backdrop-blur-sm border border-[#06c167]/30 text-[#06c167] px-6 py-3 rounded-full inline-block">
               India's #1 Street Food Finder App*
