@@ -12,10 +12,9 @@ export default function FloatingDownloadButton() {
       if (heroSection && footer) {
         const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
         const footerTop = footer.offsetTop;
-        const scrollPosition = window.scrollY + window.innerHeight;
         
-        // Show button after hero section and before footer
-        setIsVisible(scrollPosition > heroBottom && window.scrollY < footerTop - window.innerHeight + 200);
+        // Show button only after scrolling past hero section and before footer
+        setIsVisible(window.scrollY > heroBottom && window.scrollY < footerTop - window.innerHeight + 200);
       }
     };
 

@@ -10,8 +10,8 @@ interface ParticleBackgroundProps {
 }
 
 export default function ParticleBackground({
-  particleColor = '#4285F4', // Google Blue
-  particleCount = 2000,      // High count for dense starfield
+  particleColor = '#FFFFFF', // Google Blue
+  particleCount = 3000,      // High count for dense starfield
   speed = 2                  // Speed of the "liftoff"
 }: ParticleBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);

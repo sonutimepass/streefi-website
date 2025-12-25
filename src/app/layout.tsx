@@ -117,7 +117,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-IN">
+    <html lang="en-IN" data-scroll-behavior="smooth">
       <head>
         {/* Google Tag Manager */}
         <Script id="google-tag-manager" strategy="beforeInteractive">

@@ -1,23 +1,21 @@
 'use client';
 import dynamic from 'next/dynamic';
-import Header from '@/components/layout/header/Header';
-import MobileHeader from '@/components/layout/header/MobileHeader';
-import VendorHeroSection from '@/components/vendor/VendorHeroSection';
-import Breadcrumb from '@/components/common/Breadcrumb';
-import { useVendors } from '@/lib/useVendors';
+import { Header, MobileHeader, Footer, MobileFooter } from '@/core/layouts';
+import { VendorHeroSection } from '@/modules/vendor';
+import { Breadcrumb } from '@/modules/policies';
+import { useVendors } from '@/hooks';
 
 // Lazy load below-the-fold components
-const VendorBenefitsSection = dynamic(() => import('@/components/vendor/VendorBenefitsSection'), {
+const VendorBenefitsSection = dynamic(() => import('@/modules/vendor').then(mod => ({ default: mod.VendorBenefitsSection })), {
   loading: () => <div className="min-h-[500px]" />
 });
-const VendorGrid = dynamic(() => import('@/components/vendor/VendorGrid'), {
+const VendorGrid = dynamic(() => import('@/modules/vendor').then(mod => ({ default: mod.VendorGrid })), {
   loading: () => <div className="min-h-[600px]" />
 });
-const VendorCTASection = dynamic(() => import('@/components/vendor/VendorCTASection'), {
+const VendorCTASection = dynamic(() => import('@/modules/vendor').then(mod => ({ default: mod.VendorCTASection })), {
   loading: () => <div className="min-h-[400px]" />
 });
-const Footer = dynamic(() => import('@/components/layout/footer/Footer'));
-const MobileFooter = dynamic(() => import('@/components/layout/footer/MobileFooter'));
+
 
 export default function VendorPage() {
   const { vendors, loading } = useVendors();
