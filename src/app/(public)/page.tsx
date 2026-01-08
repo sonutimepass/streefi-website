@@ -15,6 +15,9 @@ const FeaturesSection = dynamic(() => import('@/modules/home').then(mod => ({ de
 const VendorSuccessSection = dynamic(() => import('@/modules/home').then(mod => ({ default: mod.VendorSuccessSection })), {
   loading: () => <div className="min-h-[500px]" />
 });
+const PhoneMockupSection = dynamic(() => import('@/modules/home').then(mod => ({ default: mod.PhoneMockupSection })), {
+  loading: () => <div className="min-h-[400px]" />
+});
 
 
 export default function Home() {
@@ -28,8 +31,9 @@ export default function Home() {
       </div>
       <HeroSection />
       <VendorSuccessSection />
-
+      <PhoneMockupSection />
       <TrustSection />
+      
       <FeaturesSection />
 
       <div className="hidden md:block">

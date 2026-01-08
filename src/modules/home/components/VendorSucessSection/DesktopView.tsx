@@ -1,5 +1,5 @@
 'use client';
-import { MapPin, Clock, Percent, Users, Sparkles, ChevronRight, Star, TrendingUp, Zap, Heart, BadgeCheck } from 'lucide-react';
+import { MapPin, Clock, Percent, Users, Sparkles, BadgeCheck, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function DesktopView() {
@@ -24,7 +24,7 @@ export default function DesktopView() {
   }, []);
 
   return (
-    <section id="why-streefi" className="relative py-20 px-6 bg-white overflow-hidden pb-0">
+    <section id="why-streefi" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
 
       {/* Top Decorative Circle */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none" style={{ height: '150px' }}>
@@ -36,193 +36,151 @@ export default function DesktopView() {
       {/* Animated Background Glow */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-yellow-500 rounded-full blur-3xl animate-pulse delay-500"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-green-500 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-teal-500 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
       <div className="max-w-6xl mx-auto relative z-10">
 
-        {/* Pain Point Header - Hit Emotions Hard */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-orange-100 px-5 py-2 rounded-full mb-6 border border-orange-200">
-            <Zap className="w-4 h-4 text-[#d95429]" />
-            <span className="text-[#d95429] font-medium text-sm tracking-wide">STOP EATING BORING FOOD</span>
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-emerald-100 px-4 py-2 rounded-full mb-4 border border-emerald-200 shadow-sm">
+            <Zap className="w-5 h-5 text-emerald-600" />
+            <span className="text-emerald-800 font-bold text-sm tracking-wide">DISCOVER BETTER FOOD</span>
           </div>
 
-          <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
             Your Friends Eat Better.<br />
-            <span className="text-[#06c167]">
-              Want to Know Why?
-            </span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-green-600">Want to Know Why?</span>
           </h2>
 
-          <p className="text-gray-700 text-xl md:text-2xl max-w-3xl mx-auto mb-4 leading-relaxed">
-            They know the <span className="text-[#ff6b35] font-bold">₹30 momos</span> that taste better than ₹200 restaurant ones.
+          <p className="text-gray-600 text-lg md:text-xl max-w-3xl mx-auto mb-3 leading-relaxed">
+            They know the <span className="font-semibold text-gray-800">₹30 momos</span> that taste better than the ₹200 restaurant ones.
           </p>
 
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
-            While you're googling "food near me" and getting the same boring results,
-            <span className="text-[#06c167] font-semibold"> 500+ foodies</span> are eating at hidden gems with exclusive discounts.
+          <p className="text-gray-500 text-base max-w-2xl mx-auto leading-relaxed">
+            While you're getting the same boring "food near me" results,
+            <span className="text-[#06c167] font-semibold"> 500+ foodies</span> are finding hidden gems with exclusive discounts.
           </p>
         </div>
 
-        {/* Core Benefits - Simple & Emotional */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-
-          {/* Benefit 1: Discovery - FOMO */}
-          <div className="group relative bg-white backdrop-blur-md p-8 rounded-3xl border-2 border-gray-200 hover:border-[#ff6b35] transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-lg">
-
-            <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center mb-5 border border-orange-200 group-hover:scale-110 transition-transform">
-              <MapPin className="w-7 h-7 text-[#ff6b35]" />
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              🗺️ Find Secret Spots
-            </h3>
-            <p className="text-gray-700 text-base leading-relaxed mb-3">
-              That cart everyone talks about but no one can find on Google?
-              <span className="text-[#ff6b35] font-semibold"> We have it.</span>
-            </p>
-            <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              120+ vendors added this month
-            </p>
-          </div>
-
-          {/* Benefit 2: Discounts - Greed/Savings */}
-          <div className="group relative bg-white backdrop-blur-md p-8 rounded-3xl border-2 border-gray-200 hover:border-[#06c167] transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-lg">
-
-            {/* Hot Badge */}
-            <div className="absolute -top-2 -left-2 bg-gradient-to-r from-red-500 to-[#ff6b35] text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-              🔥 HOT
-            </div>
-
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-5 border border-green-200 group-hover:scale-110 transition-transform">
-              <Percent className="w-7 h-7 text-[#06c167]" />
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              💰 Crazy Discounts
-            </h3>
-            <p className="text-gray-700 text-base leading-relaxed mb-3">
-              <span className="text-[#06c167] font-bold">Up to 50% OFF</span> at top vendors.
-              Exclusive deals you won't find anywhere else.
-            </p>
-            <p className="text-[#ff6b35] text-sm font-medium flex items-center gap-1">
-              <Sparkles className="w-4 h-4" />
-              Avg. user saves ₹500/month
-            </p>
-          </div>
-
-          {/* Benefit 3: Real-Time - Convenience */}
-          <div className="group relative bg-white backdrop-blur-md p-8 rounded-3xl border-2 border-gray-200 hover:border-[#06c167] transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-lg">
-
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-5 border border-green-200 group-hover:scale-110 transition-transform">
-              <Clock className="w-7 h-7 text-[#06c167]" />
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              ⚡ Open Right Now?
-            </h3>
-            <p className="text-gray-700 text-base leading-relaxed mb-3">
-              Real-time status. No more walking 2km to find a
-              <span className="text-red-500 font-semibold"> closed stall.</span>
-            </p>
-            <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
-              <BadgeCheck className="w-4 h-4" />
-              Live updates from 300+ vendors
-            </p>
-          </div>
-
-          {/* Benefit 4: Reviews - Trust */}
-          <div className="group relative bg-white backdrop-blur-md p-8 rounded-3xl border-2 border-gray-200 hover:border-[#06c167] transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-lg">
-
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-5 border border-green-200 group-hover:scale-110 transition-transform">
-              <Users className="w-7 h-7 text-[#06c167]" />
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              👥 Real People, Real Reviews
-            </h3>
-            <p className="text-gray-700 text-base leading-relaxed mb-3">
-              No fake reviews. No paid influencers. Just
-              <span className="text-[#06c167] font-semibold"> hungry people like you</span> sharing the truth.
-            </p>
-            <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              500+ verified reviews
-            </p>
-          </div>
-
-          {/* Benefit 5: Prices - No Scam */}
-          <div className="group relative bg-white backdrop-blur-md p-8 rounded-3xl border-2 border-gray-200 hover:border-[#06c167] transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-lg">
-
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-5 border border-green-200 group-hover:scale-110 transition-transform">
-              <BadgeCheck className="w-7 h-7 text-[#06c167]" />
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              ✅ No Tourist Pricing
-            </h3>
-            <p className="text-gray-700 text-base leading-relaxed mb-3">
-              See <span className="text-[#06c167] font-semibold">real prices</span> before you go.
-              No "special price for you, sir" surprises.
-            </p>
-            <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
-              <Star className="w-4 h-4" />
-              Prices verified by community
-            </p>
-          </div>
-
-          {/* Benefit 6: Dine-In Offers */}
-          <div className="group relative bg-white backdrop-blur-md p-8 rounded-3xl border-2 border-gray-200 hover:border-[#06c167] transition-all duration-500 hover:scale-[1.02] shadow-md hover:shadow-lg">
-
-            {/* New Badge */}
-            <div className="absolute -top-2 -left-2 bg-gradient-to-r from-[#06c167] to-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-              ✨ NEW
-            </div>
-
-            <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-5 border border-green-200 group-hover:scale-110 transition-transform">
-              <Sparkles className="w-7 h-7 text-[#06c167]" />
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              🍽️ Dine-In Deals
-            </h3>
-            <p className="text-gray-700 text-base leading-relaxed mb-3">
-              Flash your app, get <span className="text-[#06c167] font-semibold">instant discounts</span> at
-              partner restaurants, stalls, foodtrucks & cafes.
-            </p>
-            <p className="text-[#06c167] text-sm font-medium flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              50+ partners onboarded
-            </p>
-          </div>
-        </div>
-
-        {/* FOMO Section - Urgency */}
-        <div className="relative bg-gradient-to-r from-orange-50 to-red-50 rounded-3xl p-8 md:p-12 mb-16 border-2 border-orange-200 overflow-hidden shadow-md">
-
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                🤔 Still thinking?
-              </h3>
-              <p className="text-gray-700 text-lg">
-                While you decide, <span className="text-[#ff6b35] font-bold">{activePeople} people</span> just discovered
-                their new favorite food spot.
-              </p>
-            </div>
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full border-2 border-green-200">
-                <div className="w-2 h-2 rounded-full bg-[#06c167] animate-pulse"></div>
-                <span className="text-[#06c167] font-semibold text-sm">{activePeople + 51} people browsing now</span>
+        {/* Features Section */}
+        <div className="max-w-7xl mx-auto px-2 py-8">
+          {/* Bento Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-5 auto-rows-[190px]">
+            
+            {/* Featured Card: Secret Spots */}
+            <div className="md:col-span-3 lg:col-span-5 row-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-black p-6 text-white shadow-lg hover:shadow-emerald-500/20 transition-all duration-300">
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="bg-emerald-500 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-105 group-hover:rotate-6 transition-transform shadow-lg">
+                  <MapPin className="text-white w-6 h-6" />
+                </div>
+                <h3 id="secret-spots-heading" className="text-xl font-bold mb-2">Find Secret Spots</h3>
+                <p className="text-gray-300 text-base leading-relaxed mb-4">
+                  That cart everyone talks about but no one can find? We have it mapped.
+                </p>
+                <div className="mt-auto pt-4 border-t border-gray-700/50 flex justify-between items-center">
+                  <span className="text-emerald-400 font-semibold text-xs uppercase tracking-wider">+120 vendors this month</span>
+                </div>
               </div>
-              <p className="text-gray-600 text-xs">Don't miss out on hidden gems</p>
+              <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-500"></div>
+            </div>
+
+            {/* Promotion Card: Discounts */}
+            <div className="md:col-span-3 lg:col-span-7 row-span-2 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 border border-emerald-200/50 p-6 relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col">
+              <div className="absolute top-5 right-5">
+                <div className="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full -rotate-6 shadow-md animate-pulse">
+                  🔥 HOT DEALS
+                </div>
+              </div>
+              
+              <div className="flex-grow">
+                <div className="bg-white w-12 h-12 rounded-lg flex items-center justify-center mb-4 shadow-sm">
+                  <Percent className="text-emerald-600 w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Save ₹500 every month</h3>
+                <p className="text-gray-600 text-base leading-relaxed max-w-sm">
+                  Up to 50% OFF at top vendors. Exclusive deals you won't find on anywhere.
+                </p>
+              </div>
+
+              <div className="flex items-end justify-between mt-4">
+                <button className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition-all hover:scale-105 shadow-md">
+                  Get Deals
+                </button>
+                <div className="text-right">
+                  <p className="text-emerald-600 font-black text-3xl">50% OFF</p>
+                  <p className="text-gray-500 text-xs uppercase font-bold tracking-wide">Max Savings</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Features */}
+            {[
+              { 
+                title: "Open Now?", 
+                icon: <Clock className="w-6 h-6" />,
+                desc: "Live stall status lets you know if they're serving.",
+                gradient: "from-blue-500 to-sky-500"
+              },
+              { 
+                title: "Real Reviews", 
+                icon: <Users className="w-6 h-6" />,
+                desc: "Honest feedback from foodies, no fake hype.",
+                gradient: "from-purple-500 to-violet-500"
+              },
+              { 
+                title: "Verified Info", 
+                icon: <BadgeCheck className="w-6 h-6" />, 
+                desc: "Accurate pricing and vetted quality you can trust.",
+                gradient: "from-amber-500 to-yellow-500"
+              },
+              { 
+                title: "Dine-In Perks", 
+                icon: <Sparkles className="w-6 h-6" />,
+                desc: "Get instant discounts at the stall, just for you.",
+                gradient: "from-pink-500 to-rose-500"
+              },
+            ].map((item, i) => (
+              <div 
+                key={i} 
+                className="md:col-span-3 lg:col-span-3 row-span-1 rounded-2xl border border-gray-200/80 bg-white/90 backdrop-blur-sm p-5 hover:shadow-xl hover:border-emerald-200 transition-all duration-300 group cursor-pointer flex flex-col"
+              >
+                <div className={`p-4 self-start rounded-xl bg-gradient-to-br ${item.gradient} text-white group-hover:scale-110 transition-transform shadow-lg`}>
+                  {item.icon}
+                </div>
+                <div className="mt-auto">
+                  <h4 className="font-bold text-gray-900 text-lg leading-tight">{item.title}</h4>
+                  <p className="text-sm text-gray-600 mt-1">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Section */}
+          <div className="mt-16 relative rounded-3xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 p-1 shadow-2xl overflow-hidden">
+            <div className="bg-slate-50 rounded-[1.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-3 bg-white text-emerald-800 px-4 py-2 rounded-full mb-4 border border-emerald-200/80 shadow-sm">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-sm font-semibold">{activePeople + 51} people browsing now</span>
+                </div>
+                <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
+                  Don't miss the next gem.
+                </h3>
+                <p className="text-gray-600 text-base">
+                  While you read this, <span className="text-emerald-600 font-semibold">{activePeople} foodies</span> just found a secret spot.
+                </p>
+              </div>
+              <button className="w-full md:w-auto px-8 py-4 bg-gray-900 text-white rounded-xl font-bold text-base hover:scale-105 transition-transform shadow-lg hover:shadow-2xl hover:bg-black">
+                Download The App
+              </button>
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );

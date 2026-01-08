@@ -54,6 +54,13 @@ const nextConfig: NextConfig = {
       permanent: true,
     },
 
+    // QR Code redirects
+    {
+      source: '/qr-code',
+      destination: '/qrcode',
+      permanent: true,
+    },
+
     // Policy page redirects
     {
       source: '/policy',
