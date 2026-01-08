@@ -220,7 +220,7 @@ export default function DesktopView() {
   );
 
   return (
-    <section id="reviews" className="relative py-20 bg-white overflow-hidden">
+    <section id="reviews" className="relative py-20 bg-[#f0fdf4] overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500 rounded-full blur-3xl"></div>

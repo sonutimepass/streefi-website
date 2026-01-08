@@ -14,7 +14,9 @@ const videos = [
   '/assets/videos/videos (9).mp4',
   '/assets/videos/videos (10).mp4',
   '/assets/videos/videos (11).mp4',
-  '/assets/videos/videos (12).mp4'
+  '/assets/videos/videos (12).mp4',
+  '/assets/videos/videos (13).mp4',
+  '/assets/videos/videos (14).mp4'
 ];
 
 const CARD_WIDTH = 280;
@@ -217,7 +219,7 @@ export default function VideoCarousel() {
   }, [currentIndex]);
 
   return (
-    <section className="relative w-full py-20 bg-white overflow-hidden select-none">
+    <section className="relative w-full py-10 bg-[#f0fdf4] overflow-hidden select-none">
       {/* Left Navigation Button */}
       <button
         onClick={goToPrev}

@@ -1,9 +1,11 @@
 'use client';
 import { MapPin, Clock, Percent, Users, Sparkles, BadgeCheck, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export default function DesktopView() {
   const [activePeople, setActivePeople] = useState(0);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     const generateRandomCount = () => {
@@ -24,7 +26,7 @@ export default function DesktopView() {
   }, []);
 
   return (
-    <section id="why-streefi" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+    <section id="why-streefi" className="relative py-14 px-4 sm:px-6 lg:px-8 bg-[#f0fdf4] overflow-hidden">
 
       {/* Top Decorative Circle */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none" style={{ height: '150px' }}>
@@ -105,7 +107,10 @@ export default function DesktopView() {
               </div>
 
               <div className="flex items-end justify-between mt-4">
-                <button className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition-all hover:scale-105 shadow-md">
+                <button 
+                  onClick={() => setShowPopup(true)}
+                  className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition-all hover:scale-105 shadow-md"
+                >
                   Get Deals
                 </button>
                 <div className="text-right">
@@ -160,7 +165,7 @@ export default function DesktopView() {
           {/* CTA Section */}
           <div className="mt-16 relative rounded-3xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 p-1 shadow-2xl overflow-hidden">
             <div className="bg-slate-50 rounded-[1.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex-1 text-center md:text-left">
+              <div className="flex-1 text-center md:text-center">
                 <div className="inline-flex items-center gap-3 bg-white text-emerald-800 px-4 py-2 rounded-full mb-4 border border-emerald-200/80 shadow-sm">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -175,10 +180,62 @@ export default function DesktopView() {
                   While you read this, <span className="text-emerald-600 font-semibold">{activePeople} foodies</span> just found a secret spot.
                 </p>
               </div>
-              <button className="w-full md:w-auto px-8 py-4 bg-gray-900 text-white rounded-xl font-bold text-base hover:scale-105 transition-transform shadow-lg hover:shadow-2xl hover:bg-black">
-                Download The App
-              </button>
             </div>
+
+      {showPopup && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPopup(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#06c167] to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">📱</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Download Customer App</h3>
+              <p className="text-gray-600">View menus, explore vendors, and get exclusive deals!</p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.streefi.customer&pcampaignid=web_share"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center space-x-3 bg-black hover:bg-gray-900 text-white px-6 py-4 rounded-xl transition-all duration-200 hover:shadow-lg"
+              >
+                <Image src="/assets/playstore.svg" alt="Google Play" width={28} height={28} className="w-7 h-7" />
+                <div className="text-left">
+                  <p className="text-xs text-gray-300">Get it on</p>
+                  <p className="text-base font-semibold">Google Play</p>
+                </div>
+              </a>
+
+              <a
+                href="https://apps.apple.com/in/app/streefi/id6747432924"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center space-x-3 bg-black hover:bg-gray-900 text-white px-6 py-4 rounded-xl transition-all duration-200 hover:shadow-lg"
+              >
+                <Image src="/assets/appstore.svg" alt="App Store" width={28} height={28} className="w-7 h-7" />
+                <div className="text-left">
+                  <p className="text-xs text-gray-300">Download on the</p>
+                  <p className="text-base font-semibold">App Store</p>
+                </div>
+              </a>
+            </div>
+
+            <button
+              onClick={() => setShowPopup(false)}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition-all duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
           </div>
         </div>
       </div>

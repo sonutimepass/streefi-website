@@ -18,7 +18,7 @@ export default function DesktopView() {
       </div>
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto relative z-20 pb-1 px-4 lg:px-7">
+      <div className="max-w-6xl mx-auto relative z-20 pb-14 px-4 lg:px-7">
         <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8 lg:gap-10">
           
           {/* Top Section - Text Content (Centered) */}

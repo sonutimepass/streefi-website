@@ -136,7 +136,7 @@ const vendors = [
   };
 
   return (
-    <section className="py-10 relative overflow-hidden">
+    <section className="py-10 relative overflow-hidden bg-[#f0fdf4]">
       <div className="absolute top-0 left-0 w-96 h-96 bg-[#06c167]/5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#ff6b35]/5 rounded-full blur-3xl"></div>
 
@@ -187,6 +187,16 @@ const vendors = [
             }`}
           >
             ⭐ Top Rated
+          </button>
+          <button
+            onClick={() => handleFilterClick('deals')}
+            className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+              activeFilter === 'deals'
+                ? 'bg-[#e11d48] text-white shadow-lg'
+                : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-[#e11d48]'
+            }`}
+          >
+            🎁 Get Deals
           </button>
         </div>
 
