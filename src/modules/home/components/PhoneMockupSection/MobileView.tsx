@@ -3,20 +3,20 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 
 const videos = [
-  '/assets/videos/videos (1).mp4',
-  '/assets/videos/videos (2).mp4',
-  '/assets/videos/videos (3).mp4',
-  '/assets/videos/videos (4).mp4',
-  '/assets/videos/videos (5).mp4',
-  '/assets/videos/videos (6).mp4',
-  '/assets/videos/videos (7).mp4',
-  '/assets/videos/videos (8).mp4',
-  '/assets/videos/videos (9).mp4',
-  '/assets/videos/videos (10).mp4',
-  '/assets/videos/videos (11).mp4',
-  '/assets/videos/videos (12).mp4',
-  '/assets/videos/videos (13).mp4',
-  '/assets/videos/videos (14).mp4'
+  '/assets/videos/videos-1.mp4',
+  '/assets/videos/videos-2.mp4',
+  '/assets/videos/videos-3.mp4',
+  '/assets/videos/videos-4.mp4',
+  '/assets/videos/videos-5.mp4',
+  '/assets/videos/videos-6.mp4',
+  '/assets/videos/videos-7.mp4',
+  '/assets/videos/videos-8.mp4',
+  '/assets/videos/videos-9.mp4',
+  '/assets/videos/videos-10.mp4',
+  '/assets/videos/videos-11.mp4',
+  '/assets/videos/videos-12.mp4',
+  '/assets/videos/videos-13.mp4',
+  '/assets/videos/videos-14.mp4'
 ];
 
 // Adjusted for mobile: slightly narrower than desktop to fit screen widths

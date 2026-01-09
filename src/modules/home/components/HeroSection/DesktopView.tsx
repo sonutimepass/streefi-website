@@ -48,7 +48,7 @@ export default function DesktopView() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Download Streefi on the App Store"
-                    className="group relative flex items-center justify-center space-x-3 bg-white/95 backdrop-blur-sm border-2 border-transparent hover:border-[#06c167] hover:bg-white text-gray-900 px-7 py-4 rounded-xl shadow-xl hover:shadow-2xl hover:shadow-[#06c167]/20 transition-all duration-500 hover:scale-105 text-sm min-w-[220px]"
+                    className="group relative flex items-center justify-center space-x-3 bg-white/90 backdrop-blur-sm border-2 border-transparent hover:border-[#06c167] hover:bg-green-200 text-gray-900 px-7 py-4 rounded-xl shadow-xl hover:shadow-2xl hover:shadow-[#06c167]/20 transition-all duration-500 hover:scale-105 text-sm min-w-[220px]"
                     style={{ touchAction: 'manipulation' }}
                   >
                     <Image
@@ -56,7 +56,7 @@ export default function DesktopView() {
                       alt="App Store"
                       width={24}
                       height={24}
-                      className="w-6 h-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12"
+                      className="w-6 h-6 transition-all duration-300 group-hover:scale-110"
                     />
                     <div className="text-left">
                       <p className="text-xs text-gray-600 font-medium">Download on the</p>
@@ -69,7 +69,7 @@ export default function DesktopView() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Download Streefi on Google Play"
-                    className="group relative flex items-center justify-center space-x-3 bg-white/95 backdrop-blur-sm border-2 border-transparent hover:border-[#06c167] hover:bg-white text-gray-900 px-7 py-4 rounded-xl shadow-xl hover:shadow-2xl hover:shadow-[#06c167]/20 transition-all duration-500 hover:scale-105 text-sm min-w-[220px]"
+                    className="group relative flex items-center justify-center space-x-3 bg-white/95 backdrop-blur-sm border-2 border-transparent hover:border-[#06c167] hover:bg-green-200 text-gray-900 px-7 py-4 rounded-xl shadow-xl hover:shadow-2xl hover:shadow-[#06c167]/20 transition-all duration-500 hover:scale-105 text-sm min-w-[220px]"
                     style={{ touchAction: 'manipulation' }}
                   >
                     <Image
@@ -77,7 +77,7 @@ export default function DesktopView() {
                       alt="Google Play"
                       width={24}
                       height={24}
-                      className="w-6 h-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12"
+                      className="w-6 h-6 transition-all duration-300 group-hover:scale-110"
                     />
                     <div className="text-left">
                       <p className="text-xs text-gray-600 font-medium">Get it on</p>
