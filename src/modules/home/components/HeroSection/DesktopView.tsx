@@ -16,13 +16,12 @@ export default function DesktopView() {
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
       </div>
-
       {/* Content */}
       <div className="max-w-6xl mx-auto relative z-20 pb-14 px-4 lg:px-7">
         <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8 lg:gap-10">
           
           {/* Top Section - Text Content (Centered) */}
-          <div className="w-full max-w-4xl">
+          <div className="w-full max-w-6xl">
             <div className="space-y-4 lg:space-y-5 text-center">
               {/* Badge */}
               <div className="inline-block animate-[fadeIn_0.6s_ease-out]">
