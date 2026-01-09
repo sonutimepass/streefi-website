@@ -151,15 +151,7 @@ export default function MobileView() {
   };
 
   return (
-    <section id="why-streefi-mobile" className="relative py-10 px-4 bg-white overflow-hidden">
-
-      {/* Top Decorative Circle for Mobile */}
-      <div className="absolute top-0 left-0 w-full overflow-hidden leading-none" style={{ height: '80px' }}>
-        <svg className="absolute w-full h-full" viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-          <circle cx="720" cy="-300" r="380" fill="#f0fdf4" />
-        </svg>
-      </div>
-
+    <section id="why-streefi-mobile" className="relative py-5 px-4 overflow-hidden" style={{ background: '#f0fdf4' }}>
       <div className="max-w-6xl mx-auto relative z-10 pt-2">
 
         {/* Pain Point Header - Mobile */}
@@ -177,7 +169,7 @@ export default function MobileView() {
           </h2>
 
           <p className="text-gray-700 text-base max-w-md mx-auto mb-3 leading-relaxed">
-            They know the <span className="text-[#ff6b35] font-bold">₹30 momos</span> that taste better than ₹200 restaurant ones.
+            They know the <span className="text-[#ff6b35] font-bold">₹100 momos</span> that taste better than ₹1000 restaurant ones.
           </p>
 
           <p className="text-gray-600 text-sm max-w-xs mx-auto leading-relaxed">
@@ -277,34 +269,6 @@ export default function MobileView() {
                 {activeSlide + 1} / {benefits.length}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* FOMO Section - Mobile with pulse animation */}
-        <div className="relative bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-6 mb-10 border-2 border-orange-200 overflow-hidden shadow-md">
-          {/* Animated background circles */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-200 rounded-full opacity-20 blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-red-200 rounded-full opacity-20 blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-
-          <div className="relative z-10">
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              🤔 Still thinking?
-            </h3>
-            <p className="text-gray-700 text-sm mb-4">
-              While you decide, <span className="text-[#ff6b35] font-bold">{activePeople} people</span> just discovered
-              their new favorite food spot.
-            </p>
-            <div className="flex items-center gap-2 bg-green-100 px-3 py-2 rounded-full border-2 border-green-200 shadow-sm">
-              <div className="relative flex items-center">
-                <div className="w-2 h-2 rounded-full bg-[#06c167] animate-ping absolute"></div>
-                <div className="w-2 h-2 rounded-full bg-[#06c167]"></div>
-              </div>
-              <span className="text-[#06c167] font-semibold text-xs">{activePeople + 51} people browsing now</span>
-            </div>
-            <p className="text-gray-600 text-xs mt-3 flex items-center gap-1">
-              <span className="animate-pulse">⚡</span>
-              Don't miss out on hidden gems
-            </p>
           </div>
         </div>
       </div>

@@ -94,17 +94,17 @@ export default function PolicyNavigation() {
       )}
 
       {/* Mobile Sticky Top Navigation */}
-      <div className="block lg:hidden bg-gradient-to-r from-green-600 to-emerald-600 sticky top-0 z-30 shadow-lg backdrop-blur-sm">
+      <div className="block lg:hidden bg-gray-50 sticky top-0 z-30 shadow-lg">
         <div className="relative max-w-4xl mx-auto px-4 py-2">
           <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth w-full">
             {links.map((link) => (
               <button 
                 key={link.id} 
                 onClick={() => scrollToSection(link.id)}
-                className="group relative px-4 py-2 text-white text-sm font-medium whitespace-nowrap rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 border border-white/20"
+                className="group relative px-4 py-2 text-white text-sm font-medium whitespace-nowrap rounded-full bg-[#06c167] transition-all duration-300 border border-[#06c167] hover:bg-[#059669]"
               >
                 <span className="relative z-10">{link.label}</span>
-                <span className="absolute inset-0 bg-white/30 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></span>
+                <span className="absolute inset-0 bg-white/50 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></span>
               </button>
             ))}
           </div>

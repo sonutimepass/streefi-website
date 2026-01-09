@@ -2,7 +2,7 @@
 
 export default function MobileView() {
   return (
-    <section className="bg-gradient-to-br from-green-600 py-14">
+    <section className="bg-gradient-to-br from-green-600 py-19">
       <div className="max-w-7xl mx-auto px-4 text-center">
         <h1 className="text-3xl font-extrabold text-white mb-3">
           Streefi Support Center

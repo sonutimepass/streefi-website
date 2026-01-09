@@ -57,7 +57,7 @@ export default function DesktopView() {
           </h2>
 
           <p className="text-gray-600 text-lg md:text-xl max-w-3xl mx-auto mb-3 leading-relaxed">
-            They know the <span className="font-semibold text-gray-800">₹30 momos</span> that taste better than the ₹200 restaurant ones.
+            They know the <span className="font-semibold text-gray-800">₹100 momos</span> that taste better than the ₹1000 restaurant ones.
           </p>
 
           <p className="text-gray-500 text-base max-w-2xl mx-auto leading-relaxed">

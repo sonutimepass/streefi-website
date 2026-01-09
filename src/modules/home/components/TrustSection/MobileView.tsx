@@ -143,7 +143,7 @@ export default function MobileView() {
       name: "Kinjal Patel",
       location: "Gandhinagar",
       text: "Amazing food and staff!! Loved loved it very much!! Service is outstanding!! Thank you streefi for this wonderful food and behaviour!! ♥️👌🏻👌🏻",
-      avatar: "https://ui-avatars.com/api/?name=Kinjal+Patel&background=FF6B6B&color=fff&size=100",
+      avatar: "/assets/testimonials/kinjal-patel.svg",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -151,7 +151,7 @@ export default function MobileView() {
       name: "Manish Ninama",
       location: "Ahmedabad",
       text: "good service",
-      avatar: "https://ui-avatars.com/api/?name=Manish+Ninama&background=4ECDC4&color=fff&size=100",
+      avatar: "/assets/testimonials/manish-ninama.svg",
       rating: 5,
       date: "November 27, 2025"
     },
@@ -159,7 +159,7 @@ export default function MobileView() {
       name: "Mann Patel",
       location: "Gandhinagar",
       text: "must try app for local food experience with convince at home. loved it!!",
-      avatar: "https://ui-avatars.com/api/?name=Mann+Patel&background=95E1D3&color=fff&size=100",
+      avatar: "/assets/testimonials/mann-patel.svg",
       rating: 5,
       date: "September 19, 2025"
     },
@@ -167,7 +167,7 @@ export default function MobileView() {
       name: "Bhavana Patel",
       location: "Ahmedabad",
       text: "great use of this app",
-      avatar: "https://ui-avatars.com/api/?name=Bhavana+Patel&background=F38181&color=fff&size=100",
+      avatar: "/assets/testimonials/bhavana-patel.svg",
       rating: 5,
       date: "September 20, 2025"
     },
@@ -175,7 +175,7 @@ export default function MobileView() {
       name: "Indrajeet Patel",
       location: "Gandhinagar",
       text: "One stop solution for your Street Cravings.",
-      avatar: "https://ui-avatars.com/api/?name=Indrajeet+Patel&background=AA96DA&color=fff&size=100",
+      avatar: "/assets/testimonials/indrajeet-patel.svg",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -183,7 +183,7 @@ export default function MobileView() {
       name: "Devam Prajapati",
       location: "Ahmedabad",
       text: "best app👍🏻👍🏻",
-      avatar: "https://ui-avatars.com/api/?name=Devam+Prajapati&background=FCBAD3&color=fff&size=100",
+      avatar: "/assets/testimonials/devam-prajapati.svg",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -191,7 +191,7 @@ export default function MobileView() {
       name: "Patel Jay",
       location: "Gandhinagar",
       text: "Nice App",
-      avatar: "https://ui-avatars.com/api/?name=Patel+Jay&background=FFFFD2&color=333&size=100",
+      avatar: "/assets/testimonials/patel-jay.svg",
       rating: 5,
       date: "September 28, 2025"
     },
@@ -199,7 +199,7 @@ export default function MobileView() {
       name: "Hardev Vinzuda",
       location: "Ahmedabad",
       text: "Nice App",
-      avatar: "https://ui-avatars.com/api/?name=Hardev+Vinzuda&background=A8D8EA&color=fff&size=100",
+      avatar: "/assets/testimonials/hardev-vinzuda.svg",
       rating: 5,
       date: "September 21, 2025"
     },
@@ -265,13 +265,13 @@ export default function MobileView() {
           />
         ))}
         <span className="text-gray-500 text-sm ml-3">Verified</span>
-        <span className="text-gray-400 text-sm ml-auto">{testimonial.date}</span>
+        <span className="text-gray-400 text-sm ml-3">{testimonial.date}</span>
       </div>
     </div>
   );
 
   return (
-    <section id="reviews" className="relative py-10 bg-white overflow-hidden">
+    <section id="reviews" className="relative py-10 overflow-hidden" style={{ background: '#f0fdf4' }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-40 h-40 bg-emerald-500 rounded-full blur-2xl"></div>
@@ -380,7 +380,7 @@ export default function MobileView() {
           </div>
 
           {/* Swipe Instruction */}
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-2 mt-2">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse"></div>
               <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse delay-150"></div>
@@ -394,17 +394,10 @@ export default function MobileView() {
             </div>
           </div>
         </div>
-
-        {/* View More Button */}
-        <div className="text-center">
-          <button className="bg-[#06c167] text-white font-semibold py-3 px-6 rounded-full hover:bg-[#05a857] transition-colors text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-transform">
-            View All Reviews
-          </button>
-        </div>
       </div>
 
       {/* CSS for scrollbar hide and animations */}
-      <style jsx>{`
+<style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
@@ -413,22 +406,32 @@ export default function MobileView() {
           display: none;
         }
         
-        /* Custom scrollbar for carousel */
+        /* UNIQUE: Floating Gradient Scrollbar */
         ::-webkit-scrollbar {
-          height: 4px;
+          height: 6px; /* Slimmer height */
+          width: 6px;
         }
         
+        /* Transparent track to make the thumb look like it's floating */
         ::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
+          background: transparent; 
+          margin: 2px;
         }
         
+        /* Gradient Thumb with "Pill" shape */
         ::-webkit-scrollbar-thumb {
-          background: #06c167;
-          border-radius: 10px;
+          background: linear-gradient(90deg, #06c167, #34d399); /* Green to Teal gradient */
+          border-radius: 20px;
+          cursor: pointer;
+          transition: background 0.3s ease;
+        }
+
+        /* Hover effect to darken the gradient */
+        ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(90deg, #05a857, #10b981);
         }
         
-        /* Pulse animation for swipe indicator */
+        /* Pulse animation (Kept from your original code) */
         @keyframes pulse {
           0%, 100% {
             opacity: 1;

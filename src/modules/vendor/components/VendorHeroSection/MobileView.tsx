@@ -4,12 +4,12 @@ import Link from 'next/link';
 
 export default function MobileView() {
   return (
-    <section className="relative from-green-600 to-teal-700 pt-12 pb-20 overflow-hidden min-h-[60vh]">
+    <section className="relative from-green-600 to-teal-700 pt-12 pb-15 overflow-hidden min-h-[60vh]">
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30"></div>
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 text-center">
-        <div className="mb-8">
+        <div className="mb-5">
           <h1 className="text-2xl font-bold text-white mb-3 leading-tight">
             Meet Our{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-amber-200">

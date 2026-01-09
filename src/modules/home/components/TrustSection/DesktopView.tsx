@@ -65,7 +65,7 @@ export default function DesktopView() {
       name: "Kinjal Patel",
       location: "Gandhinagar",
       text: "Amazing food and staff!! Loved loved it very much!! Service is outstanding!! Thank you streefi for this wonderful food and behaviour!! ♥️👌🏻👌🏻",
-      avatar: "https://ui-avatars.com/api/?name=Kinjal+Patel&background=FF6B6B&color=fff&size=100",
+      avatar: "/assets/testimonials/kinjal-patel.svg",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -73,7 +73,7 @@ export default function DesktopView() {
       name: "Manish Ninama",
       location: "Ahmedabad",
       text: "good service",
-      avatar: "https://ui-avatars.com/api/?name=Manish+Ninama&background=4ECDC4&color=fff&size=100",
+      avatar: "/assets/testimonials/manish-ninama.svg",
       rating: 5,
       date: "November 27, 2025"
     },
@@ -81,7 +81,7 @@ export default function DesktopView() {
       name: "Mann Patel",
       location: "Gandhinagar",
       text: "must try app for local food experience. loved it!!",
-      avatar: "https://ui-avatars.com/api/?name=Mann+Patel&background=95E1D3&color=fff&size=100",
+      avatar: "/assets/testimonials/mann-patel.svg",
       rating: 5,
       date: "September 19, 2025"
     },
@@ -89,7 +89,7 @@ export default function DesktopView() {
       name: "Bhavana Patel",
       location: "Ahmedabad",
       text: "great use of this app",
-      avatar: "https://ui-avatars.com/api/?name=Bhavana+Patel&background=F38181&color=fff&size=100",
+      avatar: "/assets/testimonials/bhavana-patel.svg",
       rating: 5,
       date: "September 20, 2025"
     },
@@ -97,7 +97,7 @@ export default function DesktopView() {
       name: "Indrajeet Patel",
       location: "Gandhinagar",
       text: "One stop solution for your Street Cravings.",
-      avatar: "https://ui-avatars.com/api/?name=Indrajeet+Patel&background=AA96DA&color=fff&size=100",
+      avatar: "/assets/testimonials/indrajeet-patel.svg",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -105,7 +105,7 @@ export default function DesktopView() {
       name: "Devam Prajapati",
       location: "Ahmedabad",
       text: "best app👍🏻👍🏻",
-      avatar: "https://ui-avatars.com/api/?name=Devam+Prajapati&background=FCBAD3&color=fff&size=100",
+      avatar: "/assets/testimonials/devam-prajapati.svg",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -117,7 +117,7 @@ export default function DesktopView() {
       name: "Patel Jay",
       location: "Gandhinagar",
       text: "Nice App",
-      avatar: "https://ui-avatars.com/api/?name=Patel+Jay&background=FFFFD2&color=333&size=100",
+      avatar: "/assets/testimonials/patel-jay.svg",
       rating: 5,
       date: "September 28, 2025"
     },
@@ -125,7 +125,7 @@ export default function DesktopView() {
       name: "Hardev Vinzuda",
       location: "Ahmedabad",
       text: "Nice App",
-      avatar: "https://ui-avatars.com/api/?name=Hardev+Vinzuda&background=A8D8EA&color=fff&size=100",
+      avatar: "/assets/testimonials/hardev-vinzuda.svg",
       rating: 5,
       date: "September 21, 2025"
     },
@@ -133,7 +133,7 @@ export default function DesktopView() {
       name: "Krish Patel",
       location: "Gandhinagar",
       text: "Excellent service and great food recommendations! The app makes finding street food so easy.",
-      avatar: "https://ui-avatars.com/api/?name=Krish+Patel&background=FFB6B9&color=fff&size=100",
+      avatar: "/assets/testimonials/krish-patel.svg",
       rating: 5,
       date: "October 5, 2025"
     },
@@ -141,7 +141,7 @@ export default function DesktopView() {
       name: "Jash Patel",
       location: "Ahmedabad",
       text: "Love the variety of dining options. The discount offers are fantastic!",
-      avatar: "https://ui-avatars.com/api/?name=Jash+Patel&background=BAE1FF&color=fff&size=100",
+      avatar: "/assets/testimonials/jash-patel.svg",
       rating: 5,
       date: "October 12, 2025"
     },
@@ -149,7 +149,7 @@ export default function DesktopView() {
       name: "Ravi Sharma",
       location: "Gandhinagar",
       text: "Best app for discovering local food gems. The discounts are amazing too!",
-      avatar: "https://ui-avatars.com/api/?name=Ravi+Sharma&background=C7CEEA&color=fff&size=100",
+      avatar: "/assets/testimonials/ravi-sharma.svg",
       rating: 5,
       date: "October 18, 2025"
     },
@@ -157,7 +157,7 @@ export default function DesktopView() {
       name: "Neha Shah",
       location: "Ahmedabad",
       text: "User-friendly interface and authentic reviews. Makes exploring street food much easier!",
-      avatar: "https://ui-avatars.com/api/?name=Neha+Shah&background=FFDAC1&color=fff&size=100",
+      avatar: "/assets/testimonials/neha-shah.svg",
       rating: 5,
       date: "October 25, 2025"
     },

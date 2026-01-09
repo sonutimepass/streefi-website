@@ -8,114 +8,114 @@ export default function MobileView() {
   const [currentVendor, setCurrentVendor] = useState(0);
   const [activeFilter, setActiveFilter] = useState('all');
   const [showPopup, setShowPopup] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
-  const vendors = [
-    {
-      id: '1',
-      name: 'Rajesh Chaat Corner',
-      specialty: 'Authentic North Indian Chaat',
-      rating: 4.8,
-      since: '2015',
-      image: '/assets/vendor/vendor1.jpg',
-      waitTime: '5-10 min',
-      location: 'Connaught Place',
-      tags: ['Chaat', 'Vegetarian', 'Quick Bites'],
-      status: 'open',
-      trending: true,
-    },
-    {
-      id: '2',
-      name: 'Mumbai Pav Bhaji',
-      specialty: 'Spicy Mumbai Street Food',
-      rating: 4.7,
-      since: '2018',
-      image: '/assets/vendor/vendor2.jpg',
-      waitTime: '8-12 min',
-      location: 'Karol Bagh',
-      tags: ['Pav Bhaji', 'Spicy', 'Popular'],
-      status: 'open',
-      trending: false,
-    },
-    {
-      id: '3',
-      name: 'Sharma Ji Momos',
-      specialty: 'Steamed & Fried Momos',
-      rating: 4.9,
-      since: '2016',
-      image: '/assets/vendor/vendor3.jpg',
-      waitTime: '6-10 min',
-      location: 'Lajpat Nagar',
-      tags: ['Momos', 'Chinese', 'Spicy'],
-      status: 'busy',
-      trending: true,
-    },
-    {
-      id: '4',
-      name: 'Delhi Rolls & Wraps',
-      specialty: 'Kathi Rolls & Wraps',
-      rating: 4.6,
-      since: '2019',
-      image: '/assets/vendor/vendor4.jpg',
-      waitTime: '10-15 min',
-      location: 'Saket',
-      tags: ['Rolls', 'Non-Veg', 'Wraps'],
-      status: 'open',
-      trending: false,
-    },
-    {
-      id: '5',
-      name: 'South Indian Dosa',
-      specialty: 'Crispy Dosa Varieties',
-      rating: 4.8,
-      since: '2014',
-      image: '/assets/vendor/vendor5.jpg',
-      waitTime: '7-12 min',
-      location: 'Dwarka',
-      tags: ['Dosa', 'South Indian', 'Vegetarian'],
-      status: 'open',
-      trending: true,
-    },
-    {
-      id: '6',
-      name: 'Tikki & Chaat Hub',
-      specialty: 'Aloo Tikki & Street Chaat',
-      rating: 4.7,
-      since: '2017',
-      image: '/assets/vendor/vendor6.jpg',
-      waitTime: '5-8 min',
-      location: 'Nehru Place',
-      tags: ['Tikki', 'Chaat', 'Budget-Friendly'],
-      status: 'open',
-      trending: false,
-    },
-    {
-      id: '7',
-      name: 'Biryani Point',
-      specialty: 'Authentic Hyderabadi Biryani',
-      rating: 4.9,
-      since: '2013',
-      image: '/assets/vendor/vendor7.jpg',
-      waitTime: '15-20 min',
-      location: 'Chandni Chowk',
-      tags: ['Biryani', 'Non-Veg', 'Aromatic'],
-      status: 'busy',
-      trending: true,
-    },
-    {
-      id: '8',
-      name: 'Kulfi Corner',
-      specialty: 'Traditional Indian Ice Cream',
-      rating: 4.6,
-      since: '2016',
-      image: '/assets/vendor/vendor8.jpg',
-      waitTime: '3-5 min',
-      location: 'Rajouri Garden',
-      tags: ['Dessert', 'Kulfi', 'Cold Treats'],
-      status: 'open',
-      trending: false,
-    },
-  ];
+const vendors = [
+  {
+    id: 1,
+    name: "Hema's Sweet Creation",
+    specialty: "Cake & Pastry",
+    rating: 4.8,
+    since: "2020",
+    image: "/assets/vendor/vendor1.jpg",
+    waitTime: "5-10 min",
+    location: "Gandhinagar",
+    tags: ["Family Recipe", "Local Favorite"],
+    status: "open",
+    trending: true
+  },
+  {
+    id: 2,
+    name: "Rasraj",
+    specialty: "Fast Food",
+    rating: 4.7,
+    since: "2015",
+    image: "/assets/vendor/vendor11.jpg",
+    waitTime: "10-15 min",
+    location: "Ahmedabad",
+    tags: ["Authentic", "Street Favourite"],
+    status: "open",
+    trending: false
+  },
+  {
+    id: 3,
+    name: "S.R Dabeli Vadapav",
+    specialty: "Dabeli & Vada Pav",
+    rating: 4.6,
+    since: "2020",
+    image: "/assets/vendor/vendor3.jpg",
+    waitTime: "8-12 min",
+    location: "PDPU, Gandhinagar",
+    tags: ["Quick Bite", "Best Seller"],
+    status: "busy",
+    trending: true
+  },
+  {
+    id: 4,
+    name: "Pizza Farm",
+    specialty: "Pizza & Garlic Bread",
+    rating: 4.9,
+    since: "2020",
+    image: "/assets/vendor/vendor4.jpg",
+    waitTime: "2-5 min",
+    location: "GH-4, Swarnim Park, Gandhinagar",
+    tags: ["Run By Family", "Local Favorite", "Highest Rated"],
+    status: "open",
+    trending: true
+  },
+  {
+    id: 5,
+    name: "Shawarma Junction",
+    specialty: "Shawarma & Burger",
+    rating: 4.8,
+    since: "2019",
+    image: "/assets/vendor/vendor5.jpg",
+    waitTime: "5-8 min",
+    location: "GH-4, Swarnim Park, Gandhinagar",
+    tags: ["Local Favorite"],
+    status: "open",
+    trending: false
+  },
+  {
+    id: 6,
+    name: "Shakti Food Zone",
+    specialty: "Fast Food",
+    rating: 4.6,
+    since: "2018",
+    image: "/assets/vendor/vendor12.jpg",
+    waitTime: "3-5 min",
+    location: "Ahmedabad",
+    tags: ["Famous", "Local Choice"],
+    status: "open",
+    trending: false
+  },
+  {
+    id: 7,
+    name: "Mom's Kitchen",
+    specialty: "Sandwich, Ghughra, Burger",
+    rating: 4.6,
+    since: "2018",
+    image: "/assets/vendor/vendor7.jpg",
+    waitTime: "3-5 min",
+    location: "GH-4, Swarnim Park, Gandhinagar",
+    tags: ["Homely Taste", "Local Choice"],
+    status: "open",
+    trending: false
+  },
+  {
+    id: 8,
+    name: "Burger Boys",
+    specialty: "Burgers",
+    rating: 4.6,
+    since: "2018",
+    image: "/assets/vendor/vendor8.jpg",
+    waitTime: "3-5 min",
+    location: "Gandhinagar",
+    tags: ["Local Famous"],
+    status: "open",
+    trending: false
+  }
+];
 
   const filteredVendors = vendors;
 
@@ -137,7 +137,7 @@ export default function MobileView() {
   };
 
   return (
-    <section id="features-mobile" className="py-16 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+    <section id="features-mobile" className="py-16 relative overflow-hidden" style={{ background: '#f0fdf4' }}>
       <div className="absolute top-0 left-0 w-64 h-64 bg-[#06c167]/5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#ff6b35]/5 rounded-full blur-3xl"></div>
 

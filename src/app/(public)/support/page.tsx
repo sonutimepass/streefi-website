@@ -22,7 +22,7 @@ export default function Support() {
         <MobileHeader />
       </div>
       <section className="bg-green-600">
-        <div className="pt-10 px-7 max-w-7xl mx-auto">
+        <div className="pt-24 px-7 max-w-7xl mx-auto">
           <Breadcrumb
             items={[{ label: 'Support', href: '/policies/support' }]}
             className="text-white relative z-10"

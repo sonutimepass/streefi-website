@@ -13,7 +13,7 @@ export default function Policies() {
             <div className="md:hidden">
                 <MobileHeader />
             </div>
-            <div className="pt-20 px-4 max-w-4xl mx-auto">
+            <div className="pt-24 px-4 max-w-4xl mx-auto ">
                 <Breadcrumb
                     items={[{ label: 'Policies', href: '/policies/policy' }]}
                     className="text-gray-600"
