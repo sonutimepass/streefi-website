@@ -151,7 +151,7 @@ export default function MobileView() {
   };
 
   return (
-    <section id="why-streefi" className="relative py-10 px-4 bg-white overflow-hidden">
+    <section id="why-streefi-mobile" className="relative py-10 px-4 bg-white overflow-hidden">
 
       {/* Top Decorative Circle for Mobile */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none" style={{ height: '80px' }}>

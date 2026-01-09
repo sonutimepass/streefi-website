@@ -134,7 +134,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <button
-                  onClick={() => window.location.href = '/policies'}
+                  onClick={() => window.location.href = '/policies/#privacy'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                 >
                   Privacy Policy
@@ -142,7 +142,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => window.location.href = '/policies'}
+                  onClick={() => window.location.href = '/policies/#terms'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                 >
                   Terms & Conditions
@@ -150,7 +150,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => window.location.href = '/policies'}
+                  onClick={() => window.location.href = '/policies/#refund'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                 >
                   Refund & Cancellation

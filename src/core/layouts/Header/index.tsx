@@ -28,15 +28,18 @@ function Header() {
   }, [lastScrollY]);
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const scroll = () => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    if (window.location.pathname === '/') {
+      scroll();
     } else {
       router.push('/');
-      setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      setTimeout(scroll, 500);
     }
   };
 
@@ -51,14 +54,14 @@ function Header() {
       }}
     >
       <button
-        onClick={() => scrollToSection('why-streefi')}
+        onClick={() => scrollToSection('why-streefi-desktop')}
         className="hover:text-slate-900 hover:scale-115 transition-all duration-200 whitespace-nowrap text-sm md:text-base xl:text-lg font-medium"
       >
         How it works
       </button>
 
       <button
-        onClick={() => scrollToSection('features')}
+        onClick={() => scrollToSection('features-desktop')}
         className="hover:text-slate-900 hover:scale-115 transition-all duration-200 text-sm md:text-base xl:text-lg font-medium"
       >
         Features

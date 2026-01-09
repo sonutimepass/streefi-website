@@ -26,7 +26,7 @@ export default function DesktopView() {
   }, []);
 
   return (
-    <section id="why-streefi" className="relative py-14 px-4 sm:px-6 lg:px-8 bg-[#f0fdf4] overflow-hidden">
+    <section id="why-streefi-desktop" className="relative py-14 px-4 sm:px-6 lg:px-8 bg-[#f0fdf4] overflow-hidden">
 
       {/* Top Decorative Circle */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none" style={{ height: '150px' }}>

@@ -137,7 +137,7 @@ export default function MobileView() {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+    <section id="features-mobile" className="py-16 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
       <div className="absolute top-0 left-0 w-64 h-64 bg-[#06c167]/5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#ff6b35]/5 rounded-full blur-3xl"></div>
 

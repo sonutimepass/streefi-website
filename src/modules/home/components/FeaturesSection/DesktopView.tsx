@@ -136,7 +136,7 @@ const vendors = [
   };
 
   return (
-    <section className="py-10 relative overflow-hidden bg-[#f0fdf4]">
+    <section id="features-desktop" className="py-10 relative overflow-hidden bg-[#f0fdf4]">
       <div className="absolute top-0 left-0 w-96 h-96 bg-[#06c167]/5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#ff6b35]/5 rounded-full blur-3xl"></div>
 
