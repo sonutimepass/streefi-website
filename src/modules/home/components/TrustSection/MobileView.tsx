@@ -271,7 +271,7 @@ export default function MobileView() {
   );
 
   return (
-    <section id="reviews" className="relative py-10 overflow-hidden" style={{ background: '#f0fdf4' }}>
+    <section id="reviews" className="relative py-5 overflow-hidden" style={{ background: '#f0fdf4' }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-40 h-40 bg-emerald-500 rounded-full blur-2xl"></div>
@@ -376,21 +376,6 @@ export default function MobileView() {
                   }`}
                 />
               ))}
-            </div>
-          </div>
-
-          {/* Swipe Instruction */}
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse"></div>
-              <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse delay-150"></div>
-              <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse delay-300"></div>
-            </div>
-            <span className="text-xs text-gray-500">Swipe or drag to navigate</span>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse delay-300"></div>
-              <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse delay-150"></div>
-              <div className="w-2 h-2 bg-[#06c167] rounded-full animate-pulse"></div>
             </div>
           </div>
         </div>

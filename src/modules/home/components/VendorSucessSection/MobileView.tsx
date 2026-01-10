@@ -151,7 +151,7 @@ export default function MobileView() {
   };
 
   return (
-    <section id="why-streefi-mobile" className="relative py-5 px-4 overflow-hidden" style={{ background: '#f0fdf4' }}>
+    <section id="why-streefi-mobile" className="relative pt-3 pb-1 px-4 overflow-hidden" style={{ background: '#f0fdf4' }}>
       <div className="max-w-6xl mx-auto relative z-10 pt-2">
 
         {/* Pain Point Header - Mobile */}
@@ -181,15 +181,6 @@ export default function MobileView() {
         {/* Swipable Benefits Carousel for Mobile */}
         <div className="mb-10">
           <div className="relative">
-            {/* Swipe hint indicator */}
-            <div className="text-center mb-3">
-              <p className="text-gray-400 text-xs flex items-center justify-center gap-2">
-                <span className="animate-bounce">👈</span>
-                Swipe to explore benefits
-                <span className="animate-bounce">👉</span>
-              </p>
-            </div>
-
             <div 
               ref={carouselRef}
               className="relative overflow-hidden rounded-2xl touch-pan-y"
@@ -207,12 +198,12 @@ export default function MobileView() {
                 {benefits.map((benefit, index) => (
                   <div 
                     key={index} 
-                    className="w-full flex-shrink-0 px-1"
+                    className="w-full flex-shrink-0 px-2"
                   >
-                    <div className="relative bg-white p-6 rounded-2xl border-2 border-gray-200 shadow-md h-full">
+                    <div className="relative bg-white p-5 rounded-2xl border-2 border-gray-200 shadow-md h-full">
                       {/* Badge if exists */}
                       {benefit.badge && (
-                        <div className={`absolute -top-2 -right-2 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg ${
+                        <div className={`absolute -top-2 -right-2 text-white text-xs font-bold px-3 py-3 rounded-full shadow-lg ${
                           benefit.badge.includes('HOT') 
                             ? 'bg-gradient-to-r from-red-500 to-[#ff6b35] animate-pulse' 
                             : 'bg-gradient-to-r from-[#06c167] to-green-500'
@@ -223,7 +214,7 @@ export default function MobileView() {
 
                       <div className={`w-12 h-12 ${
                         benefit.color === 'orange' ? 'bg-orange-100 border-orange-200' : 'bg-green-100 border-green-200'
-                      } rounded-2xl flex items-center justify-center mb-4 border`}>
+                      } rounded-2xl flex items-center justify-center mb-3 border`}>
                         {benefit.icon}
                       </div>
 
@@ -248,7 +239,7 @@ export default function MobileView() {
             </div>
 
             {/* Enhanced Carousel Dots */}
-            <div className="flex justify-center gap-2 mt-5">
+            <div className="flex justify-center gap-2 mt-2">
               {benefits.map((_, index) => (
                 <button
                   key={index}
@@ -261,13 +252,6 @@ export default function MobileView() {
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
-            </div>
-
-            {/* Progress indicator */}
-            <div className="flex justify-center items-center gap-2 mt-3">
-              <span className="text-gray-500 text-xs font-medium">
-                {activeSlide + 1} / {benefits.length}
-              </span>
             </div>
           </div>
         </div>

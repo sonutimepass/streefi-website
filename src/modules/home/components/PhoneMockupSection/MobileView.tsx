@@ -183,8 +183,8 @@ export default function MobileView() {
   }, []);
 
   return (
-    <section className="relative w-full py-12 bg-[#f0fdf4] overflow-hidden select-none">
-      <div className="text-center mb-8 px-4">
+    <section className="relative w-full py-1 bg-[#f0fdf4] overflow-hidden select-none">
+      <div className="text-center mb-2 px-4">
         <h2 className="text-gray-600 text-sm max-w-xs mx-auto">
           Swipe through to see our street food discovery in action
         </h2>
