@@ -203,6 +203,166 @@ export default function MobileView() {
       rating: 5,
       date: "September 21, 2025"
     },
+    {
+    name: "Hitesh Shah",
+    location: "Ahmedabad",
+    text: "Paisa vasool app! 🤑 Got a good discount on my favorite maska bun stall just by paying through the app.",
+    avatar: "/assets/testimonials/hitesh-shah.svg",
+    rating: 5,
+    date: "October 05, 2025"
+  },
+  {
+    name: "Dhara Vaghela",
+    location: "Gandhinagar",
+    text: "Loved the explore feature. Found a new Gola center nearby that I never noticed before. Very helpful!",
+    avatar: "/assets/testimonials/dhara-vaghela.svg",
+    rating: 5,
+    date: "October 12, 2025"
+  },
+  {
+    name: "Smit Gadhvi",
+    location: "Ahmedabad",
+    text: "Easy to use. Just scan, pay and get discount. No need to carry cash for street food anymore.",
+    avatar: "/assets/testimonials/smit-gadhvi.svg",
+    rating: 4,
+    date: "October 15, 2025"
+  },
+  {
+    name: "Meena Ben Parikh",
+    location: "Ahmedabad",
+    text: "Very nice app for family outings. We found a great seating place using the map.",
+    avatar: "/assets/testimonials/meena-parikh.svg",
+    rating: 5,
+    date: "October 20, 2025"
+  },
+  {
+    name: "Rahul Chotaliya",
+    location: "Gandhinagar",
+    text: "best for street food lovers!! discount malyo at the stall.. happy customer! 👍🏻",
+    avatar: "/assets/testimonials/rahul-chotaliya.svg",
+    rating: 5,
+    date: "October 22, 2025"
+  },
+  {
+    name: "Priyanka Zala",
+    location: "Ahmedabad",
+    text: "The explore feature is so accurate. Found the best momos spot in IIM Road thanks to this.",
+    avatar: "/assets/testimonials/priyanka-zala.svg",
+    rating: 5,
+    date: "October 25, 2025"
+  },
+  {
+    name: "Jignesh Mewada",
+    location: "Gandhinagar",
+    text: "Good discounts and fast payment. Makes eating out very cheap and easy.",
+    avatar: "/assets/testimonials/jignesh-mewada.svg",
+    rating: 4,
+    date: "October 28, 2025"
+  },
+  {
+    name: "Anjali Brahmbhatt",
+    location: "Ahmedabad",
+    text: "I love how I can see all the vendors on one map. Payment was smooth and got 15% off!",
+    avatar: "/assets/testimonials/anjali-brahmbhatt.svg",
+    rating: 5,
+    date: "November 02, 2025"
+  },
+  {
+    name: "Parthiv Gohil",
+    location: "Ahmedabad",
+    text: "Superb experience at the live dhokla stall. App is very user friendly.",
+    avatar: "/assets/testimonials/parthiv-gohil.svg",
+    rating: 5,
+    date: "November 05, 2025"
+  },
+  {
+    name: "Deepal Rathod",
+    location: "Gandhinagar",
+    text: "Great way to find local food. The discount on dine-in is the cherry on top! 🍒",
+    avatar: "/assets/testimonials/deepal-rathod.svg",
+    rating: 5,
+    date: "November 08, 2025"
+  },
+  {
+    name: "Suresh Bhai Patel",
+    location: "Ahmedabad",
+    text: "v.good service and easy payment",
+    avatar: "/assets/testimonials/suresh-patel.svg",
+    rating: 5,
+    date: "November 10, 2025"
+  },
+  {
+    name: "Kavita Jadeja",
+    location: "Gandhinagar",
+    text: "Explore feature helps me find hygienic street food stalls. Payment through app is very convenient.",
+    avatar: "/assets/testimonials/kavita-jadeja.svg",
+    rating: 5,
+    date: "November 12, 2025"
+  },
+  {
+    name: "Tushar Panchal",
+    location: "Ahmedabad",
+    text: "College students mate best che! Every rupee saved matters and the discounts here are real.",
+    avatar: "/assets/testimonials/tushar-panchal.svg",
+    rating: 5,
+    date: "November 15, 2025"
+  },
+  {
+    name: "Rinkal Solanki",
+    location: "Ahmedabad",
+    text: "First time tried paying through app at a stall, got instant discount. Amazing concept!",
+    avatar: "/assets/testimonials/rinkal-solanki.svg",
+    rating: 4,
+    date: "November 18, 2025"
+  },
+  {
+    name: "Bhavesh Makwana",
+    location: "Gandhinagar",
+    text: "Mast app che. Local vendors na badha options ek j jagya par mali jay.",
+    avatar: "/assets/testimonials/bhavesh-makwana.svg",
+    rating: 5,
+    date: "November 20, 2025"
+  },
+  {
+    name: "Niyati Joshi",
+    location: "Ahmedabad",
+    text: "Saved 50 rupees on my dinner today! Just explore and pay. Highly recommended. ⭐⭐⭐⭐⭐",
+    avatar: "/assets/testimonials/niyati-joshi.svg",
+    rating: 5,
+    date: "November 22, 2025"
+  },
+  {
+    name: "Harshil Vyas",
+    location: "Gandhinagar",
+    text: "The best part is discovering food joints I never knew existed in my own area.",
+    avatar: "/assets/testimonials/harshil-vyas.svg",
+    rating: 5,
+    date: "November 25, 2025"
+  },
+  {
+    name: "Mansi Thakar",
+    location: "Ahmedabad",
+    text: "Smooth interface and genuine discounts. Best app for weekend foodies.",
+    avatar: "/assets/testimonials/mansi-thakar.svg",
+    rating: 5,
+    date: "November 28, 2025"
+  },
+  {
+    name: "Viral Gajjar",
+    location: "Ahmedabad",
+    text: "No more bargaining, the app gives the best price automatically. Loved it!",
+    avatar: "/assets/testimonials/viral-gajjar.svg",
+    rating: 5,
+    date: "December 01, 2025"
+  },
+  {
+    name: "Dhaval Bharwad",
+    location: "Gandhinagar",
+    text: "Khub saras app che. Food locations and offers are very helpful.",
+    avatar: "/assets/testimonials/dhaval-bharwad.svg",
+    rating: 5,
+    date: "December 03, 2025"
+  }
   ];
 
   // Quote SVG Component
@@ -365,7 +525,7 @@ export default function MobileView() {
           {/* Progress Indicators */}
           <div className="flex justify-center items-center gap-4 mt-6">
             <div className="flex items-center gap-1.5">
-              {testimonials.slice(0, 6).map((_, index) => (
+              {testimonials.slice(0, 32).map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentIndex(index)}
