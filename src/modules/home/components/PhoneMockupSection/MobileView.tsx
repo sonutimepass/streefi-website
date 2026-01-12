@@ -2,21 +2,24 @@
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 
+// S3 CDN base URL for videos (local backup available at /assets/videos/)
+const S3_BASE_URL = 'https://streefi-public-assets.s3.ap-south-1.amazonaws.com/videos/real-results';
+
 const videos = [
-  '/assets/videos/videos-1.mp4',
-  '/assets/videos/videos-2.mp4',
-  '/assets/videos/videos-3.mp4',
-  '/assets/videos/videos-4.mp4',
-  '/assets/videos/videos-5.mp4',
-  '/assets/videos/videos-6.mp4',
-  '/assets/videos/videos-7.mp4',
-  '/assets/videos/videos-8.mp4',
-  '/assets/videos/videos-9.mp4',
-  '/assets/videos/videos-10.mp4',
-  '/assets/videos/videos-11.mp4',
-  '/assets/videos/videos-12.mp4',
-  '/assets/videos/videos-13.mp4',
-  '/assets/videos/videos-14.mp4'
+  `${S3_BASE_URL}/videos-1.mp4`,
+  `${S3_BASE_URL}/videos-2.mp4`,
+  `${S3_BASE_URL}/videos-3.mp4`,
+  `${S3_BASE_URL}/videos-4.mp4`,
+  `${S3_BASE_URL}/videos-5.mp4`,
+  `${S3_BASE_URL}/videos-6.mp4`,
+  `${S3_BASE_URL}/videos-7.mp4`,
+  `${S3_BASE_URL}/videos-8.mp4`,
+  `${S3_BASE_URL}/videos-9.mp4`,
+  `${S3_BASE_URL}/videos-10.mp4`,
+  `${S3_BASE_URL}/videos-11.mp4`,
+  `${S3_BASE_URL}/videos-12.mp4`,
+  `${S3_BASE_URL}/videos-13.mp4`,
+  `${S3_BASE_URL}/videos-14.mp4`
 ];
 
 // Adjusted for mobile: slightly narrower than desktop to fit screen widths
@@ -84,6 +87,17 @@ const VideoCard = memo(function VideoCard({
           loop
           playsInline
           preload={isActive ? 'auto' : 'metadata'}
+          crossOrigin="anonymous"
+          onError={(e) => {
+            // Fallback to local video if S3 fails
+            const video = e.currentTarget;
+            if (video.src.includes('s3')) {
+              const videoNumber = src.match(/videos-(\d+)\.mp4/)?.[0];
+              if (videoNumber) {
+                video.src = `/assets/videos/${videoNumber}`;
+              }
+            }
+          }}
         />
       ) : (
         <div className="w-full h-full bg-gray-900" />

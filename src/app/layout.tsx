@@ -147,10 +147,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.clarity.ms" />
         <link rel="dns-prefetch" href="https://www.clarity.ms" />
 
-        {/* Preload critical assets */}
-        <link rel="preload" href="/assets/streefi-logo-192.svg" as="image" type="image/svg+xml" />
-        <link rel="preload" href="/assets/qwerty.png" as="image" />
-
         {/* Structured Data */}
         <Script
           id="organization-schema"
