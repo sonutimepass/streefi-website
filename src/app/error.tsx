@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import Link from 'next/link';
-import { AlertTriangle, Home, RefreshCcw } from 'lucide-react';
+import { Home, RefreshCcw } from 'lucide-react';
 
 export default function Error({
   error,
@@ -12,8 +13,17 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error(error);
+    // Send error to Sentry with additional context
+    Sentry.captureException(error, {
+      tags: {
+        errorBoundary: 'app-error',
+      },
+      contexts: {
+        errorInfo: {
+          digest: error.digest,
+        },
+      },
+    });
   }, [error]);
 
   return (
@@ -26,6 +36,23 @@ export default function Error({
         </div>
 
         <div className="relative z-10">
+          {/* Error Icon */}
+          <div className="mb-6 inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full">
+            <svg
+              className="w-10 h-10 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+
           {/* Error Message */}
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
             Oops! Something went wrong
@@ -34,20 +61,6 @@ export default function Error({
           <p className="text-gray-700 text-lg md:text-xl mb-8 max-w-xl mx-auto">
             We encountered an unexpected error. Don't worry, our team has been notified and we're working on it!
           </p>
-
-          {/* Error Details (Dev Mode) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-8 p-4 bg-gray-50 rounded-xl border-2 border-gray-200 text-left max-w-xl mx-auto">
-              <p className="text-sm text-gray-600 font-mono break-words">
-                {error.message || 'Unknown error occurred'}
-              </p>
-              {error.digest && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Error ID: {error.digest}
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

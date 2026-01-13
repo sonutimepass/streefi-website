@@ -1,7 +1,11 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from "next";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
+  // Output configuration for AWS Amplify
+  output: 'standalone',
+  
   turbopack: {
     root: __dirname,
   },
@@ -450,7 +454,9 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' https://streefi-public-assets.s3.ap-south-1.amazonaws.com; connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://www.googletagmanager.com; frame-src 'self' https://www.googletagmanager.com; object-src 'none'; base-uri 'self';"
+            value: process.env.NODE_ENV === 'production' 
+              ? "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' https://streefi-public-assets.s3.ap-south-1.amazonaws.com; connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://www.googletagmanager.com https://*.ingest.sentry.io; frame-src 'self' https://www.googletagmanager.com; object-src 'none'; base-uri 'self';"
+              : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' https://streefi-public-assets.s3.ap-south-1.amazonaws.com; connect-src 'self' https://www.google-analytics.com https://*.clarity.ms https://www.googletagmanager.com https://*.ingest.sentry.io https://o4510702448803840.ingest.de.sentry.io; frame-src 'self' https://www.googletagmanager.com; object-src 'none'; base-uri 'self';"
           }
         ],
       },
@@ -460,4 +466,52 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 }
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // For all available options, see:
+  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
+
+  org: "streefi-private-limited",
+  project: "javascript-nextjs",
+
+  // Only print logs for uploading source maps in CI/production builds
+  silent: !process.env.CI && process.env.NODE_ENV !== 'production',
+
+  // For all available options, see:
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Route browser requests to Sentry through Next.js to circumvent ad-blockers
+  // This increases server load but improves reliability
+  tunnelRoute: "/monitoring",
+
+  webpack: {
+    // Enables automatic instrumentation of Vercel Cron Monitors
+    automaticVercelMonitors: true,
+
+    // Tree-shaking options for reducing bundle size
+    treeshake: {
+      // Automatically tree-shake Sentry logger statements to reduce bundle size
+      removeDebugLogging: process.env.NODE_ENV === 'production',
+    },
+  },
+
+  // Upload source maps to Sentry for better error tracking
+  sourcemaps: {
+    disable: false,
+    deleteSourcemapsAfterUpload: true,
+    // Only upload specific source maps, ignore all JS files without corresponding maps
+    assets: ['**/*.js.map', '**/*.css.map'],
+    ignore: [
+      // Ignore Next.js internal manifest files
+      '*_client-reference-manifest.js',
+      'interception-route-rewrite-manifest.js',
+      'middleware-build-manifest.js', 
+      'next-font-manifest.js',
+      'server-reference-manifest.js',
+      // Ignore files without source maps to prevent warnings
+      '**/chunks/**/*.js',
+    ]
+  },
+});
