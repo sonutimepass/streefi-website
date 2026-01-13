@@ -3,7 +3,9 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci
+        - npm ci --prefer-offline --no-audit
+        # Disable SSM secrets - use Amplify environment variables instead
+        - echo "Using Amplify environment variables (not SSM)"
     build:
       commands:
         - npm run build
