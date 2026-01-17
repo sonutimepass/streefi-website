@@ -110,7 +110,7 @@ export default function MobileView() {
   const [currentIndex, setCurrentIndex] = useState(VIDEO_COUNT);
   const [isTransitioning, setIsTransitioning] = useState(true);
   const isMuted = useRef(true);
-  const isPlaying = useRef(true);
+  const isPlaying = useRef(false);
   const [, forceUpdate] = useState({});
 
   const isDragging = useRef(false);
