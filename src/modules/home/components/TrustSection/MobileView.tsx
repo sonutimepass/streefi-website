@@ -1,5 +1,5 @@
 'use client';
-import { Star } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 export default function MobileView() {
@@ -295,6 +295,14 @@ export default function MobileView() {
     setCurrentIndex(index);
   };
 
+  const goToPrevious = () => {
+    setCurrentIndex(prev => (prev > 0 ? prev - 1 : testimonials.length - 1));
+  };
+
+  const goToNext = () => {
+    setCurrentIndex(prev => (prev < testimonials.length - 1 ? prev + 1 : 0));
+  };
+
   // Auto-slide functionality (5-7 seconds random interval - SAME AS WORKING COMPONENT)
   useEffect(() => {
     const getRandomInterval = () => Math.floor(Math.random() * 2000) + 5000; // 5000-7000ms
@@ -472,8 +480,26 @@ const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0] 
 
         {/* Swipeable Carousel Container */}
         <div className="relative mb-8">
+          {/* Left Arrow Button */}
+          <button
+            onClick={goToPrevious}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 border border-gray-200 transition-all duration-200 active:scale-95"
+            aria-label="Previous testimonial"
+          >
+            <ChevronLeft className="w-5 h-5 text-[#06c167]" />
+          </button>
+
+          {/* Right Arrow Button */}
+          <button
+            onClick={goToNext}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 border border-gray-200 transition-all duration-200 active:scale-95"
+            aria-label="Next testimonial"
+          >
+            <ChevronRight className="w-5 h-5 text-[#06c167]" />
+          </button>
+
           {/* Carousel */}
-          <div className="relative">
+          <div className="relative px-10">
             <div
               ref={carouselRef}
               className="relative overflow-hidden rounded-2xl touch-pan-y"
