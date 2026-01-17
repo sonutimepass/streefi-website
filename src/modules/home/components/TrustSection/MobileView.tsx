@@ -1,141 +1,19 @@
 'use client';
-import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Star } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 export default function MobileView() {
   const [isVisible, setIsVisible] = useState(false);
   const [counts, setCounts] = useState({ vendors: 0, Stories: 0, explorers: 0, rating: 0 });
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [translateX, setTranslateX] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
   const sectionRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<HTMLDivElement[]>([]);
-
-  // Touch/swipe handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    setStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || !carouselRef.current) return;
-    
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
-    setTranslateX(diff);
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging || !carouselRef.current) return;
-    
-    setIsDragging(false);
-    
-    // Determine swipe direction
-    const swipeThreshold = 50;
-    if (translateX < -swipeThreshold) {
-      // Swipe left
-      if (currentIndex < testimonials.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-      } else {
-        // Loop back to start
-        setCurrentIndex(0);
-      }
-    } else if (translateX > swipeThreshold) {
-      // Swipe right
-      if (currentIndex > 0) {
-        setCurrentIndex(prev => prev - 1);
-      } else {
-        // Loop to end
-        setCurrentIndex(testimonials.length - 1);
-      }
-    }
-    
-    setTranslateX(0);
-  };
-
-  // Mouse drag handlers for desktop
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setStartX(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !carouselRef.current) return;
-    
-    const currentX = e.clientX;
-    const diff = currentX - startX;
-    setTranslateX(diff);
-  };
-
-  const handleMouseUp = () => {
-    handleTouchEnd(); // Reuse same logic
-  };
-
-  // Auto-rotate carousel
-  useEffect(() => {
-    if (!isVisible) return;
-    
-    const interval = setInterval(() => {
-      setCurrentIndex(prev => prev === testimonials.length - 1 ? 0 : prev + 1);
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [isVisible]);
-
-  // Original intersection observer and counter logic
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isVisible) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [isVisible]);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const duration = 1500;
-    const steps = 40;
-    const interval = duration / steps;
-
-    const targets = {
-      vendors: 500,
-      Stories: 50,
-      explorers: 1,
-      rating: 4.8
-    };
-
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-
-      setCounts({
-        vendors: Math.floor(targets.vendors * progress),
-        Stories: Math.floor(targets.Stories * progress),
-        explorers: Math.floor(targets.explorers * progress),
-        rating: parseFloat((targets.rating * progress).toFixed(1))
-      });
-
-      if (step >= steps) {
-        clearInterval(timer);
-        setCounts(targets);
-      }
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, [isVisible]);
+  const autoSlideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // All testimonials
   const testimonials = [
@@ -365,70 +243,188 @@ export default function MobileView() {
   }
   ];
 
-  // Quote SVG Component
-  const QuoteIcon = ({ className }: { className?: string }) => (
-    <svg
-      className={className}
-      width="32"
-      height="32"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
-      <path d="M11.192 15.757c0-.88-.23-1.618-.69-2.217-.326-.412-.768-.683-1.327-.812-.55-.128-1.07-.137-1.54-.028-.16-.95.1-1.956.76-3.022.66-1.065 1.515-1.867 2.558-2.403L9.373 5c-.8.396-1.56.898-2.26 1.505-.71.607-1.34 1.305-1.9 2.094s-.98 1.68-1.25 2.69-.346 2.04-.217 3.1c.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l.002.003zm9.124 0c0-.88-.23-1.618-.69-2.217-.326-.42-.77-.692-1.327-.817-.56-.124-1.074-.13-1.54-.022-.16-.94.09-1.95.75-3.02.66-1.06 1.514-1.86 2.557-2.4L18.49 5c-.8.396-1.555.898-2.26 1.505-.708.607-1.34 1.305-1.894 2.094-.556.79-.97 1.68-1.24 2.69-.273 1-.345 2.04-.217 3.1.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l-.007.006z" />
-    </svg>
-  );
+  // Minimum swipe distance (in px) - same as VendorSuccessSection
+  const minSwipeDistance = 50;
 
-  // Testimonial Card Component
-  const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimonials[0], index: number }) => (
-    <div
-      ref={el => { cardRefs.current[index] = el!; }}
-      className="flex-shrink-0 w-[calc(100vw-3rem)] mx-2 bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-[#06c167] transition-all duration-300 shadow-lg"
-      style={{
-        transform: `scale(${index === currentIndex ? 1 : 0.95})`,
-        opacity: index === currentIndex ? 1 : 0.7,
-        transition: 'transform 0.3s ease, opacity 0.3s ease'
-      }}
-    >
-      {/* Quote Icons */}
-      <div className="flex justify-between items-start mb-4">
-        <QuoteIcon className="text-[#06c167] w-6 h-6" />
-        <QuoteIcon className="text-[#06c167] w-6 h-6 rotate-180" />
-      </div>
+  // Touch handlers (SAME LOGIC AS WORKING COMPONENT)
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(0);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+  };
 
-      {/* User Info */}
-      <div className="flex items-center gap-3 mb-4">
-        <img
-          src={testimonial.avatar}
-          alt={testimonial.name}
-          className="w-12 h-12 rounded-full object-cover border-2 border-[#06c167]"
-        />
-        <div>
-          <p className="text-gray-900 font-bold text-base">{testimonial.name}</p>
-          <p className="text-gray-600 text-sm">{testimonial.location}</p>
-        </div>
-      </div>
+  const onTouchMove = (e: React.TouchEvent) => {
+    const currentTouch = e.targetTouches[0].clientX;
+    setTouchEnd(currentTouch);
+    
+    // Calculate drag offset for visual feedback
+    const diff = currentTouch - touchStart;
+    setDragOffset(diff);
+  };
 
-      {/* Review Text */}
-      <p className="text-gray-700 text-sm leading-relaxed mb-4">
-        {testimonial.text}
-      </p>
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
 
-      {/* Rating */}
-      <div className="flex items-center gap-1 pt-4 border-t border-gray-200">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`w-4 h-4 ${i < testimonial.rating
-              ? 'text-[#ff6b35] fill-[#ff6b35]'
-              : 'text-gray-300'
-              }`}
-          />
-        ))}
-        <span className="text-gray-500 text-sm ml-3">Verified</span>
-        <span className="text-gray-400 text-sm ml-3">{testimonial.date}</span>
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentIndex < testimonials.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else if (isLeftSwipe && currentIndex === testimonials.length - 1) {
+      setCurrentIndex(0); // Loop to start
+    }
+
+    if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    } else if (isRightSwipe && currentIndex === 0) {
+      setCurrentIndex(testimonials.length - 1); // Loop to end
+    }
+
+    setIsDragging(false);
+    setDragOffset(0);
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  // Auto-slide functionality (5-7 seconds random interval - SAME AS WORKING COMPONENT)
+  useEffect(() => {
+    const getRandomInterval = () => Math.floor(Math.random() * 2000) + 5000; // 5000-7000ms
+    
+    let autoSlide: NodeJS.Timeout;
+    
+    const startAutoSlide = () => {
+      autoSlide = setTimeout(() => {
+        if (!isDragging) {
+          setCurrentIndex(prev => (prev < testimonials.length - 1 ? prev + 1 : 0));
+        }
+        startAutoSlide(); // Schedule next slide with new random interval
+      }, getRandomInterval());
+    };
+    
+    startAutoSlide();
+
+    return () => clearTimeout(autoSlide);
+  }, [isDragging, testimonials.length]);
+
+  // Keep your existing intersection observer and counter animation logic
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isVisible) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const duration = 1500;
+    const steps = 40;
+    const interval = duration / steps;
+
+    const targets = {
+      vendors: 500,
+      Stories: 50,
+      explorers: 1,
+      rating: 4.8
+    };
+
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+
+      setCounts({
+        vendors: Math.floor(targets.vendors * progress),
+        Stories: Math.floor(targets.Stories * progress),
+        explorers: Math.floor(targets.explorers * progress),
+        rating: parseFloat((targets.rating * progress).toFixed(1))
+      });
+
+      if (step >= steps) {
+        clearInterval(timer);
+        setCounts(targets);
+      }
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [isVisible]);
+
+// Quote SVG Component
+const QuoteIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <path d="M11.192 15.757c0-.88-.23-1.618-.69-2.217-.326-.412-.768-.683-1.327-.812-.55-.128-1.07-.137-1.54-.028-.16-.95.1-1.956.76-3.022.66-1.065 1.515-1.867 2.558-2.403L9.373 5c-.8.396-1.56.898-2.26 1.505-.71.607-1.34 1.305-1.9 2.094s-.98 1.68-1.25 2.69-.346 2.04-.217 3.1c.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l.002.003zm9.124 0c0-.88-.23-1.618-.69-2.217-.326-.42-.77-.692-1.327-.817-.56-.124-1.074-.13-1.54-.022-.16-.94.09-1.95.75-3.02.66-1.06 1.514-1.86 2.557-2.4L18.49 5c-.8.396-1.555.898-2.26 1.505-.708.607-1.34 1.305-1.894 2.094-.556.79-.97 1.68-1.24 2.69-.273 1-.345 2.04-.217 3.1.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l-.007.006z" />
+  </svg>
+);
+
+// Testimonial Card Component
+const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0] }) => (
+  <div className="bg-white rounded-xl p-5 border-2 border-gray-200 shadow-lg select-none">
+    {/* Quote Icons */}
+    <div className="flex justify-between items-start mb-4">
+      <QuoteIcon className="text-[#06c167] w-6 h-6" />
+      <QuoteIcon className="text-[#06c167] w-6 h-6 rotate-180" />
+    </div>
+
+    {/* User Info */}
+    <div className="flex items-center gap-3 mb-4">
+      <img
+        src={testimonial.avatar}
+        alt={testimonial.name}
+        className="w-12 h-12 rounded-full object-cover border-2 border-[#06c167]"
+        draggable="false"
+      />
+      <div>
+        <p className="text-gray-900 font-bold text-base">{testimonial.name}</p>
+        <p className="text-gray-600 text-sm">{testimonial.location}</p>
       </div>
     </div>
-  );
+
+    {/* Review Text */}
+    <p className="text-gray-700 text-sm leading-relaxed mb-4 select-none">
+      {testimonial.text}
+    </p>
+
+    {/* Rating */}
+    <div className="flex items-center gap-1 pt-4 border-t border-gray-200">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i < testimonial.rating
+            ? 'text-[#ff6b35] fill-[#ff6b35]'
+            : 'text-gray-300'
+            }`}
+        />
+      ))}
+      <span className="text-gray-500 text-sm ml-3">Verified</span>
+      <span className="text-gray-400 text-sm ml-3">{testimonial.date}</span>
+    </div>
+  </div>
+);
 
   return (
     <section id="reviews" className="relative py-5 overflow-hidden" style={{ background: '#f0fdf4' }}>
@@ -476,64 +472,45 @@ export default function MobileView() {
 
         {/* Swipeable Carousel Container */}
         <div className="relative mb-8">
-          {/* Navigation Buttons */}
-          <button
-            onClick={() => setCurrentIndex(prev => prev === 0 ? testimonials.length - 1 : prev - 1)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </button>
-          
-          <button
-            onClick={() => setCurrentIndex(prev => prev === testimonials.length - 1 ? 0 : prev + 1)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-700" />
-          </button>
-
           {/* Carousel */}
-          <div
-            ref={carouselRef}
-            className="overflow-hidden py-4"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
+          <div className="relative">
             <div
-              className="flex transition-transform duration-300 ease-out"
-              style={{
-                transform: `translateX(calc(-${currentIndex * (100 / testimonials.length)}% + ${translateX}px))`,
-                width: `${testimonials.length * 100}%`
-              }}
+              ref={carouselRef}
+              className="relative overflow-hidden rounded-2xl touch-pan-y"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             >
-              {testimonials.map((testimonial, index) => (
-                <div
-                  key={index}
-                  className="flex justify-center px-2"
-                  style={{ width: `${100 / testimonials.length}%` }}
-                >
-                  <TestimonialCard testimonial={testimonial} index={index} />
-                </div>
-              ))}
+              <div
+                className="flex transition-all duration-300 ease-out"
+                style={{
+                  transform: `translateX(calc(-${currentIndex * 100}% + ${isDragging ? dragOffset : 0}px))`,
+                  transition: isDragging ? 'none' : 'transform 300ms ease-out'
+                }}
+              >
+                {testimonials.map((testimonial, index) => (
+                  <div
+                    key={index}
+                    className="w-full flex-shrink-0 px-2"
+                  >
+                    <TestimonialCard testimonial={testimonial} />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Progress Indicators */}
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <div className="flex items-center gap-1.5">
-              {testimonials.slice(0, 32).map((_, index) => (
+            {/* Progress Indicators */}
+            <div className="flex justify-center gap-2 mt-4">
+              {testimonials.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentIndex 
-                      ? 'bg-[#06c167] w-6' 
-                      : 'bg-gray-300 hover:bg-gray-400'
+                  onClick={() => goToSlide(index)}
+                  className={`transition-all duration-300 rounded-full ${
+                    currentIndex === index
+                      ? 'bg-[#06c167] w-6 h-2'
+                      : 'bg-gray-300 w-2 h-2 hover:bg-gray-400'
                   }`}
+                  aria-label={`Go to testimonial ${index + 1}`}
                 />
               ))}
             </div>

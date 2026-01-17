@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 
 // S3 CDN base URL for videos (local backup available at /assets/videos/)
-const S3_BASE_URL = 'https://streefi-public-assets.s3.ap-south-1.amazonaws.com/videos/real-results';
+const S3_BASE_URL = 'https://videos.streefi.in/videos/real-results';
 
 const videos = [
   `${S3_BASE_URL}/videos-1.mp4`,

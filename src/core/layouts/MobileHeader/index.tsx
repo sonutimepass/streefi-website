@@ -44,7 +44,7 @@ function MobileHeader() {
             {/* Logo */}
             <Link 
               href="/" 
-              className="font-bold text-2xl text-green-600 hover:text-green-700 transition-colors duration-200"
+              className="font-bold text-2xl text-green-600 hover:text-green-700 transition-colors duration-200 "
             >
               Streefi
             </Link>

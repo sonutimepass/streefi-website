@@ -71,10 +71,7 @@ export default function MobileView() {
               <span className="relative inline-block">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-[#06c167] to-emerald-600 animate-gradient">
                   Near You
-                </span>{/* Moving Dot Decoration */}
-<div className="absolute -bottom-2 left-0 w-full h-[2px] bg-gray-200 overflow-hidden rounded-full">
-  <div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-[#06c167] to-transparent animate-[slideAcross_2s_infinite_linear]"></div>
-</div>
+                </span>
               </span>
             </h1>
 
