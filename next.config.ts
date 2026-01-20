@@ -4,20 +4,25 @@ import type { NextConfig } from "next";
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   // Output configuration for AWS Amplify
-  output: 'standalone',
+  output: 'export', // Changed from 'standalone' to 'export' to avoid Windows filesystem issues
   
   turbopack: {
     root: __dirname,
   },
   images: {
     domains: [],
-    unoptimized: false,
+    unoptimized: true, // Required for static exports
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     qualities: [75, 90],
   },
+  // Redirects are disabled for static exports - configure these at hosting level (Amplify, Vercel, etc.)
   async redirects() {
+    // Skip redirects for export mode
+    if (process.env.NODE_ENV === 'production' && process.env.EXPORT_MODE === 'true') {
+      return [];
+    }
   return [
     // WWW to non-WWW redirect (Production)
     {
@@ -67,7 +72,12 @@ const nextConfig: NextConfig = {
       destination: '/qrcode',
       permanent: true,
     },
-
+    // QR Code redirects
+    {
+      source: '/qr',
+      destination: '/qrcode',
+      permanent: true,
+    },
     // Policy page redirects
     {
       source: '/policy',
@@ -271,27 +281,27 @@ const nextConfig: NextConfig = {
     // App download shortcuts
     {
       source: '/download',
-      destination: '/#download',
+      destination: '/qrcode',
       permanent: false,
     },
     {
       source: '/app',
-      destination: '/#download',
+      destination: '/qrcode',
       permanent: false,
     },
     {
       source: '/get-app',
-      destination: '/#download',
+      destination: '/qrcode',
       permanent: false,
     },
     {
       source: '/mobile',
-      destination: '/#download',
+      destination: '/qrcode',
       permanent: false,
     },
     {
       source: '/mobile-app',
-      destination: '/#download',
+      destination: '/qrcode',
       permanent: false,
     },
     
@@ -371,12 +381,17 @@ const nextConfig: NextConfig = {
     // Careers/Jobs (redirect to home for now, update when page exists)
     {
       source: '/careers',
-      destination: '/',
+      destination: '/support',
+      permanent: false,
+    },
+    {
+      source: '/career',
+      destination: '/support',
       permanent: false,
     },
     {
       source: '/jobs',
-      destination: '/',
+      destination: '/support',
       permanent: false,
     },
     
@@ -415,7 +430,12 @@ const nextConfig: NextConfig = {
     },
   ];
   },
+  // Headers are disabled for static exports - configure these at hosting level (Amplify, Vercel, etc.)
   async headers() {
+    // Skip headers for export mode
+    if (process.env.NODE_ENV === 'production' && process.env.EXPORT_MODE === 'true') {
+      return [];
+    }
     return [
       {
         source: '/:path*',
@@ -482,9 +502,8 @@ export default withSentryConfig(nextConfig, {
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
 
-  // Route browser requests to Sentry through Next.js to circumvent ad-blockers
-  // This increases server load but improves reliability
-  tunnelRoute: "/monitoring",
+  // Note: tunnelRoute disabled for static exports compatibility
+  // tunnelRoute: "/monitoring", // Disabled - not compatible with static exports
 
   webpack: {
     // Enables automatic instrumentation of Vercel Cron Monitors
@@ -499,7 +518,7 @@ export default withSentryConfig(nextConfig, {
 
   // Upload source maps to Sentry for better error tracking
   sourcemaps: {
-    disable: false,
+    disable: true, // Temporarily disabled to fix build hanging issue
     deleteSourcemapsAfterUpload: true,
     // Only upload specific source maps, ignore all JS files without corresponding maps
     assets: ['**/*.js.map', '**/*.css.map'],

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 // import { connectDB } from '@/lib/mongodb';
 
+export const dynamic = 'force-static';
+export const revalidate = false;
+
 export async function GET() {
   // MongoDB connection disabled - using mock data only
   return NextResponse.json({ 
