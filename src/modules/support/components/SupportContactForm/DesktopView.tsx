@@ -53,6 +53,7 @@ export default function DesktopView() {
             id="name"
             name="name"
             required
+            suppressHydrationWarning
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             placeholder="Your name"
           />
@@ -64,6 +65,7 @@ export default function DesktopView() {
               aria-label="Country code"
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
+              suppressHydrationWarning
               className="w-20 px-2 py-2 border border-gray-300 rounded-lg bg-white text-sm"
             >
               <option value="+91">+91</option>
@@ -96,6 +98,7 @@ export default function DesktopView() {
               pattern="\d{10}"
               maxLength={10}
               placeholder="10-digit mobile"
+              suppressHydrationWarning
               className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             />
           </div>
@@ -117,6 +120,7 @@ export default function DesktopView() {
         <div>
           <button
             type="submit"
+            suppressHydrationWarning
             className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
           >
             Send

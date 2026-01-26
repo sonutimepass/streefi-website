@@ -68,7 +68,13 @@ function Header() {
       </button>
 
       <button
-        onClick={() => router.push('/')}
+        onClick={() => {
+          if (window.location.pathname === '/') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            router.push('/');
+          }
+        }}
         className="font-bold text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl hover:text-slate-900 hover:scale-125 transition-all duration-200 px-2 md:px-4"
       >
         Streefi
