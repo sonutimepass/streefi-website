@@ -1,0 +1,452 @@
+[
+  {
+    "source": "https://www.streefi.in/<*>",
+    "target": "https://streefi.in/<*>",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/home",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/index",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/index.html",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/index.php",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/default.html",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/qr-code",
+    "target": "/qrcode",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/qr",
+    "target": "/qrcode",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/policy",
+    "target": "/policies/policy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/policies",
+    "target": "/policies/policy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/legal",
+    "target": "/policies/policy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/disclaimer",
+    "target": "/policies/policy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/privacy",
+    "target": "/policies/policy#privacy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/privacy-policy",
+    "target": "/policies/policy#privacy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/terms",
+    "target": "/policies/policy#terms",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/terms-and-conditions",
+    "target": "/policies/policy#terms",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/terms-of-service",
+    "target": "/policies/policy#terms",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/tos",
+    "target": "/policies/policy#terms",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/refund",
+    "target": "/policies/policy#refund",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/refund-policy",
+    "target": "/policies/policy#refund",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/returns",
+    "target": "/policies/policy#refund",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/pricing",
+    "target": "/policies/policy#pricing",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/cookies",
+    "target": "/policies/policy#cookies",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/cookie-policy",
+    "target": "/policies/policy#cookies",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/security",
+    "target": "/policies/policy#security",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/customer",
+    "target": "/policies/policy#customer",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/promotion",
+    "target": "/policies/policy#promotion",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/promotions",
+    "target": "/policies/policy#promotion",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/rating",
+    "target": "/policies/policy#rating",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/ratings",
+    "target": "/policies/policy#rating",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/wishlist",
+    "target": "/policies/policy#wishlist",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/dinein",
+    "target": "/policies/policy#dineinpolicy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/dine-in",
+    "target": "/policies/policy#dineinpolicy",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/help",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/contact",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/contact-us",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/support-center",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/customer-service",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/policy/support",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/policies/support",
+    "target": "/support",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/faq",
+    "target": "/support#FAQs",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/faqs",
+    "target": "/support#FAQs",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/vendors",
+    "target": "/vendor",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/partner",
+    "target": "/vendor",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/partners",
+    "target": "/vendor",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/merchant",
+    "target": "/vendor",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/merchants",
+    "target": "/vendor",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/business",
+    "target": "/vendor",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/enterprise",
+    "target": "/vendor",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/b2b",
+    "target": "/vendor",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/vendor-signup",
+    "target": "/vendor",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/partner-with-us",
+    "target": "/vendor",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/download",
+    "target": "/qrcode",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/app",
+    "target": "/qrcode",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/get-app",
+    "target": "/qrcode",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/mobile",
+    "target": "/qrcode",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/mobile-app",
+    "target": "/qrcode",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/about",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/about-us",
+    "target": "/",
+    "status": "301",
+    "condition": null
+  },
+  {
+    "source": "/careers",
+    "target": "/support",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/career",
+    "target": "/support",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/jobs",
+    "target": "/support",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/order",
+    "target": "/#download",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/track",
+    "target": "/#download",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/track-order",
+    "target": "/#download",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/wp-admin",
+    "target": "/404",
+    "status": "404",
+    "condition": null
+  },
+  {
+    "source": "/wp-login.php",
+    "target": "/404",
+    "status": "404",
+    "condition": null
+  },
+  {
+    "source": "/wp-login",
+    "target": "/404",
+    "status": "404",
+    "condition": null
+  },
+  {
+    "source": "/admin",
+    "target": "/404",
+    "status": "404",
+    "condition": null
+  },
+  {
+    "source": "/administrator",
+    "target": "/404",
+    "status": "404",
+    "condition": null
+  },
+  {
+    "source": "/facebook",
+    "target": "https://facebook.com/streefi",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/instagram",
+    "target": "https://www.instagram.com/streefifoods?igsh=cjdyMHp6eTNxdGk5",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/linkedin",
+    "target": "https://www.linkedin.com/company/streefi/",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/twitter",
+    "target": "https://twitter.com",
+    "status": "302",
+    "condition": null
+  },
+  {
+    "source": "/<*>",
+    "target": "/index.html",
+    "status": "200",
+    "condition": null
+  }
+]

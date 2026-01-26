@@ -240,6 +240,11 @@ const nextConfig: NextConfig = {
       destination: '/support',
       permanent: true,
     },
+    {
+      source: '/policy/support',
+      destination: '/support',
+      permanent: true,
+    },
     
     // Vendor related redirects
     {
