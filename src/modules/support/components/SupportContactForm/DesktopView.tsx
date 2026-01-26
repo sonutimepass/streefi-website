@@ -1,58 +1,125 @@
+ 'use client';
+import { useEffect, useState } from 'react';
+
 export default function DesktopView() {
+  const [countryCode, setCountryCode] = useState('+91');
+  const [customCode, setCustomCode] = useState('');
+  const [localNumber, setLocalNumber] = useState('');
+  const [fullPhone, setFullPhone] = useState('+91');
+
+  useEffect(() => {
+    const code = countryCode === 'other' ? (customCode || '+') : countryCode;
+    setFullPhone(`${code}${localNumber}`);
+  }, [countryCode, customCode, localNumber]);
+
+  function handleLocalNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // allow only digits, max 10
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setLocalNumber(digits);
+  }
+
+  function handleCustomCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // allow + and digits
+    const v = e.target.value.replace(/[^+0-9]/g, '');
+    setCustomCode(v);
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    const currentCode = countryCode === 'other' ? customCode : countryCode;
+    
+    // Check if pasted text starts with current country code
+    if (currentCode && pastedText.startsWith(currentCode)) {
+      // Strip the country code and extract only digits
+      const remainingText = pastedText.slice(currentCode.length);
+      const digits = remainingText.replace(/\D/g, '').slice(0, 10);
+      setLocalNumber(digits);
+    } else {
+      // Normal paste - extract digits only, max 10
+      const digits = pastedText.replace(/\D/g, '').slice(0, 10);
+      setLocalNumber(digits);
+    }
+  }
+
   return (
     <div id="report" className="bg-white p-8 rounded-xl shadow-md border border-gray-200">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Send us a Message</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">Send Message</h2>
       <form action="https://formspree.io/f/mgvgzqog" method="POST" className="space-y-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-          <input 
-            type="text" 
-            id="name" 
-            name="name" 
-            required 
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-            placeholder="Enter your full name"
+            placeholder="Your name"
           />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-          <input 
-            type="email" 
-            id="email" 
-            name="email" 
-            required 
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-            placeholder="your.email@example.com"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
+          <div className="flex gap-2 items-center">
+            <select
+              aria-label="Country code"
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="w-20 px-2 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+            >
+              <option value="+91">+91</option>
+              <option value="+1">+1 (USA)</option>
+              <option value="+44">+44 (UK)</option>
+              <option value="+61">+61 (Australia)</option>
+              <option value="other">Other</option>
+            </select>
+
+            {countryCode === 'other' ? (
+              <input
+                aria-label="Custom country code"
+                type="text"
+                value={customCode}
+                onChange={handleCustomCodeChange}
+                placeholder="+XX"
+                className="w-20 px-2 py-2 text-sm border border-gray-300 rounded-lg"
+              />
+            ) : null}
+
+            <input
+              type="tel"
+              id="localNumber"
+              name="localNumber"
+              required
+              value={localNumber}
+              onChange={handleLocalNumberChange}
+              onPaste={handlePaste}
+              inputMode="numeric"
+              pattern="\d{10}"
+              maxLength={10}
+              placeholder="10-digit mobile"
+              className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+            />
+          </div>
+          {/* hidden combined phone field sent to the server */}
+          <input type="hidden" name="phone" value={fullPhone} />
+          <p className="text-xs text-gray-400 mt-1">Include 10 digits only; country code will be added.</p>
         </div>
         <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-          <input 
-            type="text" 
-            id="subject" 
-            name="subject" 
-            required 
+          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Tell us more</label>
+          <textarea
+            id="message"
+            name="message"
+            rows={5}
+            required
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-            placeholder="Brief description of your issue"
-          />
-        </div>
-        <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">How can we help?</label>
-          <textarea 
-            id="message" 
-            name="message" 
-            rows={5} 
-            required 
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-            placeholder="Please describe your issue in detail..."
+            placeholder="Describe the problem in simple words..."
           ></textarea>
         </div>
         <div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
           >
-            Submit Request
+            Send
           </button>
         </div>
       </form>
