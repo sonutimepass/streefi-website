@@ -97,7 +97,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <button
-                  onClick={() => window.location.href = '/support/#help'}
+                  onClick={() => window.location.href = '/support'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                   suppressHydrationWarning
                 >
@@ -106,7 +106,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => window.location.href = '/support/#report'}
+                  onClick={() => window.location.href = '/support'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                   suppressHydrationWarning
                 >
@@ -124,7 +124,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => window.location.href = '/support/#FAQs'}
+                  onClick={() => window.location.href = '/support'}
                   className="text-gray-400 hover:text-emerald-400 transition-colors duration-200 block text-left"
                   suppressHydrationWarning
                 >
