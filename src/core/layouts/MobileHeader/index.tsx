@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect, memo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 function MobileHeader() {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,12 +43,18 @@ function MobileHeader() {
         <div className="px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link 
-              href="/" 
-              className="font-bold text-2xl text-green-600 hover:text-green-700 transition-colors duration-200 "
+            <button 
+              onClick={() => {
+                if (pathname === '/') {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  router.push('/');
+                }
+              }}
+              className="font-bold text-2xl text-green-600 hover:text-green-700 transition-colors duration-200"
             >
               Streefi
-            </Link>
+            </button>
 
             {/* Hamburger Menu Button */}
             <button
