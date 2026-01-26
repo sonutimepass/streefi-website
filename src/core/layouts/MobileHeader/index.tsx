@@ -103,7 +103,7 @@ function MobileHeader() {
             Policies
           </Link>
           <Link 
-            href="/policies/support" 
+            href="/support" 
             onClick={() => setMenuOpen(false)}
             className={`py-2 font-medium transition-colors duration-200 ${
               isActive('/support') ? 'text-green-600 font-semibold' : 'text-gray-700 hover:text-green-600'
