@@ -13,115 +13,58 @@
   "categories": ["food", "lifestyle", "business"],
   "icons": [
     {
-      "src": "assets/streefi-logo.ico",
+      "src": "/assets/streefi-logo.ico",
       "sizes": "48x48",
       "type": "image/x-icon",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-72.svg",
+      "src": "/assets/streefi-logo-72.svg",
       "sizes": "72x72",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-96.svg",
+      "src": "/assets/streefi-logo-96.svg",
       "sizes": "96x96",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-128.svg",
+      "src": "/assets/streefi-logo-128.svg",
       "sizes": "128x128",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-144.svg",
+      "src": "/assets/streefi-logo-144.svg",
       "sizes": "144x144",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-152.svg",
+      "src": "/assets/streefi-logo-152.svg",
       "sizes": "152x152",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-192.svg",
+      "src": "/assets/streefi-logo-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "assets/streefi-logo-384.svg",
+      "src": "/assets/streefi-logo-384.svg",
       "sizes": "384x384",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "assets/streefi-logo-512.svg",
+      "src": "/assets/streefi-logo-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-    }
-  ],
-  "_screenshots_future": [
-    {
-      "src": "assets/screenshot-mobile-home.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Streefi home screen showing nearby street food vendors"
-    },
-    {
-      "src": "assets/screenshot-desktop-home.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Streefi desktop view with vendor discovery features"
-    }
-  ],
-  "_shortcuts_future": [
-    {
-      "name": "Find Vendors",
-      "short_name": "Find",
-      "description": "Discover street food vendors near you",
-      "url": "/#vendors",
-      "icons": [
-        {
-          "src": "assets/cart.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
-        }
-      ]
-    },
-    {
-      "name": "Download App",
-      "short_name": "Download",
-      "description": "Get the Streefi mobile app",
-      "url": "/#download",
-      "icons": [
-        {
-          "src": "assets/mobile.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
-        }
-      ]
-    },
-    {
-      "name": "Become Vendor",
-      "short_name": "Vendor",
-      "description": "Join as a street food vendor",
-      "url": "/vendor/",
-      "icons": [
-        {
-          "src": "assets/hero.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
-        }
-      ]
     }
   ],
   "related_applications": [
@@ -136,29 +79,5 @@
       "id": "id6747432924"
     }
   ],
-  "prefer_related_applications": false,
-  "protocol_handlers": [
-    {
-      "protocol": "web+streefi",
-      "url": "/?action=%s"
-    }
-  ],
-  "share_target": {
-    "action": "/share-vendor/",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded",
-    "params": {
-      "title": "vendor",
-      "text": "description",
-      "url": "link"
-    }
-  },
-  "file_handlers": [
-    {
-      "action": "/open-vendor/",
-      "accept": {
-        "application/json": [".json"]
-      }
-    }
-  ]
+  "prefer_related_applications": false
 }
