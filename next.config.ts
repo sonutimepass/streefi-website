@@ -4,14 +4,13 @@ import type { NextConfig } from "next";
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   // Output configuration for AWS Amplify
-  output: 'export', // Changed from 'standalone' to 'export' to avoid Windows filesystem issues
+  output: 'standalone', // Changed from 'standalone' to 'export' to avoid Windows filesystem issues
   
   turbopack: {
     root: __dirname,
   },
   images: {
     domains: [],
-    unoptimized: true, // Required for static exports
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
@@ -19,10 +18,6 @@ const nextConfig: NextConfig = {
   },
   // Redirects are disabled for static exports - configure these at hosting level (Amplify, Vercel, etc.)
   async redirects() {
-    // Skip redirects for export mode
-    if (process.env.NODE_ENV === 'production' && process.env.EXPORT_MODE === 'true') {
-      return [];
-    }
   return [
     // WWW to non-WWW redirect (Production)
     {
@@ -437,10 +432,6 @@ const nextConfig: NextConfig = {
   },
   // Headers are disabled for static exports - configure these at hosting level (Amplify, Vercel, etc.)
   async headers() {
-    // Skip headers for export mode
-    if (process.env.NODE_ENV === 'production' && process.env.EXPORT_MODE === 'true') {
-      return [];
-    }
     return [
       {
         source: '/:path*',
