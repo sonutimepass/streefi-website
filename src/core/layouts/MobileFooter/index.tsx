@@ -187,7 +187,7 @@ export default function MobileFooter() {
         {/* Copyright */}
         <div className="border-t border-slate-800 pt-6 text-center">
           <p className="text-gray-500 text-xs">
-            © {new Date().getFullYear()} Streefi. All rights reserved.
+            © {new Date().getFullYear()} Streefi Private Limited. All rights reserved.
           </p>
         </div>
       </div>

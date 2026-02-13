@@ -100,7 +100,7 @@ export default function DesktopView() {
                 <div className="bg-white w-12 h-12 rounded-lg flex items-center justify-center mb-4 shadow-sm">
                   <Percent className="text-emerald-600 w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Save ₹500 every month</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Save upto ₹1000 every month</h3>
                 <p className="text-gray-600 text-base leading-relaxed max-w-sm">
                   Up to 50% OFF at top vendors. Exclusive deals you won't find on anywhere.
                 </p>

@@ -1,6 +1,7 @@
 'use client';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import ProfileImage from '@/components/common/ProfileImage';
 
 export default function MobileView() {
   const [isVisible, setIsVisible] = useState(false);
@@ -21,7 +22,7 @@ export default function MobileView() {
       name: "Kinjal Patel",
       location: "Gandhinagar",
       text: "Amazing food and staff!! Loved loved it very much!! Service is outstanding!! Thank you streefi for this wonderful food and behaviour!! ♥️👌🏻👌🏻",
-      avatar: "/assets/testimonials/kinjal-patel.svg",
+      avatar: "kinjal-patel",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -29,7 +30,7 @@ export default function MobileView() {
       name: "Manish Ninama",
       location: "Ahmedabad",
       text: "good service",
-      avatar: "/assets/testimonials/manish-ninama.svg",
+      avatar: "manish-ninama",
       rating: 5,
       date: "November 27, 2025"
     },
@@ -37,7 +38,7 @@ export default function MobileView() {
       name: "Mann Patel",
       location: "Gandhinagar",
       text: "must try app for local food experience with convince at home. loved it!!",
-      avatar: "/assets/testimonials/mann-patel.svg",
+      avatar: "mann-patel",
       rating: 5,
       date: "September 19, 2025"
     },
@@ -45,7 +46,7 @@ export default function MobileView() {
       name: "Bhavana Patel",
       location: "Ahmedabad",
       text: "great use of this app",
-      avatar: "/assets/testimonials/bhavana-patel.svg",
+      avatar: "bhavana-patel",
       rating: 5,
       date: "September 20, 2025"
     },
@@ -53,7 +54,7 @@ export default function MobileView() {
       name: "Indrajeet Patel",
       location: "Gandhinagar",
       text: "One stop solution for your Street Cravings.",
-      avatar: "/assets/testimonials/indrajeet-patel.svg",
+      avatar: "indrajeet-patel",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -61,7 +62,7 @@ export default function MobileView() {
       name: "Devam Prajapati",
       location: "Ahmedabad",
       text: "best app👍🏻👍🏻",
-      avatar: "/assets/testimonials/devam-prajapati.svg",
+      avatar: "devam-prajapati",
       rating: 5,
       date: "September 18, 2025"
     },
@@ -69,7 +70,7 @@ export default function MobileView() {
       name: "Patel Jay",
       location: "Gandhinagar",
       text: "Nice App",
-      avatar: "/assets/testimonials/patel-jay.svg",
+      avatar: "patel-jay",
       rating: 5,
       date: "September 28, 2025"
     },
@@ -77,7 +78,7 @@ export default function MobileView() {
       name: "Hardev Vinzuda",
       location: "Ahmedabad",
       text: "Nice App",
-      avatar: "/assets/testimonials/hardev-vinzuda.svg",
+      avatar: "hardev-vinzuda",
       rating: 5,
       date: "September 21, 2025"
     },
@@ -85,7 +86,7 @@ export default function MobileView() {
     name: "Hitesh Shah",
     location: "Ahmedabad",
     text: "Paisa vasool app! 🤑 Got a good discount on my favorite maska bun stall just by paying through the app.",
-    avatar: "/assets/testimonials/hitesh-shah.svg",
+    avatar: "hitesh-shah",
     rating: 5,
     date: "October 05, 2025"
   },
@@ -93,7 +94,7 @@ export default function MobileView() {
     name: "Dhara Vaghela",
     location: "Gandhinagar",
     text: "Loved the explore feature. Found a new Gola center nearby that I never noticed before. Very helpful!",
-    avatar: "/assets/testimonials/dhara-vaghela.svg",
+    avatar: "dhara-vaghela",
     rating: 5,
     date: "October 12, 2025"
   },
@@ -101,7 +102,7 @@ export default function MobileView() {
     name: "Smit Gadhvi",
     location: "Ahmedabad",
     text: "Easy to use. Just scan, pay and get discount. No need to carry cash for street food anymore.",
-    avatar: "/assets/testimonials/smit-gadhvi.svg",
+    avatar: "smit-gadhvi",
     rating: 4,
     date: "October 15, 2025"
   },
@@ -109,7 +110,7 @@ export default function MobileView() {
     name: "Meena Ben Parikh",
     location: "Ahmedabad",
     text: "Very nice app for family outings. We found a great seating place using the map.",
-    avatar: "/assets/testimonials/meena-parikh.svg",
+    avatar: "meena-parikh",
     rating: 5,
     date: "October 20, 2025"
   },
@@ -117,7 +118,7 @@ export default function MobileView() {
     name: "Rahul Chotaliya",
     location: "Gandhinagar",
     text: "best for street food lovers!! discount malyo at the stall.. happy customer! 👍🏻",
-    avatar: "/assets/testimonials/rahul-chotaliya.svg",
+    avatar: "rahul-chotaliya",
     rating: 5,
     date: "October 22, 2025"
   },
@@ -125,7 +126,7 @@ export default function MobileView() {
     name: "Priyanka Zala",
     location: "Ahmedabad",
     text: "The explore feature is so accurate. Found the best momos spot in IIM Road thanks to this.",
-    avatar: "/assets/testimonials/priyanka-zala.svg",
+    avatar: "priyanka-zala",
     rating: 5,
     date: "October 25, 2025"
   },
@@ -133,7 +134,7 @@ export default function MobileView() {
     name: "Jignesh Mewada",
     location: "Gandhinagar",
     text: "Good discounts and fast payment. Makes eating out very cheap and easy.",
-    avatar: "/assets/testimonials/jignesh-mewada.svg",
+    avatar: "jignesh-mewada",
     rating: 4,
     date: "October 28, 2025"
   },
@@ -141,7 +142,7 @@ export default function MobileView() {
     name: "Anjali Brahmbhatt",
     location: "Ahmedabad",
     text: "I love how I can see all the vendors on one map. Payment was smooth and got 15% off!",
-    avatar: "/assets/testimonials/anjali-brahmbhatt.svg",
+    avatar: "anjali-brahmbhatt",
     rating: 5,
     date: "November 02, 2025"
   },
@@ -149,7 +150,7 @@ export default function MobileView() {
     name: "Parthiv Gohil",
     location: "Ahmedabad",
     text: "Superb experience at the live dhokla stall. App is very user friendly.",
-    avatar: "/assets/testimonials/parthiv-gohil.svg",
+    avatar: "parthiv-gohil",
     rating: 5,
     date: "November 05, 2025"
   },
@@ -157,7 +158,7 @@ export default function MobileView() {
     name: "Deepal Rathod",
     location: "Gandhinagar",
     text: "Great way to find local food. The discount on dine-in is the cherry on top! 🍒",
-    avatar: "/assets/testimonials/deepal-rathod.svg",
+    avatar: "deepal-rathod",
     rating: 5,
     date: "November 08, 2025"
   },
@@ -165,7 +166,7 @@ export default function MobileView() {
     name: "Suresh Bhai Patel",
     location: "Ahmedabad",
     text: "v.good service and easy payment",
-    avatar: "/assets/testimonials/suresh-patel.svg",
+    avatar: "suresh-patel",
     rating: 5,
     date: "November 10, 2025"
   },
@@ -173,7 +174,7 @@ export default function MobileView() {
     name: "Kavita Jadeja",
     location: "Gandhinagar",
     text: "Explore feature helps me find hygienic street food stalls. Payment through app is very convenient.",
-    avatar: "/assets/testimonials/kavita-jadeja.svg",
+    avatar: "kavita-jadeja",
     rating: 5,
     date: "November 12, 2025"
   },
@@ -181,7 +182,7 @@ export default function MobileView() {
     name: "Tushar Panchal",
     location: "Ahmedabad",
     text: "College students mate best che! Every rupee saved matters and the discounts here are real.",
-    avatar: "/assets/testimonials/tushar-panchal.svg",
+    avatar: "tushar-panchal",
     rating: 5,
     date: "November 15, 2025"
   },
@@ -189,7 +190,7 @@ export default function MobileView() {
     name: "Rinkal Solanki",
     location: "Ahmedabad",
     text: "First time tried paying through app at a stall, got instant discount. Amazing concept!",
-    avatar: "/assets/testimonials/rinkal-solanki.svg",
+    avatar: "rinkal-solanki",
     rating: 4,
     date: "November 18, 2025"
   },
@@ -197,7 +198,7 @@ export default function MobileView() {
     name: "Bhavesh Makwana",
     location: "Gandhinagar",
     text: "Mast app che. Local vendors na badha options ek j jagya par mali jay.",
-    avatar: "/assets/testimonials/bhavesh-makwana.svg",
+    avatar: "bhavesh-makwana",
     rating: 5,
     date: "November 20, 2025"
   },
@@ -205,7 +206,7 @@ export default function MobileView() {
     name: "Niyati Joshi",
     location: "Ahmedabad",
     text: "Saved 50 rupees on my dinner today! Just explore and pay. Highly recommended. ⭐⭐⭐⭐⭐",
-    avatar: "/assets/testimonials/niyati-joshi.svg",
+    avatar: "niyati-joshi",
     rating: 5,
     date: "November 22, 2025"
   },
@@ -213,7 +214,7 @@ export default function MobileView() {
     name: "Harshil Vyas",
     location: "Gandhinagar",
     text: "The best part is discovering food joints I never knew existed in my own area.",
-    avatar: "/assets/testimonials/harshil-vyas.svg",
+    avatar: "harshil-vyas",
     rating: 5,
     date: "November 25, 2025"
   },
@@ -221,7 +222,7 @@ export default function MobileView() {
     name: "Mansi Thakar",
     location: "Ahmedabad",
     text: "Smooth interface and genuine discounts. Best app for weekend foodies.",
-    avatar: "/assets/testimonials/mansi-thakar.svg",
+    avatar: "mansi-thakar",
     rating: 5,
     date: "November 28, 2025"
   },
@@ -229,7 +230,7 @@ export default function MobileView() {
     name: "Viral Gajjar",
     location: "Ahmedabad",
     text: "No more bargaining, the app gives the best price automatically. Loved it!",
-    avatar: "/assets/testimonials/viral-gajjar.svg",
+    avatar: "viral-gajjar",
     rating: 5,
     date: "December 01, 2025"
   },
@@ -237,7 +238,7 @@ export default function MobileView() {
     name: "Dhaval Bharwad",
     location: "Gandhinagar",
     text: "Khub saras app che. Food locations and offers are very helpful.",
-    avatar: "/assets/testimonials/dhaval-bharwad.svg",
+    avatar: "dhaval-bharwad",
     rating: 5,
     date: "December 03, 2025"
   }
@@ -400,12 +401,12 @@ const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0] 
 
     {/* User Info */}
     <div className="flex items-center gap-3 mb-4">
-      <img
-        src={testimonial.avatar}
-        alt={testimonial.name}
-        className="w-12 h-12 rounded-full object-cover border-2 border-[#06c167]"
-        draggable="false"
-      />
+      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#06c167]">
+        <ProfileImage
+          name={testimonial.avatar}
+          className="w-full h-full"
+        />
+      </div>
       <div>
         <p className="text-gray-900 font-bold text-base">{testimonial.name}</p>
         <p className="text-gray-600 text-sm">{testimonial.location}</p>

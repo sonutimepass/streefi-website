@@ -42,6 +42,13 @@ export default function QRRedirect() {
     };
 
     detectPlatformAndRedirect();
+
+    // Fallback redirect to main site after 10 minutes
+    const fallbackTimer = setTimeout(() => {
+      window.location.replace(DESKTOP_LINK);
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   return (

@@ -212,7 +212,7 @@ export default function Footer() {
         {/* Bottom Copyright */}
         <div className="border-t border-slate-800 pt-8 text-center">
           <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Streefi. All rights reserved.
+            © {new Date().getFullYear()} Streefi Private Limited. All rights reserved.
           </p>
         </div>
       </div>
