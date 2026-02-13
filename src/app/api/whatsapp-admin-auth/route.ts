@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { verifyPassword } from '@/lib/crypto';
 
 const COOKIE_NAME = 'wa_admin_session';
 const COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours in seconds
@@ -33,19 +34,25 @@ export async function POST(request: Request) {
       );
     }
     
-    // Get admin password from environment variable
-    const adminPassword = process.env.WA_ADMIN_PASSWORD;
+    // Get admin password hash from environment variable
+    // Generate hash using: import { hashPassword } from '@/lib/crypto'; console.log(hashPassword('your-password'));
+    const adminPasswordHash = process.env.WA_ADMIN_PASSWORD_HASH;
     
-    if (!adminPassword) {
-      console.error('WA_ADMIN_PASSWORD environment variable not set');
+    if (!adminPasswordHash) {
+      console.error('WA_ADMIN_PASSWORD_HASH environment variable not set');
       return NextResponse.json(
         { success: false, error: 'Server configuration error' },
         { status: 500 }
       );
     }
     
-    // Validate password
-    if (password !== adminPassword) {
+    // Validate password using secure hashing
+    const isValid = verifyPassword(password, adminPasswordHash);
+    
+    if (!isValid) {
+      // Add small delay to prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       return NextResponse.json(
         { success: false, error: 'Invalid password' },
         { status: 401 }

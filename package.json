@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate-hash": "node scripts/generate-password-hash.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

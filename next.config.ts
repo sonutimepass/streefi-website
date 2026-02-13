@@ -450,7 +450,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
+            value: 'DENY' // Prevent clickjacking attacks
           },
           {
             key: 'X-XSS-Protection',
