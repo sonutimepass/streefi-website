@@ -6,7 +6,7 @@ export default function DesktopView() {
   return (
     <section id="hero-section" className="relative min-h-[70vh] pt-20 md:pt-25 pb-4 px-2 overflow-hidden" style={{ background: 'linear-gradient(180deg, #f0fdf4 0%, #f0fdf4 30%, #f0fdf4 70%, #f0fdf4 100%)' }} aria-label="Hero section">
       {/* Subtle Grid Pattern Overlay */}
-      <div className="absolute inset-0 opacity-[0.03] z-0">
+      <div className="absolute inset-0 opacity-[0.03] z-10 pointer-events-none">
         <svg className="w-full h-full" width="100%" height="100%">
           <defs>
             <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
