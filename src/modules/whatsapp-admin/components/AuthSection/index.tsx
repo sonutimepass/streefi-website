@@ -1,18 +1,9 @@
 'use client';
 
-interface AuthSectionProps {
-  passwordInput: string;
-  setPasswordInput: (value: string) => void;
-  passwordError: string;
-  handleUnlock: (e: React.FormEvent) => void;
-}
+import { useWhatsAppAdminContext } from '../../context/WhatsAppAdminProvider';
 
-export default function AuthSection({
-  passwordInput,
-  setPasswordInput,
-  passwordError,
-  handleUnlock,
-}: AuthSectionProps) {
+export default function AuthSection() {
+  const { passwordInput, setPasswordInput, passwordError, handleUnlock } = useWhatsAppAdminContext();
   return (
     <div style={{
       display: 'flex',

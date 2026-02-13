@@ -1,57 +1,32 @@
 'use client';
-import { StatusType, MessageType, LogItem } from '../../hooks/useWhatsAppAdmin';
+import { useWhatsAppAdminContext } from '../../context/WhatsAppAdminProvider';
 
-interface MessageFormSectionProps {
-  messageType: MessageType;
-  setMessageType: (type: MessageType) => void;
-  phone: string;
-  setPhone: (value: string) => void;
-  message: string;
-  setMessage: (value: string) => void;
-  templateName: string;
-  setTemplateName: (value: string) => void;
-  templateLanguage: string;
-  setTemplateLanguage: (value: string) => void;
-  templateParams: string[];
-  setTemplateParams: (params: string[]) => void;
-  sending: boolean;
-  statusMessage: string;
-  statusType: StatusType;
-  handleSendWhatsApp: (e: React.FormEvent) => void;
-  handleLogout: () => void;
-  messageLog: LogItem[];
-  bulkPhones: string;
-  setBulkPhones: (value: string) => void;
-  handleSendBulkWhatsApp: (e: React.FormEvent) => void;
-  handleFileUpload: (file: File) => void;
-  importedPhones: string[];
-}
-
-export default function MessageFormSection({
-  messageType,
-  setMessageType,
-  phone,
-  setPhone,
-  message,
-  setMessage,
-  templateName,
-  setTemplateName,
-  templateLanguage,
-  setTemplateLanguage,
-  templateParams,
-  setTemplateParams,
-  sending,
-  statusMessage,
-  statusType,
-  handleSendWhatsApp,
-  handleLogout,
-  messageLog,
-  bulkPhones,
-  setBulkPhones,
-  handleSendBulkWhatsApp,
-  handleFileUpload,
-  importedPhones,
-}: MessageFormSectionProps) {
+export default function MessageFormSection() {
+  const {
+    messageType,
+    setMessageType,
+    phone,
+    setPhone,
+    message,
+    setMessage,
+    templateName,
+    setTemplateName,
+    templateLanguage,
+    setTemplateLanguage,
+    templateParams,
+    setTemplateParams,
+    sending,
+    statusMessage,
+    statusType,
+    handleSendWhatsApp,
+    handleLogout,
+    messageLog,
+    bulkPhones,
+    setBulkPhones,
+    handleSendBulkWhatsApp,
+    handleFileUpload,
+    importedPhones,
+  } = useWhatsAppAdminContext();
   return (
     <div style={{
       display: 'flex',

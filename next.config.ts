@@ -4,10 +4,22 @@ import type { NextConfig } from "next";
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   // Output configuration for AWS Amplify
-  output: 'standalone', // Changed from 'standalone' to 'export' to avoid Windows filesystem issues
+  output: 'standalone',
+  
+  // Externalize problematic Node.js modules for Windows compatibility
+  serverExternalPackages: ['@sentry/nextjs'],
   
   turbopack: {
     root: __dirname,
+  },
+  
+  // Webpack configuration to handle node:inspector module
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Externalize node:inspector to prevent Windows file path issues
+      config.externals = [...(config.externals || []), 'node:inspector'];
+    }
+    return config;
   },
   images: {
     domains: [],
@@ -500,17 +512,6 @@ export default withSentryConfig(nextConfig, {
 
   // Note: tunnelRoute disabled for static exports compatibility
   // tunnelRoute: "/monitoring", // Disabled - not compatible with static exports
-
-  webpack: {
-    // Enables automatic instrumentation of Vercel Cron Monitors
-    automaticVercelMonitors: true,
-
-    // Tree-shaking options for reducing bundle size
-    treeshake: {
-      // Automatically tree-shake Sentry logger statements to reduce bundle size
-      removeDebugLogging: process.env.NODE_ENV === 'production',
-    },
-  },
 
   // Upload source maps to Sentry for better error tracking
   sourcemaps: {
