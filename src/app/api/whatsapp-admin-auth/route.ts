@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyPassword } from '@/lib/crypto';
 
+// Force Node.js runtime for proper environment variable access
+export const runtime = 'nodejs';
+
 const COOKIE_NAME = 'wa_admin_session';
 const COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours in seconds
 
