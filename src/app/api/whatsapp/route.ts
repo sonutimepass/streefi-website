@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const VERIFY_TOKEN = 'streefi_secure_token';
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'streefi_secure_token';
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
 
 /**
  * GET - WhatsApp Webhook Verification
- * Meta will call this endpoint to verify the webhook
+ * Security: Returns 403 Forbidden for unauthorized requests
+ * Only allows Meta's webhook verification with proper parameters
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,44 +17,138 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
-    // Check if a token and mode were sent
-    if (mode && token) {
-      // Check the mode and token sent are correct
-      if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-        // Respond with 200 OK and challenge token from the request
-        console.log('Webhook verified successfully!');
-        return new NextResponse(challenge, { status: 200 });
-      } else {
-        // Responds with '403 Forbidden' if verify tokens do not match
-        return NextResponse.json(
-          { error: 'Verification token mismatch' },
-          { status: 403 }
-        );
-      }
+    // Security check: Return 403 for any unauthorized GET requests (like Zomato)
+    if (!mode || !token || !challenge) {
+      return new NextResponse(
+        '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
+        { 
+          status: 403,
+          headers: {
+            'Content-Type': 'text/html; charset=iso-8859-1',
+            'Cache-Control': 'max-age=0, no-cache, no-store',
+            'Pragma': 'no-cache',
+          }
+        }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Missing verification parameters' },
-      { status: 400 }
+    // Verify webhook from Meta
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      // Respond with 200 OK and challenge token from the request
+      console.log('✅ Webhook verified successfully!');
+      return new NextResponse(challenge, { 
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+        }
+      });
+    }
+
+    // Invalid verification token
+    console.warn('⚠️ Webhook verification failed: Token mismatch');
+    return new NextResponse(
+      '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
+      { 
+        status: 403,
+        headers: {
+          'Content-Type': 'text/html; charset=iso-8859-1',
+          'Cache-Control': 'max-age=0, no-cache, no-store',
+          'Pragma': 'no-cache',
+        }
+      }
     );
   } catch (error) {
-    console.error('Webhook verification error:', error);
-    return NextResponse.json(
-      { error: 'Webhook verification failed' },
-      { status: 500 }
+    console.error('❌ Webhook verification error:', error);
+    return new NextResponse(
+      '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
+      { 
+        status: 403,
+        headers: {
+          'Content-Type': 'text/html; charset=iso-8859-1',
+        }
+      }
     );
   }
 }
 
 /**
- * POST - Send WhatsApp Message
- * Accepts: { phone: string, message?: string, template?: { name: string, language: string, parameters?: string[] } }
- * Sends message via Meta Cloud API (supports both text and template messages)
+ * POST - WhatsApp Webhook Handler
+ * Receives incoming messages and events from Meta's WhatsApp Business API
+ * Also handles sending WhatsApp messages (internal API)
  */
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body
     const body = await request.json();
+
+    // Check if this is a webhook event from Meta (incoming message)
+    if (body.object === 'whatsapp_business_account') {
+      console.log('📨 Incoming WhatsApp webhook:', JSON.stringify(body, null, 2));
+
+      // Process webhook entries
+      if (body.entry && Array.isArray(body.entry)) {
+        for (const entry of body.entry) {
+          if (entry.changes && Array.isArray(entry.changes)) {
+            for (const change of entry.changes) {
+              if (change.value) {
+                const value = change.value;
+
+                // Handle incoming messages
+                if (value.messages && Array.isArray(value.messages)) {
+                  for (const message of value.messages) {
+                    console.log('📩 Message received:', {
+                      from: message.from,
+                      type: message.type,
+                      id: message.id,
+                      timestamp: message.timestamp,
+                    });
+
+                    // Handle different message types
+                    if (message.type === 'text') {
+                      console.log('💬 Text message:', message.text.body);
+                    } else if (message.type === 'image') {
+                      console.log('🖼️ Image message:', message.image);
+                    } else if (message.type === 'document') {
+                      console.log('📄 Document message:', message.document);
+                    } else if (message.type === 'audio') {
+                      console.log('🎵 Audio message:', message.audio);
+                    } else if (message.type === 'video') {
+                      console.log('🎥 Video message:', message.video);
+                    } else if (message.type === 'location') {
+                      console.log('📍 Location message:', message.location);
+                    } else if (message.type === 'contacts') {
+                      console.log('👤 Contact message:', message.contacts);
+                    } else if (message.type === 'button' || message.type === 'interactive') {
+                      console.log('🔘 Interactive message:', message);
+                    }
+
+                    // TODO: Add your custom message handling logic here
+                    // For example: save to database, trigger notifications, auto-reply, etc.
+                  }
+                }
+
+                // Handle message status updates
+                if (value.statuses && Array.isArray(value.statuses)) {
+                  for (const status of value.statuses) {
+                    console.log('📊 Message status update:', {
+                      id: status.id,
+                      status: status.status,
+                      timestamp: status.timestamp,
+                      recipient: status.recipient_id,
+                    });
+                    // Status values: sent, delivered, read, failed
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Always return 200 OK to acknowledge receipt
+      return NextResponse.json({ success: true, received: true }, { status: 200 });
+    }
+
+    // If not a webhook event, treat as message sending request (internal API)
     const { phone, message, template } = body;
 
     // Validate input - either message or template must be provided

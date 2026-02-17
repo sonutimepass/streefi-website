@@ -1,12 +1,14 @@
 /**
  * Password Hash Generator Script
  * 
- * Run this script to generate a secure hash for your admin password
+ * Run this script to generate a secure hash for your admin passwords
  * 
  * Usage:
  * 1. node scripts/generate-password-hash.js your-password-here
  * 2. Copy the generated hash
- * 3. Add to .env.local: WA_ADMIN_PASSWORD_HASH=<generated-hash>
+ * 3. Add to .env.local: 
+ *    - WA_ADMIN_PASSWORD_HASH=<generated-hash> (for WhatsApp Admin)
+ *    - EMAIL_ADMIN_PASSWORD_HASH=<generated-hash> (for Email Admin)
  */
 
 const crypto = require('crypto');
@@ -41,10 +43,14 @@ const hash = hashPassword(password);
 console.log('✅ Hash generated successfully!\n');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('\nAdd this to your .env.local file:\n');
+console.log('For WhatsApp Admin:');
 console.log(`WA_ADMIN_PASSWORD_HASH="${hash}"`);
+console.log('\nFor Email Admin:');
+console.log(`EMAIL_ADMIN_PASSWORD_HASH="${hash}"`);
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 console.log('⚠️  Security Notes:');
 console.log('  • Never commit this hash to version control');
 console.log('  • Keep .env.local in .gitignore');
 console.log('  • Use different passwords for dev/staging/production');
-console.log('  • This hash uses PBKDF2 with 100,000 iterations\n');
+console.log('  • This hash uses PBKDF2 with 100,000 iterations');
+console.log('  • You can use the same hash for both admins or generate different ones\n');
