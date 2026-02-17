@@ -38,10 +38,17 @@ export async function POST(request: Request) {
     // Generate hash using: import { hashPassword } from '@/lib/crypto'; console.log(hashPassword('your-password'));
     const adminPasswordHash = process.env.WA_ADMIN_PASSWORD_HASH;
     
+    // Debug logging
+    console.log('Environment check:', {
+      hasHash: !!adminPasswordHash,
+      nodeEnv: process.env.NODE_ENV,
+      allEnvKeys: Object.keys(process.env).filter(k => k.includes('ADMIN') || k.includes('WA'))
+    });
+    
     if (!adminPasswordHash) {
-      console.error('WA_ADMIN_PASSWORD_HASH environment variable not set');
+      console.error('❌ WA_ADMIN_PASSWORD_HASH environment variable not set');
       return NextResponse.json(
-        { success: false, error: 'Server configuration error' },
+        { success: false, error: 'Server configuration error - missing WA_ADMIN_PASSWORD_HASH' },
         { status: 500 }
       );
     }
