@@ -22,13 +22,20 @@ export async function POST(request: Request) {
     
     // Get admin password hash from environment variable
     // Generate hash using: import { hashPassword } from '@/lib/crypto'; console.log(hashPassword('your-password'));
+    
+    // Temporary debugging - log ALL available env keys
+    console.log("🔍 Available ENV KEYS:", Object.keys(process.env));
+    console.log("🔍 Total env variables:", Object.keys(process.env).length);
+    
     const adminPasswordHash = process.env.EMAIL_ADMIN_PASSWORD_HASH;
     
     // Debug logging
     console.log('Environment check:', {
       hasHash: !!adminPasswordHash,
+      hashLength: adminPasswordHash?.length || 0,
       nodeEnv: process.env.NODE_ENV,
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('ADMIN') || k.includes('EMAIL'))
+      allEnvKeys: Object.keys(process.env).filter(k => k.includes('ADMIN') || k.includes('EMAIL')),
+      hasZohoVars: !!process.env.ZOHO_CLIENT_ID
     });
     
     if (!adminPasswordHash) {
