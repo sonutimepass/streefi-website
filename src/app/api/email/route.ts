@@ -67,7 +67,7 @@ async function sendZohoEmail(
   message: string
 ): Promise<{ success: boolean; error?: string }> {
   const fromEmail = process.env.FROM_EMAIL || 'support@streefi.in';
-  const apiUrl = 'https://www.zohoapis.in/mail/v1/accounts/me/messages';
+  const apiUrl = 'https://mail.zoho.in/api/accounts/8276313000000002002/messages';
 
   console.log(`📧 Sending email to: ${to}`);
 
