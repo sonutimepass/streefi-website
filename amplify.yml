@@ -3,23 +3,34 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci
+        - npm ci --cache .npm --prefer-offline
+
     build:
       commands:
-        - echo "Force fresh build - no standalone mode - build $(date +%s)"
-        # Create .env.production file with Amplify environment variables
-        - echo "EMAIL_ADMIN_PASSWORD_HASH=$EMAIL_ADMIN_PASSWORD_HASH" >> .env.production
-        - echo "WA_ADMIN_PASSWORD_HASH=$WA_ADMIN_PASSWORD_HASH" >> .env.production
-        - echo "ZOHO_CLIENT_ID=$ZOHO_CLIENT_ID" >> .env.production
-        - echo "ZOHO_CLIENT_SECRET=$ZOHO_CLIENT_SECRET" >> .env.production
-        - echo "ZOHO_REFRESH_TOKEN=$ZOHO_REFRESH_TOKEN" >> .env.production
-        - echo "FROM_EMAIL=$FROM_EMAIL" >> .env.production
+        # Create fresh env file
+        - rm -f .env.production
+        - touch .env.production
+
+        # Add ONLY the server-side variables you explicitly need
+        - env | grep -e EMAIL_ADMIN_PASSWORD_HASH >> .env.production || true
+        - env | grep -e WA_ADMIN_PASSWORD_HASH >> .env.production || true
+        - env | grep -e ZOHO_CLIENT_ID >> .env.production || true
+        - env | grep -e ZOHO_CLIENT_SECRET >> .env.production || true
+        - env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
+        - env | grep -e FROM_EMAIL >> .env.production || true
+
+        # If you use any public vars:
+        - env | grep -e NEXT_PUBLIC_ >> .env.production || true
+
+        # Build Next.js
         - npm run build
+
   artifacts:
     baseDirectory: .next
     files:
       - '**/*'
+
   cache:
     paths:
-      - node_modules/**/*
       - .next/cache/**/*
+      - .npm/**/*
