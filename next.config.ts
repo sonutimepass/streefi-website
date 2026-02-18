@@ -3,11 +3,6 @@ import type { NextConfig } from "next";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  // Output configuration for AWS Amplify
-  // NOTE: 'standalone' is for Docker/self-hosted deployments, NOT needed for Amplify
-  // Amplify has native Next.js support and handles serverless deployment automatically
-  // output: 'standalone', // ❌ COMMENTED OUT - Causes env var issues on Amplify Lambda
-  
   // Externalize problematic Node.js modules for Windows compatibility
   serverExternalPackages: ['@sentry/nextjs'],
   

@@ -6,9 +6,8 @@ frontend:
         - npm ci
     build:
       commands:
+        - echo "Force fresh build - no standalone mode - build $(date +%s)"
         - npm run build
-        # Standalone mode disabled - using standard Next.js output for Amplify
-        # No manual file copying needed - Amplify handles deployment automatically
   artifacts:
     baseDirectory: .next
     files:
