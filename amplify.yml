@@ -7,6 +7,13 @@ frontend:
     build:
       commands:
         - echo "Force fresh build - no standalone mode - build $(date +%s)"
+        # Create .env.production file with Amplify environment variables
+        - echo "EMAIL_ADMIN_PASSWORD_HASH=$EMAIL_ADMIN_PASSWORD_HASH" >> .env.production
+        - echo "WA_ADMIN_PASSWORD_HASH=$WA_ADMIN_PASSWORD_HASH" >> .env.production
+        - echo "ZOHO_CLIENT_ID=$ZOHO_CLIENT_ID" >> .env.production
+        - echo "ZOHO_CLIENT_SECRET=$ZOHO_CLIENT_SECRET" >> .env.production
+        - echo "ZOHO_REFRESH_TOKEN=$ZOHO_REFRESH_TOKEN" >> .env.production
+        - echo "FROM_EMAIL=$FROM_EMAIL" >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next
