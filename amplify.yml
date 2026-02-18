@@ -7,9 +7,8 @@ frontend:
     build:
       commands:
         - npm run build
-        # Copy public folder to standalone build output (required for standalone mode)
-        - cp -r public .next/standalone/public
-        - cp -r .next/static .next/standalone/.next/static
+        # Standalone mode disabled - using standard Next.js output for Amplify
+        # No manual file copying needed - Amplify handles deployment automatically
   artifacts:
     baseDirectory: .next
     files:
