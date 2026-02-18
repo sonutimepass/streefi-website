@@ -24,8 +24,8 @@ export async function POST(request: Request) {
     // Generate hash using: import { hashPassword } from '@/lib/crypto'; console.log(hashPassword('your-password'));
     
     // Temporary debugging - log ALL available env keys
-    console.log("🔍 Available ENV KEYS:", Object.keys(process.env));
-    console.log("🔍 Total env variables:", Object.keys(process.env).length);
+    console.log("ENV KEYS:", Object.keys(process.env));
+    console.log("EMAIL_ADMIN_PASSWORD_HASH:", process.env.EMAIL_ADMIN_PASSWORD_HASH);
     
     const adminPasswordHash = process.env.EMAIL_ADMIN_PASSWORD_HASH;
     
