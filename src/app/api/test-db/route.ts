@@ -33,14 +33,21 @@ export async function GET() {
   try {
     // Test 1: AWS Configuration Check
     try {
+      const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
+      const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
+      const executionEnv = process.env.AWS_EXECUTION_ENV || "local";
+      
+      // In Amplify production, credentials should be false (using IAM Role)
+      const isUsingIAMRole = !hasAccessKey && !hasSecretKey && executionEnv !== "local";
+      
       const config = {
         region: process.env.AWS_REGION || client.config.region || "not-set",
-        hasAccessKeyId: !!process.env.AWS_ACCESS_KEY_ID,
-        hasSecretAccessKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        hasAccessKeyId: hasAccessKey,
+        hasSecretAccessKey: hasSecretKey,
         hasSessionToken: !!process.env.AWS_SESSION_TOKEN,
         tableName: TABLE_NAME,
-        credentialSource: process.env.AWS_EXECUTION_ENV || "local",
-        note: "In production, hasAccessKeyId and hasSecretAccessKey should be false (using IAM Role)"
+        credentialSource: executionEnv,
+        authMethod: isUsingIAMRole ? "IAM Role (Secure ✅)" : hasAccessKey ? "Access Keys (Remove for production ⚠️)" : "Not configured",
       };
       results.tests.push({ 
         name: "AWS Configuration Check", 
@@ -56,13 +63,13 @@ export async function GET() {
     }
 
     // Test 2: Write Admin Session (Generic - for testing only)
-    const testSessionId = `test-session-${Date.now()}`;
+    const testEmail = `test-${Date.now()}@streefi.com`;
     try {
       await client.send(
         new PutItemCommand({
           TableName: TABLE_NAME,
           Item: {
-            id: { S: testSessionId },
+            email: { S: testEmail }, // MUST match partition key
             type: { S: "test-session" },
             createdAt: { S: new Date().toISOString() },
             expiresAt: { N: String(Math.floor(Date.now()/1000) + 86400) }, // 1 day from now
@@ -73,7 +80,7 @@ export async function GET() {
       results.tests.push({ 
         name: "Write Admin Session", 
         status: "✅ PASSED",
-        data: { id: testSessionId, note: "Session created successfully" }
+        data: { email: testEmail, note: "Session created successfully" }
       });
     } catch (error: any) {
       results.tests.push({ 
@@ -89,13 +96,13 @@ export async function GET() {
         new GetItemCommand({
           TableName: TABLE_NAME,
           Key: {
-            id: { S: testSessionId }
+            email: { S: testEmail } // MUST match partition key
           }
         })
       );
       
       const session = getResult.Item ? {
-        id: getResult.Item.id?.S,
+        email: getResult.Item.email?.S,
         type: getResult.Item.type?.S,
         status: getResult.Item.status?.S,
         createdAt: getResult.Item.createdAt?.S
@@ -120,7 +127,7 @@ export async function GET() {
         new DeleteItemCommand({
           TableName: TABLE_NAME,
           Key: {
-            id: { S: testSessionId }
+            email: { S: testEmail } // MUST match partition key
           }
         })
       );
@@ -200,7 +207,7 @@ Common Errors and What They Mean:
    → IAM Role not attached to Amplify app
 
 2. ResourceNotFoundException
-   → Table name is incorrect (case-sensitive: "streefi-admin")
+   → Table name is incorrect (case-sensitive: "streefi_admins")
    → Wrong AWS region
    → Table doesn't exist yet
 
@@ -213,14 +220,26 @@ Common Errors and What They Mean:
    → Incorrect region endpoint
    → AWS credentials not configured
 
-✅ EXPECTED IN PRODUCTION:
+✅ EXPECTED IN AMPLIFY PRODUCTION:
    - hasAccessKeyId: false
    - hasSecretAccessKey: false
-   This is GOOD - means using IAM Role (not hardcoded keys)
+   - credentialSource: "AWS_ECS_FARGATE" or similar
+   - authMethod: "IAM Role (Secure ✅)"
+   This means the app is using IAM Role attached to Amplify (CORRECT & SECURE)
+
+⚠️ IF YOU SEE TRUE IN PRODUCTION:
+   - Remove AWS_ACCESS_KEY_ID from Amplify environment variables
+   - Remove AWS_SECRET_ACCESS_KEY from Amplify environment variables
+   - Let IAM Role handle authentication automatically
 
 🎯 DEPLOYMENT CHECKLIST:
-   ✓ Table name: "streefi-admin" (exact match, case-sensitive)
+   ✓ Table name: "streefi_admins" (exact match, case-sensitive)
+   ✓ Partition key: "email" (String) - MUST be included in all operations
    ✓ AWS_REGION environment variable set
    ✓ IAM Role attached with DynamoDB permissions
    ✓ Policy ARN covers the correct table
+
+💡 TABLE SCHEMA:
+   Primary Key: email (Partition Key)
+   All PutItem/GetItem/DeleteItem must include "email" field
 */
