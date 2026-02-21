@@ -10,6 +10,7 @@
     "generate-hash": "node scripts/generate-password-hash.js"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.995.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
     "@sentry/nextjs": "^10.33.0",

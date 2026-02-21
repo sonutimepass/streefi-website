@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 import { useEffect, useState } from 'react';
 
 export default function DesktopView() {
@@ -59,6 +59,20 @@ export default function DesktopView() {
           />
         </div>
         <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            Email <span className="text-gray-400 text-xs">(optional)</span>
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            inputMode="email"
+            suppressHydrationWarning
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+            placeholder="your.email@example.com"
+          />
+        </div>
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
           <div className="flex gap-2 items-center">
             <select
@@ -116,6 +130,12 @@ export default function DesktopView() {
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             placeholder="Describe the problem in simple words..."
           ></textarea>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+          <p className="text-xs text-gray-500">
+            <span className="font-semibold">Note:</span> We may use the contact information provided to reach out to you regarding any queries.<br />
+            <span className="text-xs text-gray-400">By submitting this form, you confirm that you comply with our terms and services.</span>
+          </p>
         </div>
         <div>
           <button
