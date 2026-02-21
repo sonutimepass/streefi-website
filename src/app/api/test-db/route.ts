@@ -15,7 +15,7 @@ const client = new DynamoDBClient({
   region: process.env.AWS_REGION,
 });
 
-const TABLE_NAME = "streefi_admin"; // Case-sensitive - must match exactly
+const TABLE_NAME = "streefi_admins"; // Case-sensitive - must match exactly
 
 export async function GET() {
   const results = {
