@@ -19,7 +19,7 @@ export default function MessageFormSection() {
     statusMessage,
     statusType,
     handleSendWhatsApp,
-    handleLogout,
+    logout,
     messageLog,
     bulkPhones,
     setBulkPhones,
@@ -47,7 +47,7 @@ export default function MessageFormSection() {
       }}>
         {/* Logout Button */}
         <button
-          onClick={handleLogout}
+          onClick={logout}
           style={{
             position: 'absolute',
             top: '20px',

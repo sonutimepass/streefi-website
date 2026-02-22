@@ -15,7 +15,7 @@ export default function EmailFormSection() {
     statusMessage,
     statusType,
     handleSendEmail,
-    handleLogout,
+    logout,
     messageLog,
     bulkEmails,
     setBulkEmails,
@@ -44,7 +44,7 @@ export default function EmailFormSection() {
       }}>
         {/* Logout Button */}
         <button
-          onClick={handleLogout}
+          onClick={logout}
           style={{
             position: 'absolute',
             top: '20px',

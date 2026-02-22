@@ -1,9 +1,25 @@
 'use client';
 
+import { useState } from 'react';
 import { useWhatsAppAdminContext } from '../../context/WhatsAppAdminProvider';
 
 export default function AuthSection() {
-  const { passwordInput, setPasswordInput, passwordError, handleUnlock } = useWhatsAppAdminContext();
+  const { login, error, clearError, isLoading } = useWhatsAppAdminContext();
+  const [passwordInput, setPasswordInput] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    
+    const result = await login(passwordInput);
+    
+    if (!result.success) {
+      // Error is already set in context
+      setPasswordInput(''); // Clear password on error
+    } else {
+      setPasswordInput(''); // Clear password on success
+    }
+  };
   return (
     <div style={{
       display: 'flex',
@@ -29,13 +45,14 @@ export default function AuthSection() {
           WhatsApp Admin
         </h1>
         
-        <form onSubmit={handleUnlock}>
+        <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Enter Admin Password"
+              disabled={isLoading}
               style={{
                 width: '100%',
                 padding: '12px',
@@ -43,35 +60,37 @@ export default function AuthSection() {
                 border: '1px solid #ddd',
                 borderRadius: '4px',
                 boxSizing: 'border-box',
+                opacity: isLoading ? 0.6 : 1,
               }}
             />
           </div>
           
-          {passwordError && (
+          {error && (
             <div style={{
               color: '#dc2626',
               fontSize: '14px',
               marginBottom: '16px',
             }}>
-              {passwordError}
+              {error}
             </div>
           )}
           
           <button
             type="submit"
+            disabled={isLoading || !passwordInput.trim()}
             style={{
               width: '100%',
               padding: '12px',
               fontSize: '16px',
               fontWeight: 'bold',
               color: 'white',
-              backgroundColor: '#10b981',
+              backgroundColor: (isLoading || !passwordInput.trim()) ? '#9ca3af' : '#10b981',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: (isLoading || !passwordInput.trim()) ? 'not-allowed' : 'pointer',
             }}
           >
-            Unlock
+            {isLoading ? 'Authenticating...' : 'Unlock'}
           </button>
         </form>
       </div>

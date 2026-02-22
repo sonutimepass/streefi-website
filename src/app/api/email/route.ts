@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateAdminSession } from '@/lib/adminAuth';
 
 interface EmailRequest {
   to: string | string[];
@@ -113,6 +114,15 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // POST handler - Send email
 export async function POST(request: NextRequest) {
+  // 🔒 SECURITY: Validate admin session
+  const auth = await validateAdminSession(request, 'email-session');
+  if (!auth.valid) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
     const body: EmailRequest = await request.json();
     const { to, subject, message } = body;

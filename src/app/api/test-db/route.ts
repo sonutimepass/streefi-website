@@ -6,6 +6,7 @@ import {
   DeleteItemCommand,
   ScanCommand
 } from "@aws-sdk/client-dynamodb";
+import { validateAdminSession } from '@/lib/adminAuth';
 
 // Force Node.js runtime (required for DynamoDB SDK)
 export const runtime = 'nodejs';
@@ -17,7 +18,15 @@ const client = new DynamoDBClient({
 
 const TABLE_NAME = "streefi_admins"; // Case-sensitive - must match exactly
 
-export async function GET() {
+export async function GET(request: Request) {
+  // 🔒 SECURITY: Protect test endpoint - requires email admin authentication
+  const auth = await validateAdminSession(request, 'email-session');
+  if (!auth.valid) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized - Admin access required' },
+      { status: 401 }
+    );
+  }
   const results = {
     success: true,
     timestamp: new Date().toISOString(),

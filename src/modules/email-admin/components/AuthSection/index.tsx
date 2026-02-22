@@ -1,13 +1,24 @@
 'use client';
+import { useState } from 'react';
 import { useEmailAdminContext } from '../../context/EmailAdminProvider';
 
 export default function AuthSection() {
-  const {
-    passwordInput,
-    setPasswordInput,
-    passwordError,
-    handleUnlock,
-  } = useEmailAdminContext();
+  const { login, error, clearError, isLoading } = useEmailAdminContext();
+  const [passwordInput, setPasswordInput] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    
+    const result = await login(passwordInput);
+    
+    if (!result.success) {
+      // Error is already set in context
+      setPasswordInput(''); // Clear password on error
+    } else {
+      setPasswordInput(''); // Clear password on success
+    }
+  };
 
   return (
     <div style={{
@@ -35,7 +46,7 @@ export default function AuthSection() {
           📧 Email Admin Login
         </h1>
 
-        <form onSubmit={handleUnlock}>
+        <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '16px' }}>
             <label style={{
               display: 'block',
@@ -50,6 +61,7 @@ export default function AuthSection() {
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Enter admin password"
+              disabled={isLoading}
               style={{
                 width: '100%',
                 padding: '10px',
@@ -57,42 +69,48 @@ export default function AuthSection() {
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
                 outline: 'none',
+                opacity: isLoading ? 0.6 : 1,
               }}
               autoFocus
             />
-            {passwordError && (
+            {error && (
               <p style={{
                 marginTop: '8px',
                 fontSize: '14px',
                 color: '#dc2626',
               }}>
-                {passwordError}
+                {error}
               </p>
             )}
           </div>
 
           <button
             type="submit"
+            disabled={isLoading || !passwordInput.trim()}
             style={{
               width: '100%',
               padding: '12px',
               fontSize: '16px',
               fontWeight: '600',
               color: 'white',
-              backgroundColor: '#3b82f6',
+              backgroundColor: (isLoading || !passwordInput.trim()) ? '#9ca3af' : '#3b82f6',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: (isLoading || !passwordInput.trim()) ? 'not-allowed' : 'pointer',
               transition: 'background-color 0.2s',
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#2563eb';
+              if (!isLoading && passwordInput.trim()) {
+                e.currentTarget.style.backgroundColor = '#2563eb';
+              }
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = '#3b82f6';
+              if (!isLoading && passwordInput.trim()) {
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+              }
             }}
           >
-            Unlock Admin Panel
+            {isLoading ? 'Authenticating...' : 'Unlock Admin Panel'}
           </button>
         </form>
 

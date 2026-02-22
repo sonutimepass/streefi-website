@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateAdminSession } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +147,15 @@ export async function POST(request: NextRequest) {
 
       // Always return 200 OK to acknowledge receipt
       return NextResponse.json({ success: true, received: true }, { status: 200 });
+    }
+
+    // 🔒 SECURITY: For non-webhook requests (message sending), validate admin session
+    const auth = await validateAdminSession(request, 'whatsapp-session');
+    if (!auth.valid) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     // If not a webhook event, treat as message sending request (internal API)

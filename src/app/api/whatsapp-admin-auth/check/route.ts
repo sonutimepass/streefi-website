@@ -5,7 +5,7 @@ import { validateAdminSession } from '@/lib/adminAuth';
 export async function GET(request: Request) {
   try {
     // Validate session from DynamoDB
-    const auth = await validateAdminSession(request, 'email-session');
+    const auth = await validateAdminSession(request, 'whatsapp-session');
     
     if (auth.valid) {
       return NextResponse.json({ 
