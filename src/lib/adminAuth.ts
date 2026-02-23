@@ -6,7 +6,9 @@ const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION,
 });
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "streefi_admins";
+// Admin auth always uses the admins table (with "email" key)
+// WhatsApp templates use separate table (with PK/SK keys)
+const TABLE_NAME = process.env.ADMIN_TABLE_NAME || "streefi_admins";
 
 // Session types
 export type SessionType = "email-session" | "whatsapp-session";
@@ -42,14 +44,18 @@ export async function validateAdminSession(
   requiredType: SessionType
 ): Promise<ValidationResult> {
   try {
+    console.log("[AdminAuth] Validating session for type:", requiredType);
+    
     // 1. Get cookie name for this session type
     const cookieName = COOKIE_NAMES[requiredType];
+    console.log("[AdminAuth] Cookie name:", cookieName);
     
     // 2. Read session ID from cookie
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(cookieName);
 
     if (!sessionCookie || !sessionCookie.value) {
+      console.log("[AdminAuth] No session cookie found");
       return {
         valid: false,
         error: "No session cookie found",
@@ -57,9 +63,11 @@ export async function validateAdminSession(
     }
 
     const sessionId = sessionCookie.value;
+    console.log("[AdminAuth] Session ID:", sessionId);
 
     // 3. Validate session ID format (basic check)
     if (!sessionId.startsWith("sess_")) {
+      console.log("[AdminAuth] Invalid session ID format");
       return {
         valid: false,
         error: "Invalid session ID format",
@@ -67,10 +75,13 @@ export async function validateAdminSession(
     }
 
     // 4. Validate session against DynamoDB
-    return await validateAdminSessionFromDB(sessionId, requiredType);
+    console.log("[AdminAuth] Validating against DynamoDB...");
+    const result = await validateAdminSessionFromDB(sessionId, requiredType);
+    console.log("[AdminAuth] DynamoDB validation result:", result.valid);
+    return result;
     
   } catch (error) {
-    console.error("Session validation error:", error);
+    console.error("[AdminAuth] Session validation error:", error);
     return {
       valid: false,
       error: error instanceof Error ? error.message : "Session validation failed",

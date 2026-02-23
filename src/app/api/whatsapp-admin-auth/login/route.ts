@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     try {
       await dynamoClient.send(
         new PutItemCommand({
-          TableName: process.env.DYNAMODB_TABLE_NAME || 'streefi_admins',
+          TableName: process.env.ADMIN_TABLE_NAME || 'streefi_admins',
           Item: {
             email: { S: sessionKey }, // Partition key (using email attribute but storing session key)
             sessionId: { S: sessionId },

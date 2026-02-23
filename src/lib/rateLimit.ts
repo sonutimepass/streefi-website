@@ -5,7 +5,8 @@ const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION,
 });
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "streefi_admins";
+// Rate limiting uses the admins table
+const TABLE_NAME = process.env.ADMIN_TABLE_NAME || "streefi_admins";
 const MAX_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 

@@ -34,27 +34,39 @@ export async function createTemplate(
     ...data,
   };
 
+  const item = {
+    PK: { S: `TEMPLATE#${templateId}` },
+    SK: { S: "METADATA" },
+    
+    templateId: { S: templateId },
+    name: { S: template.name },
+    category: { S: template.category },
+    language: { S: template.language },
+    variables: { L: template.variables.map(v => ({ S: v })) }, // List allows empty arrays
+    
+    status: { S: template.status },
+    metaStatus: { S: template.metaStatus },
+    
+    createdAt: { S: template.createdAt },
+    updatedAt: { S: template.updatedAt },
+  };
+
+  console.log('[Template Service] Creating template:', {
+    table: TABLE_NAME,
+    templateId,
+    name: template.name,
+    PK: item.PK.S,
+    SK: item.SK.S,
+  });
+
   await dynamoClient.send(
     new PutItemCommand({
       TableName: TABLE_NAME,
-      Item: {
-        PK: { S: `TEMPLATE#${templateId}` },
-        SK: { S: "METADATA" },
-        
-        templateId: { S: templateId },
-        name: { S: template.name },
-        category: { S: template.category },
-        language: { S: template.language },
-        variables: { L: template.variables.map(v => ({ S: v })) }, // List allows empty arrays
-        
-        status: { S: template.status },
-        metaStatus: { S: template.metaStatus },
-        
-        createdAt: { S: template.createdAt },
-        updatedAt: { S: template.updatedAt },
-      },
+      Item: item,
     })
   );
+
+  console.log('[Template Service] Template created successfully:', templateId);
 
   return template;
 }
@@ -64,6 +76,8 @@ export async function createTemplate(
  * Uses Scan for now (can optimize with GSI later)
  */
 export async function listTemplates(): Promise<WhatsAppTemplate[]> {
+  console.log('[Template Service] Listing templates from table:', TABLE_NAME);
+
   const result = await dynamoClient.send(
     new ScanCommand({
       TableName: TABLE_NAME,
@@ -74,6 +88,12 @@ export async function listTemplates(): Promise<WhatsAppTemplate[]> {
       },
     })
   );
+
+  console.log('[Template Service] Scan result:', {
+    count: result.Count,
+    scannedCount: result.ScannedCount,
+    itemCount: result.Items?.length || 0,
+  });
 
   return (result.Items || []).map(item => ({
     templateId: item.templateId?.S || "",

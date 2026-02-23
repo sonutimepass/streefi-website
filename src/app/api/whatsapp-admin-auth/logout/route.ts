@@ -22,7 +22,7 @@ export async function POST() {
       try {
         await dynamoClient.send(
           new DeleteItemCommand({
-            TableName: process.env.DYNAMODB_TABLE_NAME || 'streefi_admins',
+            TableName: process.env.ADMIN_TABLE_NAME || 'streefi_admins',
             Key: {
               email: { S: sessionKey },
             },
