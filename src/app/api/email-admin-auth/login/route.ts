@@ -45,27 +45,12 @@ export async function POST(request: Request) {
     }
     
     // Get admin password hash from environment variable
-    // Generate hash using: import { hashPassword } from '@/lib/crypto'; console.log(hashPassword('your-password'));
-    
-    // Temporary debugging - log ALL available env keys
-    console.log("ENV KEYS:", Object.keys(process.env));
-    console.log("EMAIL_ADMIN_PASSWORD_HASH:", process.env.EMAIL_ADMIN_PASSWORD_HASH);
-    
     const adminPasswordHash = process.env.EMAIL_ADMIN_PASSWORD_HASH;
-    
-    // Debug logging
-    console.log('Environment check:', {
-      hasHash: !!adminPasswordHash,
-      hashLength: adminPasswordHash?.length || 0,
-      nodeEnv: process.env.NODE_ENV,
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('ADMIN') || k.includes('EMAIL')),
-      hasZohoVars: !!process.env.ZOHO_CLIENT_ID
-    });
     
     if (!adminPasswordHash) {
       console.error('❌ EMAIL_ADMIN_PASSWORD_HASH environment variable not set');
       return NextResponse.json(
-        { success: false, error: 'Server configuration error - missing EMAIL_ADMIN_PASSWORD_HASH' },
+        { success: false, error: 'Server configuration error' },
         { status: 500 }
       );
     }

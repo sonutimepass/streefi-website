@@ -2,7 +2,7 @@
 
 import { 
   AuthSection, 
-  MessageFormSection, 
+  DashboardLayout, 
   LoadingSection,
   WhatsAppAdminProvider,
   useWhatsAppAdminContext
@@ -23,5 +23,5 @@ function WhatsAppAdminContent() {
 
   if (!isAuthenticated) return <AuthSection />;
 
-  return <MessageFormSection />;
+  return <DashboardLayout />;
 }

@@ -72,6 +72,14 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
   // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
+      // 🔓 LOCAL DEV BYPASS - Skip auth check if environment variable is set
+      if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
+        console.warn('⚠️ AUTH BYPASS ACTIVE - For local development only!');
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch('/api/whatsapp-admin-auth/check', {
           method: 'GET',
@@ -100,6 +108,14 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
 
   // Login function
   const login = useCallback(async (password: string): Promise<{ success: boolean; error?: string }> => {
+    // 🔓 LOCAL DEV BYPASS - Skip login if environment variable is set
+    if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
+      console.warn('⚠️ AUTH BYPASS ACTIVE - Login skipped for local development');
+      setIsAuthenticated(true);
+      setError(null);
+      return { success: true };
+    }
+
     if (!password || password.trim().length === 0) {
       setError('Password is required');
       return { success: false, error: 'Password is required' };
@@ -142,10 +158,15 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = useCallback(async (): Promise<void> => {
     try {
-      await fetch('/api/whatsapp-admin-auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      // 🔓 LOCAL DEV BYPASS - Skip logout API call if bypass is active
+      if (process.env.NEXT_PUBLIC_BYPASS_AUTH !== 'true') {
+        await fetch('/api/whatsapp-admin-auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+      } else {
+        console.warn('⚠️ AUTH BYPASS ACTIVE - Logout API call skipped');
+      }
       
       setIsAuthenticated(false);
       setError(null);
