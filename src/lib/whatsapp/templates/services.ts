@@ -13,7 +13,9 @@ const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION,
 });
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "streefi_admins";
+// WhatsApp templates use streefi_whatsapp table (PK/SK schema)
+// Admin auth uses streefi_admins table (email schema)
+const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "streefi_whatsapp";
 
 /**
  * Create a new WhatsApp template
