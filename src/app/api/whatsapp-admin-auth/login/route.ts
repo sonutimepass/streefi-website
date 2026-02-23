@@ -74,12 +74,11 @@ export async function POST(request: Request) {
     // Password correct - reset rate limit counter
     await resetAttempts(ip);
     
-    // Password is correct - create session in DynamoDB
+    // Password is correct - create session in streefi_sessions table (multi-device support)
     const sessionId = `sess_${randomUUID()}`;
-    const sessionKey = `SESSION#${sessionId}`;
     const expiresAt = Math.floor(Date.now() / 1000) + COOKIE_MAX_AGE;
     
-    // Store session in DynamoDB
+    // Store session in DynamoDB sessions table
     const dynamoClient = new DynamoDBClient({
       region: process.env.AWS_REGION,
     });
@@ -87,11 +86,10 @@ export async function POST(request: Request) {
     try {
       await dynamoClient.send(
         new PutItemCommand({
-          TableName: process.env.ADMIN_TABLE_NAME || 'streefi_admins',
+          TableName: process.env.SESSION_TABLE_NAME || 'streefi_sessions',
           Item: {
-            email: { S: sessionKey }, // Partition key (using email attribute but storing session key)
-            sessionId: { S: sessionId },
-            adminEmail: { S: 'admin@streefi.in' }, // Actual admin email
+            session_id: { S: sessionId }, // Partition key
+            email: { S: 'admin@streefi.in' }, // Admin email for this session
             type: { S: 'whatsapp-session' },
             status: { S: 'active' },
             expiresAt: { N: expiresAt.toString() },
@@ -100,7 +98,7 @@ export async function POST(request: Request) {
         })
       );
       
-      console.log('✅ Session created in DynamoDB:', sessionId);
+      console.log('✅ Session created in streefi_sessions:', sessionId);
     } catch (dbError) {
       console.error('❌ Failed to create session in DynamoDB:', dbError);
       return NextResponse.json(

@@ -6,9 +6,12 @@ const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION,
 });
 
-// Admin auth always uses the admins table (with "email" key)
-// WhatsApp templates use separate table (with PK/SK keys)
-const TABLE_NAME = process.env.ADMIN_TABLE_NAME || "streefi_admins";
+// Three separate tables:
+// 1. streefi_admins (email key) - Admin credentials and profiles
+// 2. streefi_sessions (session_id key) - Active sessions for multi-device support
+// 3. streefi_whatsapp (PK/SK keys) - WhatsApp templates
+const ADMIN_TABLE_NAME = process.env.ADMIN_TABLE_NAME || "streefi_admins";
+const SESSION_TABLE_NAME = process.env.SESSION_TABLE_NAME || "streefi_sessions";
 
 // Session types
 export type SessionType = "email-session" | "whatsapp-session";
@@ -90,28 +93,30 @@ export async function validateAdminSession(
 }
 
 /**
- * Validate session by looking up in DynamoDB
- * Sessions are stored with partition key: SESSION#{sessionId}
+ * Validate session by looking up in DynamoDB sessions table
+ * Sessions stored with partition key: session_id (supports multiple devices per admin)
  */
 export async function validateAdminSessionFromDB(
   sessionId: string,
   requiredType: SessionType
 ): Promise<ValidationResult> {
   try {
-    // 1. Fetch session from DynamoDB using partition key pattern
-    const sessionKey = `SESSION#${sessionId}`;
+    console.log('[AdminAuth] Querying session table:', SESSION_TABLE_NAME);
+    console.log('[AdminAuth] Session ID:', sessionId);
     
+    // 1. Fetch session from streefi_sessions table using session_id key
     const result = await dynamoClient.send(
       new GetItemCommand({
-        TableName: TABLE_NAME,
+        TableName: SESSION_TABLE_NAME,
         Key: {
-          email: { S: sessionKey }, // DynamoDB partition key is "email", but we store session key here
+          session_id: { S: sessionId },
         },
       })
     );
 
     // 2. Check if session exists
     if (!result.Item) {
+      console.log('[AdminAuth] Session not found in database');
       return {
         valid: false,
         error: "Session not found in database",
@@ -120,12 +125,16 @@ export async function validateAdminSessionFromDB(
 
     // 3. Parse session data
     const session = {
-      email: result.Item.adminEmail?.S || "", // Actual admin email stored in adminEmail field
+      email: result.Item.email?.S || "",
       type: result.Item.type?.S || "",
       status: result.Item.status?.S || "",
       createdAt: result.Item.createdAt?.S || "",
       expiresAt: result.Item.expiresAt?.N ? parseInt(result.Item.expiresAt.N) : undefined,
     };
+
+    console.log('[AdminAuth] Session found for email:', session.email);
+    console.log('[AdminAuth] Session type:', session.type, 'Required:', requiredType);
+    console.log('[AdminAuth] Session status:', session.status);
 
     // 4. Check session type matches
     if (session.type !== requiredType) {
@@ -155,12 +164,13 @@ export async function validateAdminSessionFromDB(
     }
 
     // 7. Session is valid
+    console.log('[AdminAuth] Session validation successful');
     return {
       valid: true,
       session,
     };
   } catch (error) {
-    console.error("DynamoDB session validation error:", error);
+    console.error("[AdminAuth] DynamoDB session validation error:", error);
     return {
       valid: false,
       error: error instanceof Error ? error.message : "Database validation failed",
