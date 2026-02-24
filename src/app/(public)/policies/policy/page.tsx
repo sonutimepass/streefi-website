@@ -84,7 +84,7 @@ export default function Policies() {
 
                     <h3>1.1 Platform Overview</h3>
                     <p className="text-justify">These Terms of Service ("Terms") govern your access and use of the digital platform comprising the website <a href="http://www.streefi.in/">www.streefi.in</a> ("Website") and the mobile application "Streefi" ("App"), collectively referred to as the "Platform", operated by <strong>Streefi Private Limited</strong>, a company registered under the Companies Act, 2013, having its registered office at Sterling City, Bopal, Ahmedabad.</p>
-                    <p className="mt-4 text-justify"><strong>The Platform connects customers with local street food vendors and restaurants for dine-in and takeaway services.</strong> Streefi does not provide delivery services. All orders are fulfilled directly at the vendor's location through dine-in or takeaway options.</p>
+                    <p className="mt-4 text-justify"><strong>The Platform connects customers with local street food vendors and restaurants for dine-in and takeaway services.</strong> Streefi does not provide delivery services. All orders are fulfilled directly at the vendor's location through dine-in.</p>
 
                     <h3>1.2 Agreement</h3>
                     <p className="text-justify">By accessing, downloading, installing, or using the Platform in any manner, you ("User", "You") agree to be legally bound by:</p>

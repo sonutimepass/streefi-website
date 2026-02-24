@@ -21,39 +21,18 @@ export default function AuthSection() {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      padding: '20px',
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        width: '100%',
-        maxWidth: '400px',
-      }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '24px',
-          textAlign: 'center',
-        }}>
-          📧 Email Admin Login
-        </h1>
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
+      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-lg shadow-md w-full max-w-md">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            📧 Email Admin
+          </h1>
+          <p className="text-sm text-gray-600">Enter your admin password to continue</p>
+        </div>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '6px',
-              fontWeight: '500',
-              fontSize: '14px',
-            }}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Admin Password
             </label>
             <input
@@ -62,23 +41,11 @@ export default function AuthSection() {
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Enter admin password"
               disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                fontSize: '14px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                outline: 'none',
-                opacity: isLoading ? 0.6 : 1,
-              }}
+              className="w-full px-4 py-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
               autoFocus
             />
             {error && (
-              <p style={{
-                marginTop: '8px',
-                fontSize: '14px',
-                color: '#dc2626',
-              }}>
+              <p className="mt-2 text-sm text-red-600">
                 {error}
               </p>
             )}
@@ -87,39 +54,17 @@ export default function AuthSection() {
           <button
             type="submit"
             disabled={isLoading || !passwordInput.trim()}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: 'white',
-              backgroundColor: (isLoading || !passwordInput.trim()) ? '#9ca3af' : '#3b82f6',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: (isLoading || !passwordInput.trim()) ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseOver={(e) => {
-              if (!isLoading && passwordInput.trim()) {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isLoading && passwordInput.trim()) {
-                e.currentTarget.style.backgroundColor = '#3b82f6';
-              }
-            }}
+            className={`w-full py-3 text-sm sm:text-base font-semibold text-white rounded-md transition-colors duration-200 ${
+              isLoading || !passwordInput.trim()
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
             {isLoading ? 'Authenticating...' : 'Unlock Admin Panel'}
           </button>
         </form>
 
-        <p style={{
-          marginTop: '20px',
-          fontSize: '12px',
-          color: '#6b7280',
-          textAlign: 'center',
-        }}>
+        <p className="mt-5 text-xs text-gray-500 text-center">
           Secure access for Streefi email management
         </p>
       </div>

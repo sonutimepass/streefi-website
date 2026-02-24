@@ -2,7 +2,7 @@
 
 import { 
   AuthSection, 
-  EmailFormSection, 
+  DashboardLayout, 
   LoadingSection,
   EmailAdminProvider,
   useEmailAdminContext
@@ -23,5 +23,5 @@ function EmailAdminContent() {
 
   if (!isAuthenticated) return <AuthSection />;
 
-  return <EmailFormSection />;
+  return <DashboardLayout />;
 }

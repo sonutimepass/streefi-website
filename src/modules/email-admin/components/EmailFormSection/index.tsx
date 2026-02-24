@@ -15,7 +15,6 @@ export default function EmailFormSection() {
     statusMessage,
     statusType,
     handleSendEmail,
-    logout,
     messageLog,
     bulkEmails,
     setBulkEmails,
@@ -25,431 +24,241 @@ export default function EmailFormSection() {
   } = useEmailAdminContext();
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      padding: '20px',
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        width: '100%',
-        maxWidth: '800px',
-        position: 'relative',
-      }}>
-        {/* Logout Button */}
+    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 md:p-8 w-full max-w-4xl mx-auto">
+      {/* Message Type Selector */}
+      <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 justify-center flex-wrap">
         <button
-          onClick={logout}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            padding: '8px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#dc2626',
-            backgroundColor: 'transparent',
-            border: '1px solid #dc2626',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = '#dc2626';
-            e.currentTarget.style.color = 'white';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#dc2626';
-          }}
+          onClick={() => setMessageType('single')}
+          className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
+            messageType === 'single'
+              ? 'bg-blue-600 text-white border-2 border-blue-600'
+              : 'bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
+          }`}
         >
-          Logout
+          📨 Single Email
         </button>
+        <button
+          onClick={() => setMessageType('bulk')}
+          className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
+            messageType === 'bulk'
+              ? 'bg-purple-600 text-white border-2 border-purple-600'
+              : 'bg-white text-purple-600 border-2 border-purple-600 hover:bg-purple-50'
+          }`}
+        >
+          📬 Bulk Email
+        </button>
+      </div>
 
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '24px',
-          textAlign: 'center',
-        }}>
-          📧 Send Email via Zoho
-        </h1>
+      {/* Single Email Form */}
+      {messageType === 'single' && (
+        <div className="bg-blue-50 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900">Single Email Sender</h2>
 
-        {/* Message Type Selector */}
-        <div style={{
-          display: 'flex',
-          gap: '12px',
-          marginBottom: '24px',
-          justifyContent: 'center',
-        }}>
-          <button
-            onClick={() => setMessageType('single')}
-            style={{
-              padding: '10px 20px',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: messageType === 'single' ? 'white' : '#3b82f6',
-              backgroundColor: messageType === 'single' ? '#3b82f6' : 'white',
-              border: '2px solid #3b82f6',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            📨 Single Email
-          </button>
-          <button
-            onClick={() => setMessageType('bulk')}
-            style={{
-              padding: '10px 20px',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: messageType === 'bulk' ? 'white' : '#8b5cf6',
-              backgroundColor: messageType === 'bulk' ? '#8b5cf6' : 'white',
-              border: '2px solid #8b5cf6',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            📬 Bulk Email
-          </button>
+          <form onSubmit={handleSendEmail}>
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                To Email Address
+              </label>
+              <input
+                type="email"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                placeholder="recipient@example.com"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                Subject
+              </label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Email subject"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                Message
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Your email message here..."
+                rows={6}
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={sending}
+              className={`w-full py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white rounded-md transition-colors duration-200 ${
+                sending
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {sending ? 'Sending...' : '📧 Send Email'}
+            </button>
+          </form>
         </div>
+      )}
 
-        {/* Single Email Form */}
-        {messageType === 'single' && (
-          <div style={{
-            backgroundColor: '#eff6ff',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '24px',
-          }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>
-              Single Email Sender
-            </h2>
+      {/* Bulk Email Form */}
+      {messageType === 'bulk' && (
+        <div className="bg-purple-50 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900">Bulk Email Sender</h2>
 
-            <form onSubmit={handleSendEmail}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  To Email Address
-                </label>
+          <form onSubmit={handleSendBulkEmail}>
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                Upload CSV/Excel File (Optional)
+              </label>
+              <label className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-purple-600 bg-white border-2 border-purple-600 rounded-lg cursor-pointer hover:bg-purple-600 hover:text-white transition-colors duration-200 mb-2 sm:mb-3">
+                📁 Choose CSV/Excel File
                 <input
-                  type="email"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  placeholder="recipient@example.com"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    outline: 'none',
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
                   }}
-                  required
+                  className="hidden"
                 />
-              </div>
+              </label>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Email subject"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    outline: 'none',
-                  }}
-                  required
-                />
-              </div>
+              {importedEmails.length > 0 && (
+                <div className="text-xs sm:text-sm text-green-700 bg-green-50 px-3 py-2 rounded-md font-medium">
+                  ✅ Imported {importedEmails.length} email addresses from file
+                </div>
+              )}
+            </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  Message
-                </label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Your email message here..."
-                  rows={6}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    outline: 'none',
-                    resize: 'vertical',
-                  }}
-                  required
-                />
-              </div>
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                Paste Email Addresses (one per line)
+              </label>
+              <textarea
+                value={bulkEmails}
+                onChange={(e) => setBulkEmails(e.target.value)}
+                placeholder="email1@example.com&#10;email2@example.com&#10;email3@example.com"
+                rows={5}
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical"
+              />
+            </div>
 
-              <button
-                type="submit"
-                disabled={sending}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: 'white',
-                  backgroundColor: sending ? '#9ca3af' : '#3b82f6',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: sending ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s',
-                }}
-                onMouseOver={(e) => {
-                  if (!sending) e.currentTarget.style.backgroundColor = '#2563eb';
-                }}
-                onMouseOut={(e) => {
-                  if (!sending) e.currentTarget.style.backgroundColor = '#3b82f6';
-                }}
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                Subject
+              </label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Email subject"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
+                Message
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Your email message here..."
+                rows={6}
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={sending}
+              className={`w-full py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white rounded-md transition-colors duration-200 ${
+                sending
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-purple-600 hover:bg-purple-700'
+              }`}
+            >
+              {sending ? 'Sending...' : '📬 Send Bulk Emails'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Status Message */}
+      {statusMessage && (
+        <div className={`p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg border ${
+          statusType === 'success'
+            ? 'bg-green-50 border-green-500'
+            : statusType === 'error'
+            ? 'bg-red-50 border-red-500'
+            : 'bg-blue-50 border-blue-500'
+        }`}>
+          <p className={`text-xs sm:text-sm font-medium ${
+            statusType === 'success'
+              ? 'text-green-800'
+              : statusType === 'error'
+              ? 'text-red-800'
+              : 'text-blue-800'
+          }`}>
+            {statusMessage}
+          </p>
+        </div>
+      )}
+
+      {/* Message Log */}
+      {messageLog.length > 0 && (
+        <div>
+          <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-gray-900">
+            📊 Email Log
+          </h3>
+          <div className="max-h-96 overflow-y-auto border border-gray-300 rounded-lg">
+            {messageLog.map((log, index) => (
+              <div
+                key={index}
+                className={`p-3 sm:p-4 ${
+                  index < messageLog.length - 1 ? 'border-b border-gray-200' : ''
+                } ${log.status === 'success' ? 'bg-green-50' : 'bg-red-50'}`}
               >
-                {sending ? 'Sending...' : '📧 Send Email'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Bulk Email Form */}
-        {messageType === 'bulk' && (
-          <div style={{
-            backgroundColor: '#faf5ff',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '24px',
-          }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>
-              Bulk Email Sender
-            </h2>
-
-            <form onSubmit={handleSendBulkEmail}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  Upload CSV/Excel File (Optional)
-                </label>
-                <label
-                  style={{
-                    display: 'inline-block',
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#8b5cf6',
-                    backgroundColor: 'white',
-                    border: '2px solid #8b5cf6',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    marginBottom: '12px',
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#8b5cf6';
-                    e.currentTarget.style.color = 'white';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
-                    e.currentTarget.style.color = '#8b5cf6';
-                  }}
-                >
-                  📁 Choose CSV/Excel File
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                    }}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-
-                {importedEmails.length > 0 && (
-                  <div style={{ fontSize: '14px', marginBottom: '8px', color: '#059669', fontWeight: '500' }}>
-                    ✅ Imported {importedEmails.length} email addresses from file
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-0 mb-2">
+                  <span className="font-semibold text-xs sm:text-sm text-gray-900 break-all">
+                    {log.to}
+                  </span>
+                  <span className={`text-xs font-semibold self-start sm:self-auto ${
+                    log.status === 'success' ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {log.status === 'success' ? '✅ Sent' : '❌ Failed'}
+                  </span>
+                </div>
+                <div className="text-xs sm:text-sm text-gray-700 mb-1">
+                  <strong>Subject:</strong> {log.subject}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {log.timestamp}
+                </div>
+                {log.error && (
+                  <div className="text-xs text-red-700 mt-2 break-words">
+                    Error: {log.error}
                   </div>
                 )}
               </div>
-
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  Paste Email Addresses (one per line)
-                </label>
-                <textarea
-                  value={bulkEmails}
-                  onChange={(e) => setBulkEmails(e.target.value)}
-                  placeholder="email1@example.com&#10;email2@example.com&#10;email3@example.com"
-                  rows={5}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    outline: 'none',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Email subject"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    outline: 'none',
-                  }}
-                  required
-                />
-              </div>
-
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                  Message
-                </label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Your email message here..."
-                  rows={6}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    outline: 'none',
-                    resize: 'vertical',
-                  }}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={sending}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: 'white',
-                  backgroundColor: sending ? '#9ca3af' : '#8b5cf6',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: sending ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s',
-                }}
-                onMouseOver={(e) => {
-                  if (!sending) e.currentTarget.style.backgroundColor = '#7c3aed';
-                }}
-                onMouseOut={(e) => {
-                  if (!sending) e.currentTarget.style.backgroundColor = '#8b5cf6';
-                }}
-              >
-                {sending ? 'Sending...' : '📬 Send Bulk Emails'}
-              </button>
-            </form>
+            ))}
           </div>
-        )}
-
-        {/* Status Message */}
-        {statusMessage && (
-          <div style={{
-            padding: '12px',
-            marginBottom: '24px',
-            borderRadius: '6px',
-            backgroundColor: statusType === 'success' ? '#d1fae5' : statusType === 'error' ? '#fee2e2' : '#e0e7ff',
-            border: `1px solid ${statusType === 'success' ? '#10b981' : statusType === 'error' ? '#ef4444' : '#6366f1'}`,
-          }}>
-            <p style={{
-              fontSize: '14px',
-              color: statusType === 'success' ? '#065f46' : statusType === 'error' ? '#991b1b' : '#3730a3',
-              fontWeight: '500',
-            }}>
-              {statusMessage}
-            </p>
-          </div>
-        )}
-
-        {/* Message Log */}
-        {messageLog.length > 0 && (
-          <div>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: 'bold',
-              marginBottom: '12px',
-            }}>
-              📊 Email Log
-            </h3>
-            <div style={{
-              maxHeight: '300px',
-              overflowY: 'auto',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-            }}>
-              {messageLog.map((log, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: '12px',
-                    borderBottom: index < messageLog.length - 1 ? '1px solid #e5e7eb' : 'none',
-                    backgroundColor: log.status === 'success' ? '#f0fdf4' : '#fef2f2',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#1f2937' }}>
-                      {log.to}
-                    </span>
-                    <span style={{
-                      fontSize: '12px',
-                      color: log.status === 'success' ? '#059669' : '#dc2626',
-                      fontWeight: '600',
-                    }}>
-                      {log.status === 'success' ? '✅ Sent' : '❌ Failed'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
-                    <strong>Subject:</strong> {log.subject}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                    {log.timestamp}
-                  </div>
-                  {log.error && (
-                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
-                      Error: {log.error}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

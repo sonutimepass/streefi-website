@@ -21,56 +21,33 @@ export default function AuthSection() {
     }
   };
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        width: '100%',
-        maxWidth: '400px',
-      }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginBottom: '24px',
-          textAlign: 'center',
-        }}>
-          WhatsApp Admin
-        </h1>
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
+      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-lg shadow-md w-full max-w-md">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            WhatsApp Admin
+          </h1>
+          <p className="text-sm text-gray-600">Enter your admin password to continue</p>
+        </div>
         
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '16px' }}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Admin Password
+            </label>
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Enter Admin Password"
               disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                boxSizing: 'border-box',
-                opacity: isLoading ? 0.6 : 1,
-              }}
+              className="w-full px-4 py-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
+              autoFocus
             />
           </div>
           
           {error && (
-            <div style={{
-              color: '#dc2626',
-              fontSize: '14px',
-              marginBottom: '16px',
-            }}>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 text-sm">
               {error}
             </div>
           )}
@@ -78,21 +55,20 @@ export default function AuthSection() {
           <button
             type="submit"
             disabled={isLoading || !passwordInput.trim()}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: 'white',
-              backgroundColor: (isLoading || !passwordInput.trim()) ? '#9ca3af' : '#10b981',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: (isLoading || !passwordInput.trim()) ? 'not-allowed' : 'pointer',
-            }}
+            className={`w-full py-3 text-sm sm:text-base font-semibold text-white rounded-md transition-colors duration-200 ${
+              isLoading || !passwordInput.trim()
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-500 hover:bg-green-600'
+            }`}
           >
             {isLoading ? 'Authenticating...' : 'Unlock'}
           </button>
         </form>
+
+        {/* Attribution */}
+        <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+          <p className="text-xs text-gray-500">Powered by Streefi</p>
+        </div>
       </div>
     </div>
   );

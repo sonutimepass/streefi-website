@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | Streefi"
   },
   description: "Find local street food vendors in Gandhinagar & Ahmedabad using Streefi. Discover verified food heroes, read reviews, and get exclusive dine-in offers on the app.",
-  keywords: "street food near me, street food Gandhinagar, street food Ahmedabad, local food vendors, street food app, verified street food vendors, best street food in Gandhinagar, best street food in Ahmedabad, dine in restaurants near me, food offers near me, chaat, vada pav, momos, samosa, dosa, food heroes, support local vendors, food delivery app, authentic street food, Indian street food, street food discovery, food truck finder, local cuisine, traditional food, hawker food, local food culture, street eats",
+  keywords: "street food near me, street food Gandhinagar, street food Ahmedabad, local food vendors, street food app, verified street food vendors, best street food in Gandhinagar, best street food in Ahmedabad, dine in restaurants near me, food offers near me, chaat, vada pav, momos, samosa, dosa, food heroes, support local vendors, authentic street food, Indian street food, street food discovery, food truck finder, local cuisine, traditional food, hawker food, local food culture, street eats",
   authors: [{ name: "Streefi Team" }],
   creator: "Streefi",
   publisher: "Streefi",

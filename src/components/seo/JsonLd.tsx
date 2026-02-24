@@ -12,3 +12,6 @@ export function JsonLd<T extends Thing>({ id, schema }: { id: string; schema: Wi
         />
     );
 }
+
+// Re-export all schema components
+export * from './schemas';
