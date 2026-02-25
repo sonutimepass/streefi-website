@@ -19,6 +19,14 @@ const client = new DynamoDBClient({
 const TABLE_NAME = "streefi_admins"; // Case-sensitive - must match exactly
 
 export async function GET(request: Request) {
+  // 🔒 PRODUCTION SAFETY: Disable test endpoint in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Not found' },
+      { status: 404 }
+    );
+  }
+
   // 🔒 SECURITY: Protect test endpoint - requires email admin authentication
   const auth = await validateAdminSession(request, 'email-session');
   if (!auth.valid) {

@@ -3,18 +3,24 @@
  * 
  * This module handles all message-sending operations with Meta's WhatsApp Cloud API.
  * 
- * IMPORTANT: This layer should ONLY contain:
- * - Message sending API calls to Meta
- * - Response transformation
- * - Error handling specific to message operations
+ * LAYER RESPONSIBILITY:
+ * ✅ Message sending API calls to Meta
+ * ✅ Response transformation
+ * ✅ Contextual logging
+ * ✅ Error propagation (preserves structured errors)
  * 
- * It should NEVER contain:
- * - Database operations
- * - Route handling
- * - Business logic beyond API communication
+ * ❌ Database operations (belongs to services)
+ * ❌ Route handling (belongs to API routes)
+ * ❌ Business logic (belongs to services)
+ * ❌ Error wrapping (destroys error structure)
+ * 
+ * ERROR HANDLING PRINCIPLE:
+ * This service adds contextual logging but NEVER wraps errors.
+ * MetaApiError instances must reach the route layer unchanged.
  */
 
-import { getMetaClient, MetaAPIClient } from './metaClient';
+import { getMetaClient, MetaAPIClient, MetaApiError } from './metaClient';
+import { getDailyLimitGuard, type DailyLimitCheckResult } from '../guards';
 
 export interface TemplateMessage {
   type: 'template';
@@ -94,9 +100,25 @@ export interface MessageStatus {
   }>;
 }
 
+/**
+ * Custom error for daily limit exceeded
+ */
+export class DailyLimitExceededError extends Error {
+  public readonly currentCount: number;
+  public readonly limit: number;
+
+  constructor(message: string, currentCount: number, limit: number) {
+    super(message);
+    this.name = 'DailyLimitExceededError';
+    this.currentCount = currentCount;
+    this.limit = limit;
+  }
+}
+
 export class MessageService {
   private client: MetaAPIClient;
   private phoneNumberId: string;
+  private limitGuard = getDailyLimitGuard();
 
   constructor(client?: MetaAPIClient) {
     this.client = client || getMetaClient();
@@ -108,9 +130,35 @@ export class MessageService {
    * 
    * Templates must be pre-approved by Meta before use.
    * This is the primary method for sending WhatsApp messages.
+   * 
+   * INCLUDES: Daily limit guard check before sending
    */
   async sendTemplateMessage(message: TemplateMessage): Promise<MessageResponse> {
     try {
+      // 🛡️ GUARD: Check daily conversation limit BEFORE API call
+      const limitCheck = await this.limitGuard.checkLimit(message.to);
+      
+      if (!limitCheck.allowed) {
+        console.warn('[MessageService] Daily limit exceeded:', {
+          recipient: message.to,
+          currentCount: limitCheck.currentCount,
+          limit: limitCheck.limit,
+          reason: limitCheck.reason,
+        });
+        
+        throw new DailyLimitExceededError(
+          limitCheck.reason || 'Daily conversation limit exceeded',
+          limitCheck.currentCount || 0,
+          limitCheck.limit || 200
+        );
+      }
+      
+      console.log('[MessageService] Limit check passed:', {
+        recipient: message.to,
+        existingConversation: limitCheck.existingConversation,
+        reason: limitCheck.reason,
+      });
+
       const payload = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -132,12 +180,16 @@ export class MessageService {
 
       return response;
     } catch (error) {
-      console.error('[MessageService] Error sending template message:', {
-        error: (error as Error).message,
+      // Log contextual information for observability
+      console.error('[MessageService] Template message send failed:', {
         recipient: message.to,
         template: message.template.name,
+        error: error instanceof MetaApiError ? error.toLogString() : String(error),
       });
-      throw new Error(`Failed to send template message: ${(error as Error).message}`);
+      
+      // Propagate original error unchanged - DO NOT WRAP
+      // Route layer needs MetaApiError properties (code, type, fbtraceId, isRetryable)
+      throw error;
     }
   }
 
@@ -146,9 +198,35 @@ export class MessageService {
    * 
    * Note: Text messages can only be sent within 24 hours of the last
    * user-initiated message (customer service window).
+   * 
+   * INCLUDES: Daily limit guard check before sending
    */
   async sendTextMessage(message: TextMessage): Promise<MessageResponse> {
     try {
+      // 🛡️ GUARD: Check daily conversation limit BEFORE API call
+      const limitCheck = await this.limitGuard.checkLimit(message.to);
+      
+      if (!limitCheck.allowed) {
+        console.warn('[MessageService] Daily limit exceeded:', {
+          recipient: message.to,
+          currentCount: limitCheck.currentCount,
+          limit: limitCheck.limit,
+          reason: limitCheck.reason,
+        });
+        
+        throw new DailyLimitExceededError(
+          limitCheck.reason || 'Daily conversation limit exceeded',
+          limitCheck.currentCount || 0,
+          limitCheck.limit || 200
+        );
+      }
+      
+      console.log('[MessageService] Limit check passed:', {
+        recipient: message.to,
+        existingConversation: limitCheck.existingConversation,
+        reason: limitCheck.reason,
+      });
+
       const payload = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -169,11 +247,14 @@ export class MessageService {
 
       return response;
     } catch (error) {
-      console.error('[MessageService] Error sending text message:', {
-        error: (error as Error).message,
+      // Log contextual information for observability
+      console.error('[MessageService] Text message send failed:', {
         recipient: message.to,
+        error: error instanceof MetaApiError ? error.toLogString() : String(error),
       });
-      throw new Error(`Failed to send text message: ${(error as Error).message}`);
+      
+      // Propagate original error unchanged - DO NOT WRAP
+      throw error;
     }
   }
 
@@ -198,11 +279,13 @@ export class MessageService {
 
       return response;
     } catch (error) {
-      console.error('[MessageService] Error marking message as read:', {
-        error: (error as Error).message,
+      // Log contextual information for observability
+      console.error('[MessageService] Mark message as read failed:', {
         messageId,
+        error: error instanceof MetaApiError ? error.toLogString() : String(error),
       });
-      // Don't throw - marking as read is not critical
+      
+      // Don't throw - marking as read is not critical for message delivery
       return { success: false };
     }
   }

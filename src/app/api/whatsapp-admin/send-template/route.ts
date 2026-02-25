@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { getTemplate } from '@/lib/whatsapp/templates/services';
 import { MessageService, TemplateMessage, TemplateParameter } from '@/lib/whatsapp/meta/messageService';
+import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
 
 interface SendTemplateRequest {
   templateName: string;
@@ -164,22 +165,62 @@ export async function POST(request: Request) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("=== SEND TEMPLATE ERROR ===");
-    console.error("Error message:", error?.message);
-    console.error("Error stack:", error?.stack);
-    
-    // Handle specific Meta API errors
-    if (error.message?.includes('Meta API error')) {
-      return NextResponse.json({ 
-        error: 'Failed to send message',
-        details: error.message 
-      }, { status: 502 });
+
+    // Structured Meta API errors
+    if (error instanceof MetaApiError) {
+      console.error('[send-template] MetaApiError:', {
+        code: error.code,
+        type: error.type,
+        fbtraceId: error.fbtraceId,
+        retryable: error.isRetryable,
+        httpStatus: error.httpStatus,
+      });
+
+      switch (error.code) {
+        case 190: // Access token invalid / expired
+          return NextResponse.json(
+            { error: 'WhatsApp authentication failed.' },
+            { status: 401 }
+          );
+
+        case 131031: // Quality restriction
+          return NextResponse.json(
+            { error: 'Message blocked due to quality restriction.' },
+            { status: 403 }
+          );
+
+        case 130429: // Rate limit hit
+          return NextResponse.json(
+            { 
+              error: 'Rate limit exceeded. Please try again shortly.',
+              retryable: true
+            },
+            { status: 429 }
+          );
+
+        case 100:      // Invalid parameter
+        case 132000:   // Template parameter mismatch
+          return NextResponse.json(
+            { error: 'Invalid template parameters.' },
+            { status: 400 }
+          );
+
+        default:
+          return NextResponse.json(
+            { error: 'WhatsApp API error.' },
+            { status: 502 }
+          );
+      }
     }
 
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error.message 
-    }, { status: 500 });
+    // Unknown / unexpected error
+    console.error('[send-template] Unexpected error:', error);
+
+    return NextResponse.json(
+      { error: 'Internal server error.' },
+      { status: 500 }
+    );
   }
 }
