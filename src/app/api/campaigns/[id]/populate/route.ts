@@ -141,7 +141,7 @@ async function processCSVAndInsert(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1️⃣ Validate Admin Session
@@ -150,7 +150,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
     const timestamp = Math.floor(Date.now() / 1000);
 
     // 2️⃣ Get CSV file from multipart/form-data

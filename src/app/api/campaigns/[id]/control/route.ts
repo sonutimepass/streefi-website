@@ -155,7 +155,7 @@ async function updateCampaignStatus(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1️⃣ Validate Admin Session
@@ -167,7 +167,7 @@ export async function POST(
       );
     }
 
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
 
     if (!campaignId) {
       return NextResponse.json(

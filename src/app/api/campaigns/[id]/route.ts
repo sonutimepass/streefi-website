@@ -41,7 +41,7 @@ interface CampaignDetails {
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1️⃣ Validate Admin Session
@@ -53,7 +53,7 @@ export async function GET(
       );
     }
 
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
 
     if (!campaignId) {
       return NextResponse.json(
