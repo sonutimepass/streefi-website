@@ -49,6 +49,20 @@ export async function validateAdminSession(
   try {
     console.log("[AdminAuth] Validating session for type:", requiredType);
     
+    // 🧪 DRY RUN MODE: Bypass authentication for testing
+    if (process.env.META_DRY_RUN === "true") {
+      console.log("[AdminAuth] DRY RUN MODE: Bypassing authentication");
+      return {
+        valid: true,
+        session: {
+          email: "test@streefi.in",
+          type: requiredType,
+          status: "active",
+          createdAt: new Date().toISOString(),
+        },
+      };
+    }
+    
     // 1. Get cookie name for this session type
     const cookieName = COOKIE_NAMES[requiredType];
     console.log("[AdminAuth] Cookie name:", cookieName);

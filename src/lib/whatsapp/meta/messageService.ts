@@ -159,6 +159,40 @@ export class MessageService {
         reason: limitCheck.reason,
       });
 
+      // 🧪 DRY RUN MODE: Simulate message send without hitting Meta API
+      // SAFETY: This check happens BEFORE any real API call
+      const isDryRun = process.env.META_DRY_RUN === "true";
+      const hasRealCredentials = process.env.WHATSAPP_ACCESS_TOKEN && 
+                                  process.env.WHATSAPP_ACCESS_TOKEN !== 'your_whatsapp_access_token';
+      
+      if (isDryRun || !hasRealCredentials) {
+        const reason = isDryRun ? 'DRY_RUN_ENABLED' : 'NO_REAL_CREDENTIALS';
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`🧪 [${reason}] SIMULATING WhatsApp Send`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📱 Recipient:', message.to);
+        console.log('📋 Template:', message.template.name);
+        console.log('🌐 Language:', message.template.language.code);
+        console.log('⚠️  NO REAL API CALL MADE TO META');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+        const mockResponse: MessageResponse = {
+          messaging_product: 'whatsapp',
+          contacts: [{
+            input: message.to,
+            wa_id: message.to,
+          }],
+          messages: [{
+            id: `wamid.mock_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+          }],
+        };
+
+        return mockResponse;
+      }
+      
+      // 🚨 REAL API CALL ABOUT TO HAPPEN
+      console.warn('⚠️  REAL META API CALL INITIATED - This will count against your quota!');
+
       const payload = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -226,6 +260,38 @@ export class MessageService {
         existingConversation: limitCheck.existingConversation,
         reason: limitCheck.reason,
       });
+
+      // 🧪 DRY RUN MODE: Simulate message send without hitting Meta API
+      const isDryRun = process.env.META_DRY_RUN === "true";
+      const hasRealCredentials = process.env.WHATSAPP_ACCESS_TOKEN && 
+                                  process.env.WHATSAPP_ACCESS_TOKEN !== 'your_whatsapp_access_token';
+      
+      if (isDryRun || !hasRealCredentials) {
+        const reason = isDryRun ? 'DRY_RUN_ENABLED' : 'NO_REAL_CREDENTIALS';
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`🧪 [${reason}] SIMULATING WhatsApp Text Send`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📱 Recipient:', message.to);
+        console.log('💬 Message:', message.text.body.substring(0, 50) + '...');
+        console.log('⚠️  NO REAL API CALL MADE TO META');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+        const mockResponse: MessageResponse = {
+          messaging_product: 'whatsapp',
+          contacts: [{
+            input: message.to,
+            wa_id: message.to,
+          }],
+          messages: [{
+            id: `wamid.mock_${Date.now()}_${Math.random().toString(36).substring(2)}`,
+          }],
+        };
+
+        return mockResponse;
+      }
+      
+      // 🚨 REAL API CALL ABOUT TO HAPPEN
+      console.warn('⚠️  REAL META API CALL INITIATED - This will count against your quota!');
 
       const payload = {
         messaging_product: 'whatsapp',

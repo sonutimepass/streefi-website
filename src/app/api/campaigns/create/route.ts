@@ -87,8 +87,17 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Campaign creation error:', error);
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { 
+        error: 'Internal Server Error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        debug: process.env.META_DRY_RUN === 'true' ? {
+          table: TABLES.CAMPAIGNS,
+          region: process.env.AWS_REGION || 'not set'
+        } : undefined
+      },
       { status: 500 }
     );
   }

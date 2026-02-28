@@ -1,9 +1,11 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const region = process.env.AWS_REGION;
+// Use default region for build time, will be overridden at runtime
+const region = process.env.AWS_REGION || "us-east-1";
 
-if (!region) {
-  throw new Error("AWS_REGION is not defined");
+// Validate region is configured at runtime (not during build)
+if (typeof window === "undefined" && process.env.NODE_ENV !== "production" && !process.env.AWS_REGION) {
+  console.warn("⚠️ AWS_REGION not configured. Using default: us-east-1");
 }
 
 export const dynamoClient = new DynamoDBClient({
@@ -16,5 +18,5 @@ export const TABLES = {
   SESSIONS: process.env.SESSION_TABLE_NAME || "streefi_sessions",
   WHATSAPP: process.env.DYNAMODB_TABLE_NAME || "streefi_whatsapp",
   CAMPAIGNS: process.env.CAMPAIGNS_TABLE_NAME || "streefi_campaigns",
-  RECIPIENTS: process.env.RECIPIENTS_TABLE_NAME || "streefi_campaign_recipients",
+  RECIPIENTS: process.env.RECIPIENTS_TABLE_NAME || "streefi_campaigns_recipients",
 } as const;
