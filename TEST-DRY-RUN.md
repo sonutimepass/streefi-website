@@ -3,6 +3,7 @@
 ## Quick Setup ✅
 
 Your system is now configured for **100% offline testing**:
+
 - ✅ `META_DRY_RUN=true` (no real Meta API calls)
 - ✅ `WHATSAPP_DAILY_LIMIT=5` (aggressive testing)
 - ✅ Table name bug fixed
@@ -95,6 +96,7 @@ $result | ConvertTo-Json -Depth 5
 ```
 
 **Expected:**
+
 ```json
 {
   "processed": 5,
@@ -117,6 +119,7 @@ $result2 | ConvertTo-Json -Depth 5
 ```
 
 **Expected:**
+
 ```json
 {
   "processed": 0,
@@ -141,6 +144,7 @@ Write-Host "Progress: $(($status.metrics.sentCount/$status.metrics.totalRecipien
 ```
 
 **Expected Output:**
+
 ```
 === FINAL RESULTS ===
 Campaign Status: PAUSED
@@ -155,16 +159,17 @@ Progress: 50%
 ## Option 2: UI Testing (Visual)
 
 1. **Start dev server:**
+
    ```powershell
    npm run dev
    ```
-
 2. **Open browser:**
+
    ```
    http://localhost:3000/whatsapp-admin
    ```
-
 3. **Follow the UI flow:**
+
    - Enter campaign ID from Test 1
    - Click "Load Campaign"
    - Click "Start Campaign"
@@ -177,14 +182,14 @@ Progress: 50%
 
 After Test 6, you should see:
 
-| Metric | Expected | Critical? |
-|--------|----------|-----------|
-| Campaign Status | `PAUSED` | ✅ YES |
-| sentCount | `5` | ✅ YES |
-| Recipients with SENT | `5` | ✅ YES |
-| Recipients with PENDING | `5` | ✅ YES |
-| Daily Counter | `5/5` | ✅ YES |
-| Second execute-batch | 0 processed | ✅ YES (idempotency) |
+| Metric                  | Expected    | Critical?            |
+| ----------------------- | ----------- | -------------------- |
+| Campaign Status         | `PAUSED`  | ✅ YES               |
+| sentCount               | `5`       | ✅ YES               |
+| Recipients with SENT    | `5`       | ✅ YES               |
+| Recipients with PENDING | `5`       | ✅ YES               |
+| Daily Counter           | `5/5`     | ✅ YES               |
+| Second execute-batch    | 0 processed | ✅ YES (idempotency) |
 
 ---
 
