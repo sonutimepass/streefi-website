@@ -11,7 +11,8 @@ export function validateCampaignSystemStartup() {
   console.log('═══════════════════════════════════════════════════════════════\n');
 
   const checks = {
-    dryRunMode: process.env.META_DRY_RUN === 'true',
+    // FORCE DRY RUN in Phase 1A for safety
+    dryRunMode: true, // ⚠️ PHASE 1A: Always dry run until credentials stable
     hasMetaToken: !!process.env.WHATSAPP_ACCESS_TOKEN,
     hasRealMetaToken: process.env.WHATSAPP_ACCESS_TOKEN !== 'your_whatsapp_access_token',
     hasPhoneId: !!process.env.WHATSAPP_PHONE_ID,
@@ -20,14 +21,16 @@ export function validateCampaignSystemStartup() {
     hasAwsRegion: !!process.env.AWS_REGION,
     campaignsTable: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
     recipientsTable: process.env.RECIPIENTS_TABLE_NAME || 'streefi_campaigns_recipients',
+    environmentDryRunSetting: process.env.META_DRY_RUN, // Debug: log actual value
   };
 
   // Check 1: Dry Run Mode
   if (checks.dryRunMode) {
-    console.log('✅ DRY RUN MODE: ENABLED');
+    console.log('✅ DRY RUN MODE: ENABLED (PHASE 1A - FORCE ENABLED FOR SAFETY)');
     console.log('   └─ All WhatsApp sends will be SIMULATED');
     console.log('   └─ No real Meta API calls will be made');
-    console.log('   └─ Safe for testing without quota impact\n');
+    console.log('   └─ Safe for testing without quota impact');
+    console.log('   └─ Env setting: ' + (checks.environmentDryRunSetting || 'not set') + '\n');
   } else {
     console.log('⚠️  DRY RUN MODE: DISABLED');
     console.log('   └─ Real WhatsApp messages WILL BE SENT');
