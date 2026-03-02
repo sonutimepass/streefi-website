@@ -6,8 +6,8 @@ import FloatingDownloadButton from './FloatingDownloadButton';
 export default function ConditionalFloatingButton() {
   const pathname = usePathname();
   
-  // Hide floating button on policies and support pages
-  const shouldHideButton = pathname.startsWith('/policies') || pathname.startsWith('/support');
+  // Hide floating button on policies, support, and WhatsApp admin pages
+  const shouldHideButton = pathname.startsWith('/policies') || pathname.startsWith('/support') || pathname.startsWith('/whatsapp-admin');
   
   if (shouldHideButton) {
     return null;

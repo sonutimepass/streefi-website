@@ -107,6 +107,10 @@ export async function listTemplates(): Promise<WhatsAppTemplate[]> {
     metaStatus: item.metaStatus?.S as any,
     createdAt: item.createdAt?.S || "",
     updatedAt: item.updatedAt?.S || "",
+    // Phase UI-4: Sync tracking
+    syncedFromMeta: item.syncedFromMeta?.BOOL,
+    lastSyncTime: item.lastSyncTime?.S,
+    metaTemplateId: item.metaTemplateId?.S,
   }));
 }
 

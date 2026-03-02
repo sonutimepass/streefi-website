@@ -31,4 +31,8 @@ export interface WhatsAppTemplate {
   metaStatus: MetaStatus;
   createdAt: string;
   updatedAt: string;
+  // Phase UI-4: Sync tracking
+  syncedFromMeta?: boolean;
+  lastSyncTime?: string;
+  metaTemplateId?: string; // Original Meta template ID
 }

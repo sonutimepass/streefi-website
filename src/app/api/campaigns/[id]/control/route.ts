@@ -158,8 +158,10 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('🚀 [Campaign Control API] Request received');
   try {
     // 1️⃣ Validate Admin Session
+    console.log('🔐 [Campaign Control API] Validating admin session...');
     const validation = await validateAdminSession(req, 'whatsapp-session');
     if (!validation.valid || !validation.session) {
       return NextResponse.json(
@@ -180,6 +182,7 @@ export async function POST(
     // 2️⃣ Parse request body
     const body: ControlRequest = await req.json();
     const { action, reason } = body;
+    console.log('📦 [Campaign Control API] Request body:', { campaignId, action, reason });
 
     if (!action || !['start', 'pause', 'resume'].includes(action)) {
       return NextResponse.json(
@@ -189,7 +192,9 @@ export async function POST(
     }
 
     // 3️⃣ Load current campaign status
+    console.log('📥 [Campaign Control API] Loading campaign status...');
     const currentStatus = await getCampaignStatus(campaignId);
+    console.log('📊 [Campaign Control API] Current status:', currentStatus);
 
     if (!currentStatus) {
       return NextResponse.json(
@@ -199,9 +204,11 @@ export async function POST(
     }
 
     // 4️⃣ Validate state transition
+    console.log('✅ [Campaign Control API] Validating transition:', { currentStatus, action });
     const transitionValidation = validateTransition(currentStatus, action);
     
     if (!transitionValidation.valid) {
+      console.error('❌ [Campaign Control API] Invalid transition:', transitionValidation.error);
       return NextResponse.json(
         { error: transitionValidation.error },
         { status: 400 }
@@ -209,7 +216,9 @@ export async function POST(
     }
 
     // 5️⃣ Update campaign status
+    console.log('💾 [Campaign Control API] Updating campaign status...');
     await updateCampaignStatus(campaignId, action, reason);
+    console.log('✅ [Campaign Control API] Status updated successfully');
 
     // 6️⃣ Return success
     return NextResponse.json({
@@ -222,7 +231,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('[CampaignControl] Error:', error);
+    console.error('❌ [Campaign Control API] Error:', error);
     
     return NextResponse.json(
       { 

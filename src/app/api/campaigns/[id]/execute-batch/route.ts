@@ -25,6 +25,7 @@ import {
   GetItemCommand, 
   QueryCommand, 
   UpdateItemCommand,
+  PutItemCommand,
   type AttributeValue
 } from '@aws-sdk/client-dynamodb';
 import { dynamoClient, TABLES } from '@/lib/dynamoClient';
@@ -211,6 +212,64 @@ async function updateRecipientStatus(
 }
 
 /**
+ * Write log entry for observability (Phase UI-3)
+ * Stored as: PK=CAMPAIGN#${id}, SK=LOG#${timestamp}#${phone}
+ */
+async function writeLogEntry(
+  campaignId: string,
+  phone: string,
+  status: 'SENT' | 'FAILED' | 'PROCESSING',
+  messageId?: string,
+  errorCode?: string,
+  errorMessage?: string,
+  metaResponse?: string,
+  attempts?: number
+): Promise<void> {
+  const timestamp = new Date().toISOString();
+  const timestampMs = Date.now();
+  
+  const item: Record<string, AttributeValue> = {
+    PK: { S: `CAMPAIGN#${campaignId}` },
+    SK: { S: `LOG#${timestampMs}#${phone}` },
+    timestamp: { S: timestamp },
+    phone: { S: phone },
+    status: { S: status }
+  };
+
+  if (messageId) {
+    item.messageId = { S: messageId };
+  }
+
+  if (errorCode) {
+    item.errorCode = { S: errorCode };
+  }
+
+  if (errorMessage) {
+    item.errorMessage = { S: errorMessage };
+  }
+
+  if (metaResponse) {
+    item.metaResponse = { S: metaResponse };
+  }
+
+  if (attempts !== undefined) {
+    item.attempts = { N: attempts.toString() };
+  }
+
+  try {
+    await dynamoClient.send(
+      new PutItemCommand({
+        TableName: TABLES.CAMPAIGNS,
+        Item: item
+      })
+    );
+  } catch (error) {
+    // Log write failures shouldn't stop execution
+    console.error(`[LogWriter] Failed to write log for ${phone}:`, error);
+  }
+}
+
+/**
  * Update campaign metrics atomically
  * Uses ADD to safely increment counters without race conditions
  */
@@ -292,15 +351,19 @@ async function executeBatch(
   campaignId: string,
   messageService: MessageService
 ): Promise<BatchExecutionResult> {
+  console.log('📥 [Batch Executor] Loading campaign metadata...');
   // 1️⃣ Load campaign metadata
   const campaign = await loadCampaign(campaignId);
   
   if (!campaign) {
+    console.error('❌ [Batch Executor] Campaign not found:', campaignId);
     throw new Error('Campaign not found');
   }
+  console.log('📊 [Batch Executor] Campaign loaded:', { id: campaign.id, status: campaign.status, template: campaign.templateName });
 
   // 2️⃣ Validate status == RUNNING
   if (campaign.status !== 'RUNNING') {
+    console.log('⚠️ [Batch Executor] Campaign not RUNNING:', campaign.status);
     return {
       processed: 0,
       sent: 0,
@@ -312,10 +375,13 @@ async function executeBatch(
   }
 
   // 3️⃣ Query PENDING recipients (limit 25)
+  console.log('🔍 [Batch Executor] Querying pending recipients...');
   const recipients = await getPendingRecipients(campaignId);
+  console.log(`📊 [Batch Executor] Found ${recipients.length} pending recipients`);
   
   // 4️⃣ If no recipients → mark COMPLETED
   if (recipients.length === 0) {
+    console.log('✅ [Batch Executor] No pending recipients, marking campaign as COMPLETED');
     await completeCampaign(campaignId);
     return {
       processed: 0,
@@ -328,6 +394,7 @@ async function executeBatch(
   }
 
   // 5️⃣ Process each recipient sequentially
+  console.log('📨 [Batch Executor] Starting recipient processing...');
   let sent = 0;
   let failed = 0;
   let limitReached = false;
@@ -341,10 +408,11 @@ async function executeBatch(
       
       if (!claimed) {
         // Another execution already claimed this recipient
-        console.log(`[BatchExecutor] Recipient ${recipient.phone} already claimed, skipping`);
+        console.log(`⚠️ [Batch Executor] Recipient ${recipient.phone} already claimed, skipping`);
         continue;
       }
       
+      console.log(`📨 [Batch Executor] Processing ${recipient.phone} (attempt ${recipient.attempts + 1})...`);
       processed++; // Successfully claimed
       
       // 🛡️ CRITICAL: Check guard BEFORE sending
@@ -364,12 +432,25 @@ async function executeBatch(
 
       // Extract message ID
       const messageId = response.messages[0]?.id;
+      console.log(`✅ [Batch Executor] Sent to ${recipient.phone}, Message ID: ${messageId}`);
 
       // Update recipient as SENT
       await updateRecipientStatus(campaignId, recipient.phone, 'SENT', messageId);
       
       // Increment campaign sentCount
       await incrementCampaignMetric(campaignId, 'sentCount');
+      
+      // Write log entry for observability
+      await writeLogEntry(
+        campaignId,
+        recipient.phone,
+        'SENT',
+        messageId,
+        undefined,
+        undefined,
+        JSON.stringify(response),
+        recipient.attempts + 1
+      );
       
       sent++;
 
@@ -411,6 +492,18 @@ async function executeBatch(
             `RETRYABLE_${error.code}`
           );
           
+          // Write log entry for retry
+          await writeLogEntry(
+            campaignId,
+            recipient.phone,
+            'FAILED',
+            undefined,
+            `RETRYABLE_${error.code}`,
+            `${error.message} (Will retry)`,
+            error.toLogString(),
+            recipient.attempts + 1
+          );
+          
           // Reset to PENDING for retry (separate operation)
           await dynamoClient.send(
             new UpdateItemCommand({
@@ -438,6 +531,18 @@ async function executeBatch(
             `META_${error.code}`
           );
           
+          // Write log entry for permanent failure
+          await writeLogEntry(
+            campaignId,
+            recipient.phone,
+            'FAILED',
+            undefined,
+            `META_${error.code}`,
+            error.message,
+            error.toLogString(),
+            recipient.attempts + 1
+          );
+          
           await incrementCampaignMetric(campaignId, 'failedCount');
           failed++;
         }
@@ -453,12 +558,25 @@ async function executeBatch(
           'UNKNOWN_ERROR'
         );
         
+        // Write log entry for unknown error
+        await writeLogEntry(
+          campaignId,
+          recipient.phone,
+          'FAILED',
+          undefined,
+          'UNKNOWN_ERROR',
+          error instanceof Error ? error.message : 'Unknown error occurred',
+          undefined,
+          recipient.attempts + 1
+        );
+        
         await incrementCampaignMetric(campaignId, 'failedCount');
         failed++;
       }
     }
   }
 
+  console.log(`🏁 [Batch Executor] Batch complete: ${sent} sent, ${failed} failed, ${processed} processed`);
   return {
     processed, // Use actual claimed count, not recipients.length
     sent,
@@ -478,8 +596,10 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('🚀 [Execute Batch API] Request received');
   try {
     // 1️⃣ Validate Admin Session
+    console.log('🔐 [Execute Batch API] Validating admin session...');
     const validation = await validateAdminSession(req, 'whatsapp-session');
     if (!validation.valid || !validation.session) {
       return NextResponse.json(
@@ -498,10 +618,14 @@ export async function POST(
     }
 
     // 2️⃣ Initialize MessageService
+    console.log('📦 [Execute Batch API] Campaign ID:', campaignId);
+    console.log('⚙️ [Execute Batch API] Initializing message service...');
     const messageService = getMessageService();
 
     // 3️⃣ Execute batch
+    console.log('⚡ [Execute Batch API] Executing batch...');
     const result = await executeBatch(campaignId, messageService);
+    console.log('✅ [Execute Batch API] Batch execution completed:', result);
 
     // 4️⃣ Return summary
     return NextResponse.json({
@@ -511,7 +635,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('[BatchExecutor] Fatal error:', error);
+    console.error('❌ [Execute Batch API] Fatal error:', error);
     
     return NextResponse.json(
       { 

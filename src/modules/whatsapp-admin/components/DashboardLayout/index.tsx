@@ -5,20 +5,43 @@ import { useWhatsAppAdminContext } from '../../context/WhatsAppAdminProvider';
 import AdminHeader from '@/components/common/AdminHeader';
 import TemplateManagerSection from '../TemplateManagerSection';
 import CampaignSection from '../CampaignSection';
+import GlobalSettingsPanel from '../GlobalSettingsPanel';
+import EmergencyKillSwitch from '../EmergencyKillSwitch';
+import GlobalSendingStateIndicator from '../GlobalSendingStateIndicator';
 
 export default function DashboardLayout() {
-  const [activeTab, setActiveTab] = useState<'templates' | 'campaigns'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'campaigns' | 'settings'>('templates');
   const { logout } = useWhatsAppAdminContext();
   const isBypassMode = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Admin Header */}
-      <AdminHeader 
-        title="WhatsApp Admin" 
-        onLogout={logout} 
-        isDev={isBypassMode}
-      />
+      {/* Admin Header with Kill Switch */}
+      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Left: Title */}
+            <div className="flex-1">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">WhatsApp Admin</h1>
+              <p className="text-xs text-gray-600 hidden sm:block">Production Control Center</p>
+            </div>
+
+            {/* Right: Status + Kill Switch + Logout */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <GlobalSendingStateIndicator />
+              <div className="relative">
+                <EmergencyKillSwitch />
+              </div>
+              <button
+                onClick={logout}
+                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
@@ -42,12 +65,11 @@ export default function DashboardLayout() {
 
         {/* Dashboard Title & Stats */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">WhatsApp Admin Dashboard</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your WhatsApp templates and campaigns</p>
+          <p className="text-sm sm:text-base text-gray-600">Manage templates, campaigns, and system settings</p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm p-1 mb-4 sm:mb-6 flex w-full sm:w-auto">
+        <div className="bg-white rounded-lg shadow-sm p-1 mb-4 sm:mb-6 flex flex-wrap gap-1 w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('templates')}
             className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md text-sm sm:text-base font-medium transition-all duration-200 ${
@@ -71,12 +93,25 @@ export default function DashboardLayout() {
             <span className="hidden sm:inline">📢 Campaigns</span>
             <span className="sm:hidden">📢</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-md text-sm sm:text-base font-medium transition-all duration-200 ${
+              activeTab === 'settings' 
+                ? 'bg-black text-white shadow-sm' 
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <span className="hidden sm:inline">⚙️ Settings</span>
+            <span className="sm:hidden">⚙️</span>
+          </button>
         </div>
 
         {/* Tab Content */}
         <div className="transition-all duration-300">
           {activeTab === 'templates' && <TemplateManagerSection />}
           {activeTab === 'campaigns' && <CampaignSection />}
+          {activeTab === 'settings' && <GlobalSettingsPanel />}
         </div>
       </main>
     </div>
