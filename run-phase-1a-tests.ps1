@@ -254,10 +254,10 @@ try {
         -Uri "$AmplifyUrl/api/campaigns/$campaignId" `
         -Method GET
 
-    $status = $response.status
-    $sentCount = $response.metrics.sentCount
-    $failedCount = $response.metrics.failedCount
-    $totalRecipients = $response.metrics.totalRecipients
+    $status = $response.campaign.status
+    $sentCount = $response.campaign.sentCount
+    $failedCount = $response.campaign.failedCount
+    $totalRecipients = $response.campaign.totalRecipients
     $progress = 0
     
     if ($totalRecipients -gt 0) {
