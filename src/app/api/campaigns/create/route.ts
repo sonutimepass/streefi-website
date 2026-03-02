@@ -54,9 +54,11 @@ export async function POST(req: NextRequest) {
     const timestamp = Math.floor(Date.now() / 1000);
 
     // 6️⃣ Create Campaign Item (DynamoDB Format)
+    // PK/SK schema: PK = CAMPAIGN#{id}, SK = METADATA
     const campaignItem = {
       PK: { S: `CAMPAIGN#${campaignId}` },
       SK: { S: 'METADATA' },
+      campaignId: { S: campaignId },
       name: { S: name },
       templateName: { S: templateName },
       channel: { S: channel },
