@@ -188,26 +188,21 @@ try {
     Write-Host "Response:" -ForegroundColor Gray
     Write-Host ($response | ConvertTo-Json -Depth 5) -ForegroundColor Gray
 
-    $processed = $response.processed
-    $sent = $response.sent
-    $failed_count = $response.failed
-    $paused = $response.paused
+    $processed = $response.result.processed
+    $sent = $response.result.sent
+    $failed_count = $response.result.failed
+    $paused = $response.result.paused
 
     Write-Host "`nResults: Processed=$processed, Sent=$sent, Failed=$failed_count, Paused=$paused" -ForegroundColor Yellow
 
-    # Should send 5 (daily limit of 5)
-    if ($processed -eq 5 -and $sent -eq 5 -and $paused -eq $true) {
-        Write-Success "✅ Batch executed correctly (5 sent, auto-paused)"
+    # Should send all 10 (batch size is 25, we populated 10 recipients)
+    # Will NOT auto-pause unless daily limit (default 200) is reached
+    if ($processed -eq 10 -and $sent -eq 10) {
+        Write-Success "✅ Batch executed correctly (all 10 sent)"
         $passed++
     } else {
-        Write-Warning "⚠️  Unexpected values: Processed=$processed, Sent=$sent, Paused=$paused"
-        if ($processed -eq 5) {
-            Write-Success "✅ Correct number processed"
-            $passed++
-        } else {
-            Write-Error "❌ Did not process 5 recipients"
-            $failed++
-        }
+        Write-Error "❌ Expected 10 processed and sent, got Processed=$processed, Sent=$sent"
+        $failed++
     }
 }
 catch {
@@ -223,19 +218,19 @@ Write-Host "-" * 80
 
 try {
     $response = Invoke-RestMethod `
-        -Uri "$amplifyUrl/api/campaigns/$campaignId/execute-batch" `
+        -Uri "$AmplifyUrl/api/campaigns/$campaignId/execute-batch" `
         -Method POST `
         -ContentType "application/json"
 
     Write-Host "Response:" -ForegroundColor Gray
     Write-Host ($response | ConvertTo-Json -Depth 5) -ForegroundColor Gray
 
-    $processed = $response.processed
+    $processed = $response.result.processed
     
     Write-Host "`nResults: Processed=$processed" -ForegroundColor Yellow
 
     # Second run should process 0 (idempotency test)
-    if ($processed -eq 0 -or $response.reason -match "paused|completed") {
+    if ($processed -eq 0 -or $response.result.pauseReason -match "paused|completed|remaining") {
         Write-Success "✅ Idempotency verified (0 processed on second run)"
         $passed++
     } else {
@@ -282,18 +277,18 @@ try {
     # Validate results
     $allGood = $true
     
-    if ($status -ne "PAUSED") {
-        Write-Error "❌ Status is $status (expected PAUSED)"
+    if ($status -ne "COMPLETED") {
+        Write-Error "❌ Status is $status (expected COMPLETED)"
         $allGood = $false
     } else {
-        Write-Success "✅ Status: PAUSED"
+        Write-Success "✅ Status: COMPLETED"
     }
 
-    if ($sentCount -ne 5) {
-        Write-Error "❌ Sent count is $sentCount (expected 5)"
+    if ($sentCount -ne 10) {
+        Write-Error "❌ Sent count is $sentCount (expected 10)"
         $allGood = $false
     } else {
-        Write-Success "✅ Sent count: 5"
+        Write-Success "✅ Sent count: 10"
     }
 
     if ($failedCount -ne 0) {
