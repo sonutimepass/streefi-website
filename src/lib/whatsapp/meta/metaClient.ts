@@ -129,13 +129,27 @@ export class MetaAPIClient {
   private readonly retryDelay = 300; // 300ms delay between retries
 
   constructor(accessToken?: string, phoneNumberId?: string) {
-    this.accessToken = accessToken || process.env.META_ACCESS_TOKEN || '';
-    this.phoneNumberId = phoneNumberId || process.env.META_PHONE_NUMBER_ID || '';
+    // Support both variable naming conventions (WHATSAPP_ and META_)
+    this.accessToken = accessToken || 
+                       process.env.WHATSAPP_ACCESS_TOKEN || 
+                       process.env.META_ACCESS_TOKEN || '';
+    this.phoneNumberId = phoneNumberId || 
+                         process.env.WHATSAPP_PHONE_ID || 
+                         process.env.META_PHONE_NUMBER_ID || '';
 
     // 🧪 Phase 1A: Allow placeholder credentials during dry run
     const isDryRun = process.env.META_DRY_RUN === 'true';
+    const hasPlaceholderToken = !this.accessToken || 
+                                 this.accessToken === 'your_whatsapp_access_token' ||
+                                 this.accessToken === 'dry_run_token';
+    const hasPlaceholderPhoneId = !this.phoneNumberId || 
+                                   this.phoneNumberId === 'your_phone_number_id' ||
+                                   this.phoneNumberId === 'dry_run_phone_id';
     
-    if (!isDryRun) {
+    // Allow initialization if in dry run OR if using placeholders
+    const allowPlaceholders = isDryRun || hasPlaceholderToken || hasPlaceholderPhoneId;
+    
+    if (!allowPlaceholders) {
       if (!this.accessToken) {
         throw new Error('Meta Access Token is required');
       }
@@ -143,14 +157,14 @@ export class MetaAPIClient {
         throw new Error('Meta Phone Number ID is required');
       }
     } else {
-      // Dry run mode: use placeholders if not set
-      if (!this.accessToken) {
+      // Dry run mode or placeholders: use safe defaults
+      if (!this.accessToken || hasPlaceholderToken) {
         this.accessToken = 'dry_run_token';
       }
-      if (!this.phoneNumberId) {
+      if (!this.phoneNumberId || hasPlaceholderPhoneId) {
         this.phoneNumberId = 'dry_run_phone_id';
       }
-      console.log('[MetaClient] Running in DRY_RUN mode with placeholder credentials');
+      console.log('[MetaClient] Using placeholder credentials (dry run mode)');
     }
   }
 
