@@ -174,10 +174,17 @@ for ($i = 1; $i -le $numParallelExecutions; $i++) {
             
             $duration = (Get-Date) - $startTime
             
+            # Parse response - API returns: { success, campaignId, result: { processed, completed } }
+            $processed = if ($response.result.processed -ne $null) { $response.result.processed } else { 0 }
+            $completed = if ($response.result.completed -eq $true) { $true } else { $false }
+            
             return @{
                 ExecutionNumber = $executionNumber
                 Success = $true
-                Response = $response
+                Response = @{
+                    processed = $processed
+                    completed = $completed
+                }
                 Duration = $duration.TotalSeconds
                 Error = $null
             }
@@ -206,23 +213,34 @@ Write-Host "  ✓ All $numParallelExecutions executions launched" -ForegroundCol
 Write-Host "`n[5/6] Waiting for parallel executions to complete..." -ForegroundColor Green
 
 $results = @()
-$completedCount = 0
+$timeout = 30 # seconds
+$elapsed = 0
 
-while ($completedCount -lt $numParallelExecutions) {
+while ($results.Count -lt $numParallelExecutions -and $elapsed -lt $timeout) {
     Start-Sleep -Milliseconds 500
+    $elapsed += 0.5
     
     foreach ($job in $jobs) {
-        if ($job.State -eq 'Completed' -and $job.JobStateInfo.State -eq 'Completed') {
-            if (-not ($results | Where-Object { $_.ExecutionNumber -eq ($job | Receive-Job).ExecutionNumber })) {
-                $result = Receive-Job -Job $job
-                $results += $result
-                $completedCount++
+        # Check if we already collected this job's result
+        $alreadyProcessed = $results | Where-Object { $_.JobId -eq $job.Id }
+        
+        if (-not $alreadyProcessed -and ($job.State -eq 'Completed' -or $job.State -eq 'Failed')) {
+            try {
+                $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
                 
-                if ($result.Success) {
-                    Write-Host "  ✓ Execution #$($result.ExecutionNumber) completed in $([math]::Round($result.Duration, 2))s - Processed: $($result.Response.processed)" -ForegroundColor Green
-                } else {
-                    Write-Host "  ✗ Execution #$($result.ExecutionNumber) failed: $($result.Error)" -ForegroundColor Red
+                if ($result) {
+                    # Add job ID to track which jobs we've processed
+                    $result | Add-Member -NotePropertyName JobId -NotePropertyValue $job.Id -Force
+                    $results += $result
+                    
+                    if ($result.Success) {
+                        Write-Host "  ✓ Execution #$($result.ExecutionNumber) completed in $([math]::Round($result.Duration, 2))s - Processed: $($result.Response.processed)" -ForegroundColor Green
+                    } else {
+                        Write-Host "  ✗ Execution #$($result.ExecutionNumber) failed: $($result.Error)" -ForegroundColor Red
+                    }
                 }
+            } catch {
+                Write-Host "  ✗ Failed to receive job result: $_" -ForegroundColor Red
             }
         }
     }
@@ -231,8 +249,9 @@ while ($completedCount -lt $numParallelExecutions) {
 $totalDuration = (Get-Date) - $startTime
 Write-Host "  ✓ All executions completed in $([math]::Round($totalDuration.TotalSeconds, 2))s" -ForegroundColor Green
 
-# Clean up jobs
-$jobs | Remove-Job
+# Clean up jobs (force removal)
+$jobs | Stop-Job -ErrorAction SilentlyContinue
+$jobs | Remove-Job -Force -ErrorAction SilentlyContinue
 
 # ============================================================
 # Step 6: Analyze Results
@@ -240,9 +259,30 @@ $jobs | Remove-Job
 
 Write-Host "`n[6/6] Analyzing concurrent execution results..." -ForegroundColor Green
 
+# Safety check
+if ($results.Count -eq 0) {
+    Write-Host "  ✗ No results collected from parallel executions!" -ForegroundColor Red
+    Write-Host "  This indicates a job handling issue, not a concurrency issue." -ForegroundColor Red
+    exit 1
+}
+
 $successfulExecutions = ($results | Where-Object { $_.Success }).Count
 $failedExecutions = ($results | Where-Object { -not $_.Success }).Count
-$totalProcessed = ($results | Where-Object { $_.Success } | ForEach-Object { $_.Response.processed } | Measure-Object -Sum).Sum
+
+# Debug: Show actual responses
+Write-Host "`n  Debug - Response Details:" -ForegroundColor DarkGray
+foreach ($result in $results) {
+    if ($result.Success) {
+        Write-Host "    Exec #$($result.ExecutionNumber): processed=$($result.Response.processed), completed=$($result.Response.completed)" -ForegroundColor DarkGray
+    }
+}
+
+$totalProcessed = 0
+foreach ($result in $results) {
+    if ($result.Success -and $result.Response.processed -ne $null) {
+        $totalProcessed += $result.Response.processed
+    }
+}
 
 Write-Host "`n  Execution Summary:" -ForegroundColor Yellow
 Write-Host "    Successful: $successfulExecutions"
@@ -267,13 +307,25 @@ try {
     Write-Host "    Sent Count: $($campaign.sentCount)"
     Write-Host "    Failed Count: $($campaign.failedCount)"
     
-    # Verify recipient processing
-    $verifyResponse = Invoke-RestMethod -Uri "$baseUrl/api/campaigns/$campaignId/execute-batch" `
-        -Method Post
-    
-    Write-Host "`n  Verification Run (should process 0):" -ForegroundColor Yellow
-    Write-Host "    Processed: $($verifyResponse.processed)"
-    Write-Host "    Completed: $($verifyResponse.completed)"
+    # Verify recipient processing with proper error handling
+    try {
+        $verifyResponse = Invoke-RestMethod -Uri "$baseUrl/api/campaigns/$campaignId/execute-batch" `
+            -Method Post `
+            -ErrorAction Stop
+        
+        # Handle API response structure: { success, campaignId, result: { processed, completed } }
+        $verifyProcessed = if ($verifyResponse.result.processed -ne $null) { $verifyResponse.result.processed } else { 0 }
+        $verifyCompleted = if ($verifyResponse.result.completed -eq $true -or $verifyResponse.result.completed -eq "true") { $true } else { $false }
+        
+        Write-Host "`n  Verification Run (should process 0):" -ForegroundColor Yellow
+        Write-Host "    Processed: $verifyProcessed"
+        Write-Host "    Completed: $verifyCompleted"
+    } catch {
+        Write-Host "`n  Verification Run Failed:" -ForegroundColor Red
+        Write-Host "    Error: $_"
+        $verifyProcessed = -1
+        $verifyCompleted = $false
+    }
     
 } catch {
     Write-Host "  ✗ Failed to verify data integrity: $_" -ForegroundColor Red
@@ -316,8 +368,8 @@ if ($campaign.sentCount -ne $numRecipients) {
 }
 
 # Check 4: Idempotency check (verification run should process 0)
-if ($verifyResponse.processed -ne 0) {
-    $issues += "✗ Verification run processed $($verifyResponse.processed) (should be 0)"
+if ($verifyProcessed -ne 0) {
+    $issues += "✗ Verification run processed $verifyProcessed (should be 0)"
     $passed = $false
 } else {
     Write-Host "✓ Idempotency preserved: verification run processed 0" -ForegroundColor Green

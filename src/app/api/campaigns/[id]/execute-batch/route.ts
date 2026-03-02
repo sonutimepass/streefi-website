@@ -131,6 +131,40 @@ async function getPendingRecipients(campaignId: string): Promise<Recipient[]> {
 }
 
 /**
+ * Claim recipient for processing (optimistic lock)
+ * Returns true if claimed successfully, false if already claimed by another execution
+ */
+async function claimRecipient(campaignId: string, phone: string): Promise<boolean> {
+  try {
+    await dynamoClient.send(
+      new UpdateItemCommand({
+        TableName: TABLES.RECIPIENTS,
+        Key: {
+          PK: { S: `CAMPAIGN#${campaignId}` },
+          SK: { S: `USER#${phone}` }
+        },
+        UpdateExpression: 'SET #status = :processing',
+        ConditionExpression: '#status = :pending',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        },
+        ExpressionAttributeValues: {
+          ':processing': { S: 'PROCESSING' },
+          ':pending': { S: 'PENDING' }
+        }
+      })
+    );
+    return true;
+  } catch (error: any) {
+    // ConditionalCheckFailedException means another execution already claimed it
+    if (error.name === 'ConditionalCheckFailedException') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
  * Update recipient status atomically
  * Uses ADD for attempts to avoid read-modify-write race conditions
  */
@@ -297,9 +331,22 @@ async function executeBatch(
   let sent = 0;
   let failed = 0;
   let limitReached = false;
+  let processed = 0; // Track actually processed (claimed)
 
   for (const recipient of recipients) {
     try {
+      // 🔒 CRITICAL: Claim recipient atomically (optimistic lock)
+      // This prevents race conditions in parallel executions
+      const claimed = await claimRecipient(campaignId, recipient.phone);
+      
+      if (!claimed) {
+        // Another execution already claimed this recipient
+        console.log(`[BatchExecutor] Recipient ${recipient.phone} already claimed, skipping`);
+        continue;
+      }
+      
+      processed++; // Successfully claimed
+      
       // 🛡️ CRITICAL: Check guard BEFORE sending
       // MessageService already includes guard check, but we need to catch DailyLimitExceededError
       
@@ -413,7 +460,7 @@ async function executeBatch(
   }
 
   return {
-    processed: recipients.length,
+    processed, // Use actual claimed count, not recipients.length
     sent,
     failed,
     paused: limitReached,
