@@ -132,11 +132,25 @@ export class MetaAPIClient {
     this.accessToken = accessToken || process.env.META_ACCESS_TOKEN || '';
     this.phoneNumberId = phoneNumberId || process.env.META_PHONE_NUMBER_ID || '';
 
-    if (!this.accessToken) {
-      throw new Error('Meta Access Token is required');
-    }
-    if (!this.phoneNumberId) {
-      throw new Error('Meta Phone Number ID is required');
+    // 🧪 Phase 1A: Allow placeholder credentials during dry run
+    const isDryRun = process.env.META_DRY_RUN === 'true';
+    
+    if (!isDryRun) {
+      if (!this.accessToken) {
+        throw new Error('Meta Access Token is required');
+      }
+      if (!this.phoneNumberId) {
+        throw new Error('Meta Phone Number ID is required');
+      }
+    } else {
+      // Dry run mode: use placeholders if not set
+      if (!this.accessToken) {
+        this.accessToken = 'dry_run_token';
+      }
+      if (!this.phoneNumberId) {
+        this.phoneNumberId = 'dry_run_phone_id';
+      }
+      console.log('[MetaClient] Running in DRY_RUN mode with placeholder credentials');
     }
   }
 

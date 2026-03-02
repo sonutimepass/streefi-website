@@ -5,6 +5,7 @@
  * 
  * ALLOWED TRANSITIONS:
  * - DRAFT → RUNNING (start)
+ * - READY → RUNNING (start - after population)
  * - RUNNING → PAUSED (pause)
  * - PAUSED → RUNNING (resume)
  * - RUNNING → COMPLETED (automatic when no pending recipients)
@@ -19,7 +20,7 @@ import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
 
-type CampaignStatus = 'DRAFT' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
+type CampaignStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
 type ControlAction = 'start' | 'pause' | 'resume';
 
 interface ControlRequest {
@@ -54,10 +55,10 @@ async function getCampaignStatus(campaignId: string): Promise<CampaignStatus | n
 function validateTransition(currentStatus: CampaignStatus, action: ControlAction): { valid: boolean; error?: string } {
   switch (action) {
     case 'start':
-      if (currentStatus !== 'DRAFT' && currentStatus !== 'PAUSED') {
+      if (currentStatus !== 'DRAFT' && currentStatus !== 'PAUSED' && currentStatus !== 'READY') {
         return {
           valid: false,
-          error: `Cannot start campaign in ${currentStatus} status. Only DRAFT or PAUSED campaigns can be started.`
+          error: `Cannot start campaign in ${currentStatus} status. Only DRAFT, READY, or PAUSED campaigns can be started.`
         };
       }
       break;
