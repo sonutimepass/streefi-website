@@ -18,8 +18,8 @@ export async function GET() {
 
     // List of tables to check
     const tablesToCheck = [
-      { name: TABLES.CAMPAIGNS, expectedPK: 'PK', expectedSK: 'SK' },
-      { name: TABLES.RECIPIENTS, expectedPK: 'PK', expectedSK: 'SK' },
+      { name: TABLES.CAMPAIGNS, expectedPK: 'CAMPAIGN#', expectedSK: 'METADATA' },
+      { name: TABLES.RECIPIENTS, expectedPK: 'CAMPAIGN#', expectedSK: 'USER#' },
       { name: TABLES.WHATSAPP, expectedPK: 'PK', expectedSK: 'SK' },
       { name: TABLES.ADMINS, expectedPK: 'email', expectedSK: null },
       { name: TABLES.SESSIONS, expectedPK: 'session_id', expectedSK: null },
