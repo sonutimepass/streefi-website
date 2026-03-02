@@ -16,7 +16,7 @@ import { validateAdminSession } from '@/lib/adminAuth';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   console.log('🚀 [Retry Failed API] Request received');
   try {
@@ -30,7 +30,7 @@ export async function POST(
       );
     }
 
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
     console.log('📦 [Retry Failed API] Campaign ID:', campaignId);
 
     // 2️⃣ Query all FAILED recipients
