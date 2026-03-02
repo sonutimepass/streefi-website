@@ -130,3 +130,152 @@ export async function GET(
     );
   }
 }
+
+/**
+ * DELETE /api/campaigns/[id]
+ * 
+ * Delete campaign and all associated data (recipients, logs)
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  console.log('🚀 [Campaign Delete API] Request received');
+  try {
+    // 1️⃣ Validate Admin Session
+    console.log('🔐 [Campaign Delete API] Validating admin session...');
+    const validation = await validateAdminSession(req, 'whatsapp-session');
+    if (!validation.valid || !validation.session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { id: campaignId } = await params;
+    console.log('📦 [Campaign Delete API] Campaign ID:', campaignId);
+
+    if (!campaignId) {
+      return NextResponse.json(
+        { error: 'Campaign ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // 2️⃣ Import required AWS SDK commands
+    const { DeleteItemCommand, QueryCommand, BatchWriteItemCommand } = await import('@aws-sdk/client-dynamodb');
+
+    // 3️⃣ Query all items for this campaign (recipients + logs)
+    console.log('🔍 [Campaign Delete API] Querying campaign items...');
+    const queryResponse = await dynamoClient.send(
+      new QueryCommand({
+        TableName: TABLES.CAMPAIGNS,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': { S: `CAMPAIGN#${campaignId}` }
+        }
+      })
+    );
+
+    const itemsToDelete = queryResponse.Items || [];
+    console.log(`📊 [Campaign Delete API] Found ${itemsToDelete.length} items to delete`);
+
+    // 4️⃣ Delete campaign metadata
+    console.log('🗑️ [Campaign Delete API] Deleting campaign metadata...');
+    await dynamoClient.send(
+      new DeleteItemCommand({
+        TableName: TABLES.CAMPAIGNS,
+        Key: {
+          PK: { S: `CAMPAIGN#${campaignId}` },
+          SK: { S: 'METADATA' }
+        }
+      })
+    );
+
+    // 5️⃣ Delete recipients in batches (DynamoDB BatchWrite max 25 items)
+    console.log('🔍 [Campaign Delete API] Querying recipients...');
+    const recipientsResponse = await dynamoClient.send(
+      new QueryCommand({
+        TableName: TABLES.RECIPIENTS,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': { S: `CAMPAIGN#${campaignId}` }
+        }
+      })
+    );
+
+    const recipients = recipientsResponse.Items || [];
+    console.log(`📊 [Campaign Delete API] Found ${recipients.length} recipients to delete`);
+
+    // Delete recipients in batches of 25
+    for (let i = 0; i < recipients.length; i += 25) {
+      const batch = recipients.slice(i, i + 25);
+      if (batch.length > 0) {
+        console.log(`🗑️ [Campaign Delete API] Deleting recipient batch ${Math.floor(i / 25) + 1}...`);
+        await dynamoClient.send(
+          new BatchWriteItemCommand({
+            RequestItems: {
+              [TABLES.RECIPIENTS]: batch.map(item => ({
+                DeleteRequest: {
+                  Key: {
+                    PK: item.PK,
+                    SK: item.SK
+                  }
+                }
+              }))
+            }
+          })
+        );
+      }
+    }
+
+    // 6️⃣ Delete logs in batches
+    const logs = itemsToDelete.filter(item => item.SK?.S?.startsWith('LOG#'));
+    console.log(`📊 [Campaign Delete API] Found ${logs.length} logs to delete`);
+    
+    for (let i = 0; i < logs.length; i += 25) {
+      const batch = logs.slice(i, i + 25);
+      if (batch.length > 0) {
+        console.log(`🗑️ [Campaign Delete API] Deleting log batch ${Math.floor(i / 25) + 1}...`);
+        await dynamoClient.send(
+          new BatchWriteItemCommand({
+            RequestItems: {
+              [TABLES.CAMPAIGNS]: batch.map(item => ({
+                DeleteRequest: {
+                  Key: {
+                    PK: item.PK,
+                    SK: item.SK
+                  }
+                }
+              }))
+            }
+          })
+        );
+      }
+    }
+
+    console.log('✅ [Campaign Delete API] Campaign deleted successfully');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Campaign deleted successfully',
+      campaignId,
+      deletedItems: {
+        metadata: 1,
+        recipients: recipients.length,
+        logs: logs.length
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [Campaign Delete API] Error:', error);
+    
+    return NextResponse.json(
+      { 
+        error: 'Failed to delete campaign',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}

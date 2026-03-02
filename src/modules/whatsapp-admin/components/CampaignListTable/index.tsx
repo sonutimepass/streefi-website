@@ -103,6 +103,40 @@ export default function CampaignListTable({
     }
   };
 
+  // Handle campaign deletion
+  const handleDelete = async (campaignId: string, campaignName: string) => {
+    console.log(`🗑️ [Campaign List] Delete requested for campaign ${campaignId}`);
+    
+    if (!confirm(`Are you sure you want to delete campaign "${campaignName}"?\n\nThis will permanently delete all campaign data, recipients, and logs. This action cannot be undone.`)) {
+      console.log('⚠️ [Campaign List] Delete cancelled by user');
+      return;
+    }
+
+    setActionLoading(campaignId);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      console.log(`📥 [Campaign List] Delete response:`, data);
+      
+      if (!response.ok) {
+        console.error(`❌ [Campaign List] Delete failed:`, data.error);
+        throw new Error(data.error || 'Delete failed');
+      }
+
+      console.log(`✅ [Campaign List] Campaign deleted successfully`);
+      // Refresh list
+      onRefresh();
+    } catch (error) {
+      console.error('Campaign delete error:', error);
+      alert(error instanceof Error ? error.message : 'Delete failed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -302,6 +336,18 @@ export default function CampaignListTable({
                         {actionLoading === campaign.id ? '⏳' : '▶️'}
                       </button>
                     )}
+
+                    {/* Delete Button (for DRAFT, PAUSED, COMPLETED) */}
+                    {(campaign.status === 'DRAFT' || campaign.status === 'PAUSED' || campaign.status === 'COMPLETED') && (
+                      <button
+                        onClick={() => handleDelete(campaign.id, campaign.name)}
+                        disabled={actionLoading === campaign.id}
+                        className="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                        title="Delete Campaign"
+                      >
+                        {actionLoading === campaign.id ? '⏳' : '🗑️'}
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -414,6 +460,17 @@ export default function CampaignListTable({
                   className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50"
                 >
                   {actionLoading === campaign.id ? '⏳' : '▶️ Resume'}
+                </button>
+              )}
+
+              {/* Delete Button */}
+              {(campaign.status === 'DRAFT' || campaign.status === 'PAUSED' || campaign.status === 'COMPLETED') && (
+                <button
+                  onClick={() => handleDelete(campaign.id, campaign.name)}
+                  disabled={actionLoading === campaign.id}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50"
+                >
+                  {actionLoading === campaign.id ? '⏳' : '🗑️ Delete'}
                 </button>
               )}
             </div>
