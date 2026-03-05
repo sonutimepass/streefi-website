@@ -34,6 +34,42 @@ import { getMessageService, MessageService, DailyLimitExceededError } from '@/li
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 
+// ⏱️ RATE LIMITING: In-memory store for per-IP request tracking
+// Limits: 5 requests per 60 seconds per IP
+const rateLimitStore = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 60 seconds in ms
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+function checkRateLimit(ip: string): { allowed: boolean; remainingTime?: number } {
+  const now = Date.now();
+  const requests = rateLimitStore.get(ip) || [];
+  
+  // Remove requests outside the time window
+  const recentRequests = requests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
+  
+  if (recentRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
+    const oldestRequest = recentRequests[0];
+    const remainingTime = Math.ceil((oldestRequest + RATE_LIMIT_WINDOW - now) / 1000);
+    return { allowed: false, remainingTime };
+  }
+  
+  // Add current request and update store
+  recentRequests.push(now);
+  rateLimitStore.set(ip, recentRequests);
+  
+  // Cleanup: Remove expired entries every 100 requests
+  if (rateLimitStore.size > 100) {
+    for (const [key, timestamps] of rateLimitStore.entries()) {
+      const validTimestamps = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+      if (validTimestamps.length === 0) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+  
+  return { allowed: true };
+}
+
 const BATCH_SIZE = 25;
 const SEND_DELAY_MS = 50; // 20 messages/sec safe for Meta rate limits
 
@@ -45,6 +81,10 @@ interface Campaign {
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
+  dailyCap: number;
+  executionLock?: boolean;
+  lockedAt?: number;
+  lastBatchAt?: number;
 }
 
 interface Recipient {
@@ -96,7 +136,11 @@ async function loadCampaign(campaignId: string): Promise<Campaign | null> {
     status: (item.status?.S as Campaign['status']) || 'DRAFT',
     totalRecipients: parseInt(item.totalRecipients?.N || '0', 10),
     sentCount: parseInt(item.sentCount?.N || '0', 10),
-    failedCount: parseInt(item.failedCount?.N || '0', 10)
+    failedCount: parseInt(item.failedCount?.N || '0', 10),
+    dailyCap: parseInt(item.dailyCap?.N || '1000', 10),
+    executionLock: item.executionLock?.BOOL || false,
+    lockedAt: item.lockedAt?.N ? parseInt(item.lockedAt.N, 10) : undefined,
+    lastBatchAt: item.lastBatchAt?.N ? parseInt(item.lastBatchAt.N, 10) : undefined
   };
 }
 
@@ -429,48 +473,133 @@ async function executeBatch(
   campaignId: string,
   messageService: MessageService
 ): Promise<BatchExecutionResult> {
-  // 🔧 AUTO-RECONCILIATION: Recover stuck recipients before batch starts
-  console.log('🔧 [Batch Executor] Running auto-reconciliation...');
-  const recovered = await reconcileStuckRecipients(campaignId);
-  if (recovered > 0) {
-    console.log(`✅ [Batch Executor] Auto-reconciliation recovered ${recovered} stuck recipients`);
+  const now = Math.floor(Date.now() / 1000);
+  
+  // 🔒 CRITICAL: Acquire execution lock (prevents concurrent batch execution)
+  console.log('🔒 [Batch Executor] Attempting to acquire execution lock...');
+  try {
+    await dynamoClient.send(
+      new UpdateItemCommand({
+        TableName: TABLES.CAMPAIGNS,
+        Key: {
+          PK: { S: `CAMPAIGN#${campaignId}` },
+          SK: { S: 'METADATA' }
+        },
+        UpdateExpression: 'SET executionLock = :true, lockedAt = :now',
+        ConditionExpression: 'attribute_not_exists(executionLock) OR executionLock = :false OR lockedAt < :staleThreshold',
+        ExpressionAttributeValues: {
+          ':true': { BOOL: true },
+          ':false': { BOOL: false },
+          ':now': { N: now.toString() },
+          ':staleThreshold': { N: (now - 120).toString() } // 2-minute stale lock expiry
+        }
+      })
+    );
+    console.log('✅ [Batch Executor] Execution lock acquired');
+  } catch (error: any) {
+    if (error.name === 'ConditionalCheckFailedException') {
+      console.warn('⚠️ [Batch Executor] Batch execution already in progress');
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: false,
+        completed: false,
+        pauseReason: 'Batch execution already in progress (locked)'
+      };
+    }
+    throw error;
   }
-  
-  // 🛑 CRITICAL: Check kill switch BEFORE starting batch
-  console.log('🛡️ [Batch Executor] Checking emergency kill switch...');
-  const killSwitch = await isKillSwitchEnabled();
-  
-  if (killSwitch.enabled) {
-    console.warn('🚨 [Batch Executor] KILL SWITCH ENABLED - Stopping execution');
-    console.warn('🚨 [Batch Executor] Reason:', killSwitch.reason);
-    
-    // Pause campaign if not already paused
-    const campaign = await loadCampaign(campaignId);
-    if (campaign && campaign.status === 'RUNNING') {
-      await pauseCampaign(
-        campaignId,
-        `Emergency stop: ${killSwitch.reason || 'Kill switch enabled'}`
-      );
+
+  try {
+    // 🔧 AUTO-RECONCILIATION: Recover stuck recipients before batch starts
+    console.log('🔧 [Batch Executor] Running auto-reconciliation...');
+    const recovered = await reconcileStuckRecipients(campaignId);
+    if (recovered > 0) {
+      console.log(`✅ [Batch Executor] Auto-reconciliation recovered ${recovered} stuck recipients`);
     }
     
-    return {
-      processed: 0,
-      sent: 0,
-      failed: 0,
-      paused: true,
-      completed: false,
-      pauseReason: `EMERGENCY_STOP: ${killSwitch.reason || 'System-wide sending disabled'}`
-    };
-  }
+    // 🛑 CRITICAL: Check kill switch BEFORE starting batch
+    console.log('🛡️ [Batch Executor] Checking emergency kill switch...');
+    const killSwitch = await isKillSwitchEnabled();
   
-  console.log('📥 [Batch Executor] Loading campaign metadata...');
-  // 1️⃣ Load campaign metadata
-  const campaign = await loadCampaign(campaignId);
-  
-  if (!campaign) {
-    console.error('❌ [Batch Executor] Campaign not found:', campaignId);
-    throw new Error('Campaign not found');
-  }
+    if (killSwitch.enabled) {
+      console.warn('🚨 [Batch Executor] KILL SWITCH ENABLED - Stopping execution');
+      console.warn('🚨 [Batch Executor] Reason:', killSwitch.reason);
+      
+      // Pause campaign if not already paused
+      const campaign = await loadCampaign(campaignId);
+      if (campaign && campaign.status === 'RUNNING') {
+        await pauseCampaign(
+          campaignId,
+          `Emergency stop: ${killSwitch.reason || 'Kill switch enabled'}`
+        );
+      }
+      
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: `EMERGENCY_STOP: ${killSwitch.reason || 'System-wide sending disabled'}`
+      };
+    }
+    
+    console.log('📥 [Batch Executor] Loading campaign metadata...');
+    // 1️⃣ Load campaign metadata
+    const campaign = await loadCampaign(campaignId);
+    
+    if (!campaign) {
+      console.error('❌ [Batch Executor] Campaign not found:', campaignId);
+      throw new Error('Campaign not found');
+    }
+
+    // ⏱️ CRITICAL: Server-side cooldown check (30 seconds minimum between batches)
+    if (campaign.lastBatchAt) {
+      const timeSinceLastBatch = now - campaign.lastBatchAt;
+      if (timeSinceLastBatch < 30) {
+        const remainingCooldown = 30 - timeSinceLastBatch;
+        console.warn(`⏱️ [Batch Executor] Cooldown active: ${remainingCooldown}s remaining`);
+        return {
+          processed: 0,
+          sent: 0,
+          failed: 0,
+          paused: false,
+          completed: false,
+          pauseReason: `Cooldown active: wait ${remainingCooldown}s before next batch`
+        };
+      }
+    }
+
+    // 🎯 CRITICAL: Campaign daily cap enforcement
+    if (campaign.sentCount >= campaign.dailyCap) {
+      console.warn(`🎯 [Batch Executor] Campaign daily cap reached: ${campaign.sentCount}/${campaign.dailyCap}`);
+      await pauseCampaign(campaignId, `Campaign daily cap reached: ${campaign.dailyCap} messages`);
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: `Campaign daily cap reached: ${campaign.dailyCap} messages`
+      };
+    }
+
+    // 📊 CRITICAL: Metrics integrity check
+    const processedCount = campaign.sentCount + campaign.failedCount;
+    if (processedCount > campaign.totalRecipients) {
+      console.error(`❌ [Batch Executor] METRICS CORRUPTION: sentCount(${campaign.sentCount}) + failedCount(${campaign.failedCount}) = ${processedCount} > totalRecipients(${campaign.totalRecipients})`);
+      await pauseCampaign(campaignId, 'Metrics corruption detected - manual intervention required');
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: 'METRICS_CORRUPTION: Manual intervention required'
+      };
+    }
   console.log('📊 [Batch Executor] Campaign loaded:', { id: campaign.id, status: campaign.status, template: campaign.templateName });
 
   // 2️⃣ Validate status == RUNNING
@@ -517,14 +646,14 @@ async function executeBatch(
       // 🔒 CRITICAL: Claim recipient atomically (optimistic lock)
       // This prevents race conditions in parallel executions
       const claimed = await claimRecipient(campaignId, recipient.phone);
-      
-      if (!claimed) {
-        // Another execution already claimed this recipient
-        console.log(`⚠️ [Batch Executor] Recipient ${recipient.phone} already claimed, skipping`);
-        continue;
-      }
-      
-      console.log(`📨 [Batch Executor] Processing ${recipient.phone} (attempt ${recipient.attempts + 1})...`);
+        
+        if (!claimed) {
+          // Another execution already claimed this recipient
+          console.log(`⚠️ [Batch Executor] Recipient ${recipient.phone} already claimed, skipping`);
+          continue;
+        }
+        
+        console.log(`📨 [Batch Executor] Processing ${recipient.phone} (attempt ${recipient.attempts + 1})...`);
       processed++; // Successfully claimed
       
       // � CRITICAL: Check kill switch BEFORE each send
@@ -720,10 +849,28 @@ async function executeBatch(
         await incrementCampaignMetric(campaignId, 'failedCount');
         failed++;
       }
-    }
-  }
+    } // End catch (per-recipient error handling)
+  } // End for loop
 
   console.log(`🏁 [Batch Executor] Batch complete: ${sent} sent, ${failed} failed, ${processed} processed`);
+  
+  // 🔓 CRITICAL: Release execution lock and update lastBatchAt
+  await dynamoClient.send(
+    new UpdateItemCommand({
+      TableName: TABLES.CAMPAIGNS,
+      Key: {
+        PK: { S: `CAMPAIGN#${campaignId}` },
+        SK: { S: 'METADATA' }
+      },
+      UpdateExpression: 'SET executionLock = :false, lastBatchAt = :now REMOVE lockedAt',
+      ExpressionAttributeValues: {
+        ':false': { BOOL: false },
+        ':now': { N: now.toString() }
+      }
+    })
+  );
+  console.log('🔓 [Batch Executor] Execution lock released');
+  
   return {
     processed, // Use actual claimed count, not recipients.length
     sent,
@@ -732,6 +879,29 @@ async function executeBatch(
     completed: false,
     pauseReason: limitReached ? 'DAILY_LIMIT_REACHED' : undefined
   };
+} catch (processingError) {
+    // 🔓 CRITICAL: Release lock even on error
+    console.error('❌ [Batch Executor] Processing error:', processingError);
+    try {
+      await dynamoClient.send(
+        new UpdateItemCommand({
+          TableName: TABLES.CAMPAIGNS,
+          Key: {
+            PK: { S: `CAMPAIGN#${campaignId}` },
+            SK: { S: 'METADATA' }
+          },
+          UpdateExpression: 'SET executionLock = :false REMOVE lockedAt',
+          ExpressionAttributeValues: {
+            ':false': { BOOL: false }
+          }
+        })
+      );
+      console.log('🔓 [Batch Executor] Execution lock released (error path)');
+    } catch (unlockError) {
+      console.error('❌ [Batch Executor] Failed to release lock on error:', unlockError);
+    }
+    throw processingError;
+  }
 }
 
 /**
@@ -745,7 +915,30 @@ export async function POST(
 ) {
   console.log('🚀 [Execute Batch API] Request received');
   try {
-    // 1️⃣ Validate Admin Session
+    // 1️⃣ Rate Limit Check (per-IP)
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.allowed) {
+      console.warn(`⚠️ [Execute Batch API] Rate limit exceeded for IP: ${ip}`);
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded', 
+          message: `Too many requests. Try again in ${rateCheck.remainingTime}s.`,
+          retryAfter: rateCheck.remainingTime 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateCheck.remainingTime?.toString() || '60'
+          }
+        }
+      );
+    }
+    
+    // 2️⃣ Validate Admin Session
     console.log('🔐 [Execute Batch API] Validating admin session...');
     const validation = await validateAdminSession(req, 'whatsapp-session');
     if (!validation.valid || !validation.session) {
@@ -764,17 +957,17 @@ export async function POST(
       );
     }
 
-    // 2️⃣ Initialize MessageService
+    // 3️⃣ Initialize MessageService
     console.log('📦 [Execute Batch API] Campaign ID:', campaignId);
     console.log('⚙️ [Execute Batch API] Initializing message service...');
     const messageService = getMessageService();
 
-    // 3️⃣ Execute batch
+    // 4️⃣ Execute batch
     console.log('⚡ [Execute Batch API] Executing batch...');
     const result = await executeBatch(campaignId, messageService);
     console.log('✅ [Execute Batch API] Batch execution completed:', result);
 
-    // 4️⃣ Return summary
+    // 5️⃣ Return summary
     return NextResponse.json({
       success: true,
       campaignId,
