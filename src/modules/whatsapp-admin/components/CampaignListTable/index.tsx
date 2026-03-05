@@ -7,11 +7,13 @@
  * - Progress indicators
  * - Action controls
  * - Responsive design (desktop table + mobile cards)
+ * - Route-based navigation (click → /campaigns/[id])
  */
 
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export interface CampaignListItem {
   id: string;
@@ -33,16 +35,15 @@ export interface CampaignListItem {
 interface Props {
   campaigns: CampaignListItem[];
   loading: boolean;
-  onViewDetails: (campaign: CampaignListItem) => void;
   onRefresh: () => void;
 }
 
 export default function CampaignListTable({ 
   campaigns, 
   loading, 
-  onViewDetails,
   onRefresh 
 }: Props) {
+  const router = useRouter();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Format timestamp to readable date
@@ -294,7 +295,7 @@ export default function CampaignListTable({
                   <div className="flex items-center justify-center space-x-1">
                     {/* View Button */}
                     <button
-                      onClick={() => onViewDetails(campaign)}
+                      onClick={() => router.push(`/whatsapp-admin/campaigns/${campaign.id}`)}
                       className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
                       title="View Details"
                     >
@@ -424,7 +425,7 @@ export default function CampaignListTable({
             {/* Actions */}
             <div className="flex space-x-2 pt-3 border-t border-gray-200">
               <button
-                onClick={() => onViewDetails(campaign)}
+                onClick={() => router.push(`/whatsapp-admin/campaigns/${campaign.id}`)}
                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
               >
                 View Details

@@ -30,13 +30,15 @@ export class MetaApiError extends Error {
   public readonly fbtraceId?: string;
   public readonly isRetryable: boolean;
   public readonly httpStatus?: number;
+  public readonly retryAfter?: number;
 
   constructor(
     message: string,
     code: number,
     type: string,
     fbtraceId?: string,
-    httpStatus?: number
+    httpStatus?: number,
+    retryAfter?: number
   ) {
     super(message);
     this.name = 'MetaApiError';
@@ -44,6 +46,7 @@ export class MetaApiError extends Error {
     this.type = type;
     this.fbtraceId = fbtraceId;
     this.httpStatus = httpStatus;
+    this.retryAfter = retryAfter;
     this.isRetryable = this.determineRetryability();
     
     // Maintain proper prototype chain for instanceof checks
@@ -233,17 +236,15 @@ export class MetaAPIClient {
   }
 
   /**
-   * Execute request with simple retry logic for transient failures
+   * Execute request with exponential backoff retry logic
    * 
    * Retry strategy:
-   * - Max 2 attempts
-   * - 300ms delay between retries
+   * - Max 2 attempts (3 total tries)
+   * - Exponential backoff: 300ms → 600ms → 1200ms
+   * - Jitter: ±25% randomization to prevent thundering herd
    * - Only retry if error.isRetryable === true
+   * - Respects Retry-After header from Meta API (429 responses)
    * - Throw immediately for non-retryable errors
-   * 
-   * This is intentionally simple. Complex retry orchestration
-   * (exponential backoff, jitter, circuit breaker) belongs in
-   * the campaign orchestration layer, not the HTTP client.
    */
   private async executeWithRetry<T>(fn: () => Promise<T>): Promise<T> {
     let lastError: MetaApiError | Error;
@@ -269,8 +270,23 @@ export class MetaAPIClient {
           throw error;
         }
         
+        // Calculate delay with exponential backoff and jitter
+        let delayMs: number;
+        
+        // If Meta sent a Retry-After header, respect it
+        if (error.retryAfter) {
+          delayMs = error.retryAfter * 1000; // Convert seconds to ms
+        } else {
+          // Exponential backoff: 300ms * (2 ^ (attempt - 1))
+          const exponentialDelay = this.retryDelay * Math.pow(2, attempt - 1);
+          
+          // Add jitter: ±25% randomization
+          const jitterFactor = 0.75 + Math.random() * 0.5; // Random between 0.75 and 1.25
+          delayMs = exponentialDelay * jitterFactor;
+        }
+        
         // Wait before retrying
-        await this.sleep(this.retryDelay);
+        await this.sleep(delayMs);
       }
     }
     
@@ -279,8 +295,13 @@ export class MetaAPIClient {
 
   /**
    * Handle API response and normalize errors
+   * Extracts Retry-After header for rate limit responses
    */
   private async handleResponse<T>(response: Response): Promise<T> {
+    // Extract Retry-After header for rate limiting (429 responses)
+    const retryAfterHeader = response.headers.get('Retry-After');
+    const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+    
     let data: MetaAPIResponse<T>;
     
     try {
@@ -292,7 +313,8 @@ export class MetaAPIClient {
         response.status,
         'ParseError',
         undefined,
-        response.status
+        response.status,
+        retryAfter
       );
     }
 
@@ -303,7 +325,8 @@ export class MetaAPIClient {
         data.error.code,
         data.error.type,
         data.error.fbtrace_id,
-        response.status
+        response.status,
+        retryAfter
       );
     }
 
@@ -314,7 +337,8 @@ export class MetaAPIClient {
         response.status,
         'HttpError',
         undefined,
-        response.status
+        response.status,
+        retryAfter
       );
     }
 

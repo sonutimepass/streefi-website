@@ -12,3 +12,11 @@ export { default as EmergencyKillSwitch } from './EmergencyKillSwitch';
 export { default as GlobalSettingsPanel } from './GlobalSettingsPanel';
 export { default as LogsPanel } from './LogsPanel';
 export { default as GlobalSendingStateIndicator } from './GlobalSendingStateIndicator';
+
+// Page Content Components (Route-based)
+export { default as DashboardContent } from './DashboardContent';
+export { default as CampaignsPageContent } from './CampaignsPageContent';
+export { default as CampaignDetailPageContent } from './CampaignDetailPageContent';
+export { default as TemplatesPageContent } from './TemplatesPageContent';
+export { default as SettingsPageContent } from './SettingsPageContent';
+

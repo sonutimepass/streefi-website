@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 
 type CampaignStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
 type ControlAction = 'start' | 'pause' | 'resume';
@@ -213,6 +214,31 @@ export async function POST(
         { error: transitionValidation.error },
         { status: 400 }
       );
+    }
+
+    // 🛡️ CRITICAL: Check kill switch BEFORE starting/resuming campaigns
+    if (action === 'start' || action === 'resume') {
+      console.log('🛡️ [Campaign Control API] Checking emergency kill switch...');
+      const killSwitch = await isKillSwitchEnabled();
+      
+      if (killSwitch.enabled) {
+        console.warn('🚨 [Campaign Control API] KILL SWITCH ENABLED - Blocking start/resume');
+        console.warn('🚨 [Campaign Control API] Reason:', killSwitch.reason);
+        
+        return NextResponse.json(
+          { 
+            error: 'Cannot start/resume: Emergency kill switch is enabled',
+            killSwitch: {
+              enabled: true,
+              reason: killSwitch.reason || 'System-wide sending disabled'
+            },
+            action: 'Contact admin to disable kill switch before starting campaigns'
+          },
+          { status: 403 }
+        );
+      }
+      
+      console.log('✅ [Campaign Control API] Kill switch check passed');
     }
 
     // 5️⃣ Update campaign status

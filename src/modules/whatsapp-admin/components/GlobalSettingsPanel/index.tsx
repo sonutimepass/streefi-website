@@ -34,6 +34,11 @@ export default function GlobalSettingsPanel() {
   const [success, setSuccess] = useState<string | null>(null);
   const [killSwitchEnabled, setKillSwitchEnabled] = useState(false);
   const [loadingKillSwitch, setLoadingKillSwitch] = useState(true);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileStatus, setReconcileStatus] = useState<{
+    count: number;
+    lastCheck: string | null;
+  }>({ count: 0, lastCheck: null });
 
   // Meta environment variables (read-only)
   const metaPhoneNumberId = process.env.NEXT_PUBLIC_META_PHONE_NUMBER_ID || 'Not configured';
@@ -53,6 +58,7 @@ export default function GlobalSettingsPanel() {
   useEffect(() => {
     loadSettings();
     loadKillSwitchStatus();
+    checkReconcileStatus();
   }, []);
 
   // Load settings
@@ -92,6 +98,51 @@ export default function GlobalSettingsPanel() {
       console.error('Failed to load kill switch status:', err);
     } finally {
       setLoadingKillSwitch(false);
+    }
+  };
+
+  // Check reconcile status (dry-run)
+  const checkReconcileStatus = async () => {
+    try {
+      const response = await fetch('/api/campaigns/reconcile');
+      const data = await response.json();
+      setReconcileStatus({
+        count: data.count || 0,
+        lastCheck: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Failed to check reconcile status:', err);
+    }
+  };
+
+  // Run reconciliation
+  const runReconciliation = async () => {
+    setReconciling(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch('/api/campaigns/reconcile', {
+        method: 'POST'
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Reconciliation failed');
+      }
+
+      setSuccess(`✅ Recovered ${data.recovered} stuck recipients (scanned ${data.scanned})`);
+      setReconcileStatus({
+        count: 0,
+        lastCheck: new Date().toISOString()
+      });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reconciliation failed');
+    } finally {
+      setReconciling(false);
     }
   };
 
@@ -413,6 +464,57 @@ export default function GlobalSettingsPanel() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Reconciliation Status & Control */}
+        <div className="border-b border-gray-200 pb-6">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            🔧 Recipient Reconciliation
+          </label>
+          <p className="text-xs text-gray-600 mb-3">
+            Detect and recover recipients stuck in PROCESSING status (DB write failures).
+          </p>
+          
+          <div className="space-y-3">
+            {/* Status Display */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-700">Stuck Recipients</p>
+                  <p className={`text-2xl font-bold ${
+                    reconcileStatus.count > 0 ? 'text-orange-600' : 'text-green-600'
+                  }`}>
+                    {reconcileStatus.count}
+                  </p>
+                </div>
+                <button
+                  onClick={checkReconcileStatus}
+                  disabled={reconciling}
+                  className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                >
+                  🔄 Check
+                </button>
+              </div>
+              {reconcileStatus.lastCheck && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Last checked: {new Date(reconcileStatus.lastCheck).toLocaleTimeString()}
+                </p>
+              )}
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={runReconciliation}
+              disabled={reconciling || reconcileStatus.count === 0}
+              className="w-full px-4 py-2 bg-orange-600 text-white rounded-md text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {reconciling ? '⏳ Recovering...' : `🔧 Recover Stuck Recipients${reconcileStatus.count > 0 ? ` (${reconcileStatus.count})` : ''}`}
+            </button>
+
+            <p className="text-xs text-gray-500">
+              💡 Auto-runs before each batch execution. Manual recovery useful for testing.
+            </p>
+          </div>
         </div>
 
         {/* Meta Configuration (Read-only) */}

@@ -47,13 +47,15 @@ export async function GET(req: NextRequest) {
     }
 
     // 2️⃣ Scan campaigns table for all METADATA entries
+    // 🛡️ SAFETY: Limited to 1000 campaigns to prevent AWS bill explosion
     const response = await dynamoClient.send(
       new ScanCommand({
         TableName: TABLES.CAMPAIGNS,
         FilterExpression: 'SK = :metadata',
         ExpressionAttributeValues: {
           ':metadata': { S: 'METADATA' }
-        }
+        },
+        Limit: 1000  // Hard cap: If you hit 1000 campaigns, you need pagination
       })
     );
 

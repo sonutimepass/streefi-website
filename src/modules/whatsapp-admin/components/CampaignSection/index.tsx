@@ -3,10 +3,9 @@
  * 
  * Full campaign management UI with:
  * - Campaign list view (no manual ID entry)
- * - Campaign detail modal with controls
+ * - Route-based navigation to campaign detail pages
  * - Real-time metrics display
- * - Action controls (Start/Pause/Resume/Stop/Delete)
- * - Batch execution
+ * - Campaign creation modal
  * 
  * Phase 1A: Manual execution via button
  * Future: Automated cron/queue triggers
@@ -16,15 +15,12 @@
 
 import { useState, useEffect } from 'react';
 import CampaignListTable, { CampaignListItem } from '../CampaignListTable';
-import CampaignDetailModal from '../CampaignDetailModal';
 import CampaignCreationModal from '../CampaignCreationModal';
 
 export default function CampaignSection() {
   const [campaigns, setCampaigns] = useState<CampaignListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCampaign, setSelectedCampaign] = useState<CampaignListItem | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCreationModal, setShowCreationModal] = useState(false);
 
   // Load campaigns on mount
@@ -56,18 +52,6 @@ export default function CampaignSection() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Handle view campaign details
-  const handleViewDetails = (campaign: CampaignListItem) => {
-    setSelectedCampaign(campaign);
-    setShowDetailModal(true);
-  };
-
-  // Handle close modal
-  const handleCloseModal = () => {
-    setShowDetailModal(false);
-    setSelectedCampaign(null);
   };
 
   // Handle campaign created
@@ -109,7 +93,6 @@ export default function CampaignSection() {
       <CampaignListTable
         campaigns={campaigns}
         loading={loading}
-        onViewDetails={handleViewDetails}
         onRefresh={loadCampaigns}
       />
 
@@ -119,16 +102,6 @@ export default function CampaignSection() {
         onClose={() => setShowCreationModal(false)}
         onCreated={handleCampaignCreated}
       />
-
-      {/* Campaign Detail Modal */}
-      {selectedCampaign && (
-        <CampaignDetailModal
-          campaign={selectedCampaign}
-          isOpen={showDetailModal}
-          onClose={handleCloseModal}
-          onRefresh={loadCampaigns}
-        />
-      )}
     </div>
   );
 }

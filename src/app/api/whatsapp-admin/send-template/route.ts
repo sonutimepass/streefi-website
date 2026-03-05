@@ -3,6 +3,7 @@ import { validateAdminSession } from '@/lib/adminAuth';
 import { getTemplate } from '@/lib/whatsapp/templates/services';
 import { MessageService, TemplateMessage, TemplateParameter } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
+import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 
 interface SendTemplateRequest {
   templateName: string;
@@ -140,6 +141,29 @@ export async function POST(request: Request) {
       template: messagePayload.template.name,
       componentsCount: messagePayload.template.components?.length || 0,
     });
+
+    // 🛡️ CRITICAL: Check kill switch BEFORE sending test message
+    console.log("🛡️ Checking emergency kill switch...");
+    const killSwitch = await isKillSwitchEnabled();
+    
+    if (killSwitch.enabled) {
+      console.warn("🚨 KILL SWITCH ENABLED - Blocking test send");
+      console.warn("🚨 Reason:", killSwitch.reason);
+      
+      return NextResponse.json(
+        { 
+          error: 'Cannot send: Emergency kill switch is enabled',
+          killSwitch: {
+            enabled: true,
+            reason: killSwitch.reason || 'System-wide sending disabled'
+          },
+          action: 'Contact admin to disable kill switch before sending messages'
+        },
+        { status: 403 }
+      );
+    }
+    
+    console.log("✓ Kill switch check passed");
 
     // Step 7: Send message via Meta API
     console.log("Step 7: Sending message via Meta API...");

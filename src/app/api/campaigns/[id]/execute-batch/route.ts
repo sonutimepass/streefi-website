@@ -32,6 +32,7 @@ import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { getMessageService, MessageService, DailyLimitExceededError } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
+import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 
 const BATCH_SIZE = 25;
 const SEND_DELAY_MS = 50; // 20 messages/sec safe for Meta rate limits
@@ -113,7 +114,7 @@ async function getPendingRecipients(campaignId: string): Promise<Recipient[]> {
       },
       ExpressionAttributeValues: {
         ':pk': { S: `CAMPAIGN#${campaignId}` },
-        ':sk': { S: 'USER#' },
+        ':sk': { S: 'RECIPIENT#' },
         ':pending': { S: 'PENDING' }
       },
       Limit: BATCH_SIZE
@@ -136,22 +137,24 @@ async function getPendingRecipients(campaignId: string): Promise<Recipient[]> {
  * Returns true if claimed successfully, false if already claimed by another execution
  */
 async function claimRecipient(campaignId: string, phone: string): Promise<boolean> {
+  const timestamp = Math.floor(Date.now() / 1000);
   try {
     await dynamoClient.send(
       new UpdateItemCommand({
         TableName: TABLES.RECIPIENTS,
         Key: {
           PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: `USER#${phone}` }
+          SK: { S: `RECIPIENT#${phone}` }
         },
-        UpdateExpression: 'SET #status = :processing',
+        UpdateExpression: 'SET #status = :processing, processingAt = :timestamp',
         ConditionExpression: '#status = :pending',
         ExpressionAttributeNames: {
           '#status': 'status'
         },
         ExpressionAttributeValues: {
           ':processing': { S: 'PROCESSING' },
-          ':pending': { S: 'PENDING' }
+          ':pending': { S: 'PENDING' },
+          ':timestamp': { N: timestamp.toString() }
         }
       })
     );
@@ -200,7 +203,7 @@ async function updateRecipientStatus(
       TableName: TABLES.RECIPIENTS,
       Key: {
         PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: `USER#${phone}` }
+        SK: { S: `RECIPIENT#${phone}` }
       },
       UpdateExpression: updateExpression,
       ExpressionAttributeNames: {
@@ -345,12 +348,121 @@ async function completeCampaign(campaignId: string): Promise<void> {
 }
 
 /**
+ * Reconcile stuck recipients before batch execution
+ * Finds PROCESSING recipients older than 5 minutes and marks as FAILED
+ */
+async function reconcileStuckRecipients(campaignId: string): Promise<number> {
+  const now = Math.floor(Date.now() / 1000);
+  const stuckThreshold = now - (5 * 60); // 5 minutes ago
+  
+  try {
+    // Query PROCESSING recipients for this campaign
+    const response = await dynamoClient.send(
+      new QueryCommand({
+        TableName: TABLES.RECIPIENTS,
+        KeyConditionExpression: 'PK = :pk',
+        FilterExpression: '#status = :processing AND processingAt < :threshold',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        },
+        ExpressionAttributeValues: {
+          ':pk': { S: `CAMPAIGN#${campaignId}` },
+          ':processing': { S: 'PROCESSING' },
+          ':threshold': { N: stuckThreshold.toString() }
+        }
+      })
+    );
+
+    const stuckRecipients = response.Items || [];
+    
+    if (stuckRecipients.length === 0) {
+      return 0;
+    }
+
+    console.log(`🔧 [Batch Executor] Found ${stuckRecipients.length} stuck recipients, recovering...`);
+
+    // Recover each stuck recipient
+    let recovered = 0;
+    for (const item of stuckRecipients) {
+      const phone = item.phone?.S;
+      if (!phone) continue;
+
+      try {
+        await dynamoClient.send(
+          new UpdateItemCommand({
+            TableName: TABLES.RECIPIENTS,
+            Key: {
+              PK: { S: `CAMPAIGN#${campaignId}` },
+              SK: { S: `RECIPIENT#${phone}` }
+            },
+            UpdateExpression: 'SET #status = :failed, failedAt = :timestamp, errorCode = :code, errorMessage = :message ADD attempts :inc',
+            ExpressionAttributeNames: {
+              '#status': 'status'
+            },
+            ExpressionAttributeValues: {
+              ':failed': { S: 'FAILED' },
+              ':timestamp': { N: now.toString() },
+              ':code': { S: 'DB_WRITE_TIMEOUT' },
+              ':message': { S: 'Recovered from stuck PROCESSING state' },
+              ':inc': { N: '1' }
+            }
+          })
+        );
+        recovered++;
+      } catch (err) {
+        console.error(`❌ [Batch Executor] Failed to recover ${phone}:`, err);
+      }
+    }
+
+    console.log(`✅ [Batch Executor] Recovered ${recovered}/${stuckRecipients.length} stuck recipients`);
+    return recovered;
+  } catch (err) {
+    console.error('❌ [Batch Executor] Reconciliation failed:', err);
+    return 0;
+  }
+}
+
+/**
  * Main batch execution logic
  */
 async function executeBatch(
   campaignId: string,
   messageService: MessageService
 ): Promise<BatchExecutionResult> {
+  // 🔧 AUTO-RECONCILIATION: Recover stuck recipients before batch starts
+  console.log('🔧 [Batch Executor] Running auto-reconciliation...');
+  const recovered = await reconcileStuckRecipients(campaignId);
+  if (recovered > 0) {
+    console.log(`✅ [Batch Executor] Auto-reconciliation recovered ${recovered} stuck recipients`);
+  }
+  
+  // 🛑 CRITICAL: Check kill switch BEFORE starting batch
+  console.log('🛡️ [Batch Executor] Checking emergency kill switch...');
+  const killSwitch = await isKillSwitchEnabled();
+  
+  if (killSwitch.enabled) {
+    console.warn('🚨 [Batch Executor] KILL SWITCH ENABLED - Stopping execution');
+    console.warn('🚨 [Batch Executor] Reason:', killSwitch.reason);
+    
+    // Pause campaign if not already paused
+    const campaign = await loadCampaign(campaignId);
+    if (campaign && campaign.status === 'RUNNING') {
+      await pauseCampaign(
+        campaignId,
+        `Emergency stop: ${killSwitch.reason || 'Kill switch enabled'}`
+      );
+    }
+    
+    return {
+      processed: 0,
+      sent: 0,
+      failed: 0,
+      paused: true,
+      completed: false,
+      pauseReason: `EMERGENCY_STOP: ${killSwitch.reason || 'System-wide sending disabled'}`
+    };
+  }
+  
   console.log('📥 [Batch Executor] Loading campaign metadata...');
   // 1️⃣ Load campaign metadata
   const campaign = await loadCampaign(campaignId);
@@ -415,7 +527,42 @@ async function executeBatch(
       console.log(`📨 [Batch Executor] Processing ${recipient.phone} (attempt ${recipient.attempts + 1})...`);
       processed++; // Successfully claimed
       
-      // 🛡️ CRITICAL: Check guard BEFORE sending
+      // � CRITICAL: Check kill switch BEFORE each send
+      const killSwitchCheck = await isKillSwitchEnabled();
+      if (killSwitchCheck.enabled) {
+        console.warn('🚨 [Batch Executor] KILL SWITCH ENABLED mid-batch - Pausing immediately');
+        console.warn('🚨 [Batch Executor] Reason:', killSwitchCheck.reason);
+        
+        // Reset recipient back to PENDING (was claimed as PROCESSING)
+        await dynamoClient.send(
+          new UpdateItemCommand({
+            TableName: TABLES.RECIPIENTS,
+            Key: {
+              PK: { S: `CAMPAIGN#${campaignId}` },
+              SK: { S: `RECIPIENT#${recipient.phone}` }
+            },
+            UpdateExpression: 'SET #status = :pending REMOVE processingAt',
+            ExpressionAttributeNames: {
+              '#status': 'status'
+            },
+            ExpressionAttributeValues: {
+              ':pending': { S: 'PENDING' }
+            }
+          })
+        );
+        
+        // Pause campaign
+        await pauseCampaign(
+          campaignId,
+          `Emergency stop: ${killSwitchCheck.reason || 'Kill switch enabled'}`
+        );
+        
+        // Stop processing immediately
+        limitReached = true;
+        break;
+      }
+      
+      // 🛡️ Check daily limit guard BEFORE sending
       // MessageService already includes guard check, but we need to catch DailyLimitExceededError
       
       // Send template message
