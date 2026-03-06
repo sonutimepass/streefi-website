@@ -29,9 +29,9 @@ import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 export const dynamic = 'force-dynamic';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 }
 
 /**
@@ -41,7 +41,7 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  const { token } = params;
+  const { token } = await params;
   
   console.log(`🔐 [ClickTracker] Processing signed token...`);
 

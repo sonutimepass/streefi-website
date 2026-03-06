@@ -19,9 +19,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 /**
@@ -31,7 +31,7 @@ export async function POST(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  const { id: campaignId } = params;
+  const { id: campaignId } = await params;
 
   try {
     // TODO: Add vendor API key authentication

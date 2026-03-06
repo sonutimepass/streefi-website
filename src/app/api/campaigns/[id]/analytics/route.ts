@@ -28,9 +28,9 @@ import { validateAdminSession } from '@/lib/adminAuth';
 import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 /**
@@ -49,7 +49,7 @@ export async function GET(
     );
   }
 
-  const { id: campaignId } = params;
+  const { id: campaignId } = await params;
 
   try {
     const metricsManager = getCampaignMetrics();

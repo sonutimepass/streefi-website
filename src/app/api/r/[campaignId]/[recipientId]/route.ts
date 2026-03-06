@@ -34,10 +34,10 @@ import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 export const dynamic = 'force-dynamic';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     campaignId: string;
     recipientId: string;
-  };
+  }>;
 }
 
 /**
@@ -47,16 +47,18 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const awaitedParams = await params;
+  
   // Handle both old format (2 params) and new format (1 token param)
   // Check if campaignId looks like a token (no dashes/common ID patterns)
-  const isToken = params.campaignId.length > 50; // Tokens are base64, much longer
+  const isToken = awaitedParams.campaignId.length > 50; // Tokens are base64, much longer
   
   let campaignId: string;
   let recipientId: string;
   
   if (isToken) {
     // NEW SECURE FORMAT: /r/{token}
-    const token = params.campaignId;
+    const token = awaitedParams.campaignId;
     
     console.log(`🔐 [ClickTracker] Verifying signed token...`);
     
@@ -76,8 +78,8 @@ export async function GET(
   } else {
     // OLD INSECURE FORMAT: /r/{campaignId}/{recipientId}
     // TODO: Remove this after migration period
-    campaignId = params.campaignId;
-    recipientId = params.recipientId;
+    campaignId = awaitedParams.campaignId;
+    recipientId = awaitedParams.recipientId;
     
     console.warn(`⚠️ [ClickTracker] Using legacy insecure URL format for campaign ${campaignId}`);
   }
