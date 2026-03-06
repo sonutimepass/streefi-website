@@ -20,8 +20,8 @@ import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
+import { getCampaignStateValidator, type CampaignStatus } from '@/lib/whatsapp/campaignStateValidator';
 
-type CampaignStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
 type ControlAction = 'start' | 'pause' | 'resume';
 
 interface ControlRequest {
@@ -30,9 +30,9 @@ interface ControlRequest {
 }
 
 /**
- * Load campaign status
+ * Load campaign metadata (status and totalRecipients for validation)
  */
-async function getCampaignStatus(campaignId: string): Promise<CampaignStatus | null> {
+async function getCampaignMetadata(campaignId: string): Promise<{ status: CampaignStatus; totalRecipients: number } | null> {
   const response = await dynamoClient.send(
     new GetItemCommand({
       TableName: TABLES.CAMPAIGNS,
@@ -47,50 +47,19 @@ async function getCampaignStatus(campaignId: string): Promise<CampaignStatus | n
     return null;
   }
 
-  return (response.Item.status?.S as CampaignStatus) || 'DRAFT';
-}
-
-/**
- * Validate state transition
- */
-function validateTransition(currentStatus: CampaignStatus, action: ControlAction): { valid: boolean; error?: string } {
-  switch (action) {
-    case 'start':
-      if (currentStatus !== 'DRAFT' && currentStatus !== 'PAUSED' && currentStatus !== 'READY') {
-        return {
-          valid: false,
-          error: `Cannot start campaign in ${currentStatus} status. Only DRAFT, READY, or PAUSED campaigns can be started.`
-        };
-      }
-      break;
-
-    case 'pause':
-      if (currentStatus !== 'RUNNING') {
-        return {
-          valid: false,
-          error: `Cannot pause campaign in ${currentStatus} status. Only RUNNING campaigns can be paused.`
-        };
-      }
-      break;
-
-    case 'resume':
-      if (currentStatus !== 'PAUSED') {
-        return {
-          valid: false,
-          error: `Cannot resume campaign in ${currentStatus} status. Only PAUSED campaigns can be resumed.`
-        };
-      }
-      break;
-
-    default:
-      return {
-        valid: false,
-        error: `Unknown action: ${action}`
-      };
+  // Map legacy 'READY' status to 'POPULATED' for state validator compatibility
+  let status = response.Item.status?.S || 'DRAFT';
+  if (status === 'READY') {
+    status = 'POPULATED';
   }
 
-  return { valid: true };
+  return {
+    status: status as CampaignStatus,
+    totalRecipients: parseInt(response.Item.totalRecipients?.N || '0', 10)
+  };
 }
+
+// Removed: validateTransition function replaced by state validator below
 
 /**
  * Update campaign status
@@ -192,29 +161,44 @@ export async function POST(
       );
     }
 
-    // 3️⃣ Load current campaign status
-    console.log('📥 [Campaign Control API] Loading campaign status...');
-    const currentStatus = await getCampaignStatus(campaignId);
-    console.log('📊 [Campaign Control API] Current status:', currentStatus);
+    // 3️⃣ Load current campaign metadata
+    console.log('📥 [Campaign Control API] Loading campaign metadata...');
+    const campaign = await getCampaignMetadata(campaignId);
+    console.log('📊 [Campaign Control API] Current status:', campaign?.status);
 
-    if (!currentStatus) {
+    if (!campaign) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
       );
     }
 
-    // 4️⃣ Validate state transition
-    console.log('✅ [Campaign Control API] Validating transition:', { currentStatus, action });
-    const transitionValidation = validateTransition(currentStatus, action);
+    // 4️⃣ Validate state transition using state validator
+    console.log('🔒 [Campaign Control API] Validating transition:', { currentStatus: campaign.status, action });
+    const validator = getCampaignStateValidator();
     
-    if (!transitionValidation.valid) {
-      console.error('❌ [Campaign Control API] Invalid transition:', transitionValidation.error);
+    let validationResult;
+    switch (action) {
+      case 'start':
+      case 'resume':
+        validationResult = validator.canStart(campaign.status, campaign.totalRecipients);
+        break;
+      case 'pause':
+        validationResult = validator.canPause(campaign.status);
+        break;
+      default:
+        validationResult = { allowed: false, reason: `Unknown action: ${action}` };
+    }
+    
+    if (!validationResult.allowed) {
+      console.error('❌ [Campaign Control API] Invalid transition:', validationResult.reason);
       return NextResponse.json(
-        { error: transitionValidation.error },
+        { error: validationResult.reason },
         { status: 400 }
       );
     }
+    
+    console.log('✅ [Campaign Control API] State transition validated');
 
     // 🛡️ CRITICAL: Check kill switch BEFORE starting/resuming campaigns
     if (action === 'start' || action === 'resume') {
@@ -251,7 +235,7 @@ export async function POST(
       success: true,
       campaignId,
       action,
-      previousStatus: currentStatus,
+      previousStatus: campaign.status,
       newStatus: action === 'pause' ? 'PAUSED' : 'RUNNING',
       message: `Campaign ${action} successful`
     });

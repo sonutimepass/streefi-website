@@ -16,6 +16,7 @@
 import { useState, useEffect } from 'react';
 import CampaignListTable, { CampaignListItem } from '../CampaignListTable';
 import CampaignCreationModal from '../CampaignCreationModal';
+import CampaignRiskBanner from '../CampaignRiskBanner';
 
 export default function CampaignSection() {
   const [campaigns, setCampaigns] = useState<CampaignListItem[]>([]);
@@ -76,6 +77,12 @@ export default function CampaignSection() {
           <span className="sm:hidden">Create</span>
         </button>
       </div>
+
+      {/* Campaign Risk Warnings */}
+      <CampaignRiskBanner 
+        campaigns={campaigns}
+        metaDailyLimit={1000} // TODO: Fetch from settings
+      />
 
       {/* Error Alert */}
       {error && (

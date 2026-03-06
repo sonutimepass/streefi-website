@@ -33,6 +33,12 @@ import { validateAdminSession } from '@/lib/adminAuth';
 import { getMessageService, MessageService, DailyLimitExceededError } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
+import { getGlobalDailyLimitGuard } from '@/lib/whatsapp/guards';
+import { getBlockRateCircuitBreaker } from '@/lib/whatsapp/guards';
+import { getAccountWarmupManager } from '@/lib/whatsapp/accountWarmupManager';
+import { parseTemplateConfig, selectTemplate } from '@/lib/whatsapp/templateRotation';
+import { logMessageForWebhookTracking } from '@/lib/whatsapp/webhookStatusHandler';
+import { getGlobalStateManager } from '@/lib/whatsapp/globalStateManager';
 
 // ⏱️ RATE LIMITING: In-memory store for per-IP request tracking
 // Limits: 5 requests per 60 seconds per IP
@@ -76,11 +82,15 @@ const SEND_DELAY_MS = 50; // 20 messages/sec safe for Meta rate limits
 interface Campaign {
   id: string;
   name: string;
-  templateName: string;
+  templateName?: string;        // Legacy: single template
+  templates?: string[];         // New: multiple templates for rotation
+  templateWeights?: number[];   // Optional: weights for weighted selection
+  templateStrategy?: 'random' | 'weighted' | 'round-robin'; // Selection strategy
   status: 'DRAFT' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
+  blockedCount: number;         // 🛡️ Circuit breaker: tracked blocks
   dailyCap: number;
   executionLock?: boolean;
   lockedAt?: number;
@@ -129,14 +139,25 @@ async function loadCampaign(campaignId: string): Promise<Campaign | null> {
   }
 
   const item = response.Item;
+  
+  // Parse templates (support both legacy and new format)
+  const templateName = item.templateName?.S;
+  const templates = item.templates?.L?.map(t => t.S!).filter(Boolean);
+  const templateWeights = item.templateWeights?.L?.map(w => parseInt(w.N!, 10)).filter(w => !isNaN(w));
+  const templateStrategy = (item.templateStrategy?.S as Campaign['templateStrategy']) || 'weighted';
+  
   return {
     id: campaignId,
     name: item.name?.S || '',
-    templateName: item.templateName?.S || '',
+    templateName,
+    templates,
+    templateWeights,
+    templateStrategy,
     status: (item.status?.S as Campaign['status']) || 'DRAFT',
     totalRecipients: parseInt(item.totalRecipients?.N || '0', 10),
     sentCount: parseInt(item.sentCount?.N || '0', 10),
     failedCount: parseInt(item.failedCount?.N || '0', 10),
+    blockedCount: parseInt(item.blockedCount?.N || '0', 10),
     dailyCap: parseInt(item.dailyCap?.N || '1000', 10),
     executionLock: item.executionLock?.BOOL || false,
     lockedAt: item.lockedAt?.N ? parseInt(item.lockedAt.N, 10) : undefined,
@@ -512,7 +533,34 @@ async function executeBatch(
   }
 
   try {
-    // 🔧 AUTO-RECONCILIATION: Recover stuck recipients before batch starts
+    // � CRITICAL: Global emergency pause check (environment variable)
+    // This allows instant system-wide stop without deploying code
+    const globalStateManager = getGlobalStateManager();
+    const globalPauseCheck = await globalStateManager.isGloballyPaused();
+    
+    if (globalPauseCheck.paused) {
+      console.error('🚨 [Batch Executor] GLOBAL EMERGENCY PAUSE ACTIVE');
+      console.error('🚨 [Batch Executor] Reason:', globalPauseCheck.reason || 'Manual pause');
+      
+      const campaign = await loadCampaign(campaignId);
+      if (campaign && campaign.status === 'RUNNING') {
+        await pauseCampaign(
+          campaignId,
+          `System-wide emergency pause: ${globalPauseCheck.reason || 'Manual pause'}`
+        );
+      }
+      
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: `GLOBAL_EMERGENCY_PAUSE: ${globalPauseCheck.reason || 'System paused via admin'}`
+      };
+    }
+    
+    // �🔧 AUTO-RECONCILIATION: Recover stuck recipients before batch starts
     console.log('🔧 [Batch Executor] Running auto-reconciliation...');
     const recovered = await reconcileStuckRecipients(campaignId);
     if (recovered > 0) {
@@ -546,6 +594,76 @@ async function executeBatch(
       };
     }
     
+    // 🛡️ CRITICAL: Check global daily limit (across all campaigns)
+    console.log('🌐 [Batch Executor] Checking global daily limit...');
+    const globalLimitGuard = getGlobalDailyLimitGuard();
+    const globalLimitCheck = await globalLimitGuard.checkLimit();
+    
+    if (!globalLimitCheck.allowed) {
+      console.warn('🚫 [Batch Executor] GLOBAL DAILY LIMIT REACHED');
+      console.warn(`🚫 [Batch Executor] ${globalLimitCheck.currentCount}/${globalLimitCheck.limit} messages sent today`);
+      
+      // Pause this campaign
+      const campaign = await loadCampaign(campaignId);
+      if (campaign && campaign.status === 'RUNNING') {
+        await pauseCampaign(
+          campaignId,
+          globalLimitCheck.reason || 'Global daily limit reached'
+        );
+      }
+      
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: globalLimitCheck.reason,
+        remainingDailySlots: 0
+      };
+    }
+    
+    console.log(`✅ [Batch Executor] Global limit OK: ${globalLimitCheck.currentCount}/${globalLimitCheck.limit} (${globalLimitCheck.remainingSlots} slots remaining)`);
+    
+    // 🔥 WARMUP: Check account age-based daily limits
+    console.log('🌱 [Batch Executor] Checking account warmup limits...');
+    const warmupManager = getAccountWarmupManager();
+    const accountId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
+    
+    if (!accountId) {
+      console.error('❌ [Batch Executor] WHATSAPP_PHONE_NUMBER_ID not configured');
+      throw new Error('WhatsApp account not configured');
+    }
+    
+    const warmupCheck = await warmupManager.canSend(accountId, BATCH_SIZE);
+    
+    if (!warmupCheck.allowed) {
+      console.warn('🚫 [Batch Executor] WARMUP DAILY LIMIT REACHED');
+      console.warn(`🚫 [Batch Executor] ${warmupCheck.reason}`);
+      console.warn(`🚫 [Batch Executor] Remaining today: ${warmupCheck.remainingToday}/${warmupCheck.dailyLimit}`);
+      
+      // Pause this campaign
+      const campaign = await loadCampaign(campaignId);
+      if (campaign && campaign.status === 'RUNNING') {
+        await pauseCampaign(
+          campaignId,
+          warmupCheck.reason || 'Daily warmup limit reached'
+        );
+      }
+      
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: warmupCheck.reason,
+        remainingDailySlots: warmupCheck.remainingToday
+      };
+    }
+    
+    console.log(`✅ [Batch Executor] Warmup limit OK: ${warmupCheck.remainingToday}/${warmupCheck.dailyLimit} remaining today`);
+    
     console.log('📥 [Batch Executor] Loading campaign metadata...');
     // 1️⃣ Load campaign metadata
     const campaign = await loadCampaign(campaignId);
@@ -553,6 +671,52 @@ async function executeBatch(
     if (!campaign) {
       console.error('❌ [Batch Executor] Campaign not found:', campaignId);
       throw new Error('Campaign not found');
+    }
+    
+    // 🛡️ CRITICAL: Block-rate circuit breaker check
+    console.log('🔍 [Batch Executor] Checking block-rate circuit breaker...');
+    const circuitBreaker = getBlockRateCircuitBreaker();
+    const blockRateCheck = await circuitBreaker.checkCampaign(campaignId);
+    
+    console.log(`📊 [Batch Executor] Block rate: ${(blockRateCheck.blockRate * 100).toFixed(2)}% (${blockRateCheck.blockedCount}/${blockRateCheck.totalProcessed}) - Severity: ${blockRateCheck.severity}`);
+    
+    if (blockRateCheck.shouldKillSwitch) {
+      console.error('🚨 [Batch Executor] BLOCK RATE CRITICAL - TRIGGERING KILL SWITCH');
+      console.error(`🚨 [Batch Executor] ${blockRateCheck.reason}`);
+      
+      // TODO: Trigger system-wide kill switch
+      // For now, pause this campaign
+      await pauseCampaign(campaignId, blockRateCheck.reason!);
+      
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: `BLOCK_RATE_EMERGENCY: ${blockRateCheck.reason}`
+      };
+    }
+    
+    if (blockRateCheck.shouldPause) {
+      console.warn('⚠️ [Batch Executor] BLOCK RATE ELEVATED - AUTO-PAUSING CAMPAIGN');
+      console.warn(`⚠️ [Batch Executor] ${blockRateCheck.reason}`);
+      
+      await pauseCampaign(campaignId, blockRateCheck.reason!);
+      
+      return {
+        processed: 0,
+        sent: 0,
+        failed: 0,
+        paused: true,
+        completed: false,
+        pauseReason: `BLOCK_RATE_HIGH: ${blockRateCheck.reason}`
+      };
+    }
+    
+    if (blockRateCheck.severity === 'WARNING') {
+      console.warn('⚠️ [Batch Executor] Block rate elevated (warning level)');
+      console.warn(`⚠️ [Batch Executor] ${blockRateCheck.reason}`);
     }
 
     // ⏱️ CRITICAL: Server-side cooldown check (30 seconds minimum between batches)
@@ -620,8 +784,20 @@ async function executeBatch(
   const recipients = await getPendingRecipients(campaignId);
   console.log(`📊 [Batch Executor] Found ${recipients.length} pending recipients`);
   
+  // 🛡️ CRITICAL: Limit batch size to remaining global slots
+  // Bug fix: If currentCount=980 and batchSize=50, we'd exceed limit
+  const effectiveBatchSize = Math.min(recipients.length, globalLimitCheck.remainingSlots);
+  const limitedRecipients = recipients.slice(0, effectiveBatchSize);
+  
+  if (effectiveBatchSize < recipients.length) {
+    console.warn(`⚠️ [Batch Executor] Batch size limited by global cap: ${effectiveBatchSize}/${recipients.length} recipients`);
+    console.warn(`⚠️ [Batch Executor] Remaining daily slots: ${globalLimitCheck.remainingSlots}`);
+  }
+  
+  console.log(`📊 [Batch Executor] Effective batch size: ${effectiveBatchSize} recipients`);
+  
   // 4️⃣ If no recipients → mark COMPLETED
-  if (recipients.length === 0) {
+  if (limitedRecipients.length === 0) {
     console.log('✅ [Batch Executor] No pending recipients, marking campaign as COMPLETED');
     await completeCampaign(campaignId);
     return {
@@ -641,7 +817,7 @@ async function executeBatch(
   let limitReached = false;
   let processed = 0; // Track actually processed (claimed)
 
-  for (const recipient of recipients) {
+  for (const recipient of limitedRecipients) {
     try {
       // 🔒 CRITICAL: Claim recipient atomically (optimistic lock)
       // This prevents race conditions in parallel executions
@@ -656,6 +832,15 @@ async function executeBatch(
         console.log(`📨 [Batch Executor] Processing ${recipient.phone} (attempt ${recipient.attempts + 1})...`);
       processed++; // Successfully claimed
       
+            
+      const pauseCheck = await globalStateManager.isGloballyPaused();
+      if (pauseCheck.paused) {
+        console.warn('[Batch Executor] GLOBAL PAUSE DETECTED mid-batch - Stopping immediately');
+        await dynamoClient.send(new UpdateItemCommand({TableName: TABLES.RECIPIENTS,Key: {PK: { S: `CAMPAIGN#${campaignId}` },SK: { S: `RECIPIENT#${recipient.phone}` }},UpdateExpression: 'SET #status = :pending REMOVE processingAt',ExpressionAttributeNames: {'#status': 'status'},ExpressionAttributeValues: {':pending': { S: 'PENDING' }}}));
+        await pauseCampaign(campaignId, `Global pause: ${pauseCheck.reason || 'System paused'}`);
+        limitReached = true;
+        break;
+      }
       // � CRITICAL: Check kill switch BEFORE each send
       const killSwitchCheck = await isKillSwitchEnabled();
       if (killSwitchCheck.enabled) {
@@ -694,12 +879,17 @@ async function executeBatch(
       // 🛡️ Check daily limit guard BEFORE sending
       // MessageService already includes guard check, but we need to catch DailyLimitExceededError
       
+      // ✨ Template rotation: select template dynamically
+      const templateConfig = parseTemplateConfig(campaign);
+      const selectedTemplate = selectTemplate(templateConfig) as string;
+      console.log(`📋 [Batch Executor] Selected template: ${selectedTemplate}`);
+      
       // Send template message
       const response = await messageService.sendTemplateMessage({
         type: 'template',
         to: recipient.phone,
         template: {
-          name: campaign.templateName,
+          name: selectedTemplate,
           language: {
             code: 'en' // Default to English, can be made dynamic later
           }
@@ -708,13 +898,28 @@ async function executeBatch(
 
       // Extract message ID
       const messageId = response.messages[0]?.id;
-      console.log(`✅ [Batch Executor] Sent to ${recipient.phone}, Message ID: ${messageId}`);
+      console.log(`✅ [Batch Executor] Sent to ${recipient.phone}, Template: ${selectedTemplate}, Message ID: ${messageId}`);
+
+      // 🔗 Store message-to-campaign mapping for webhook tracking
+      if (messageId) {
+        await logMessageForWebhookTracking(campaignId, messageId, recipient.phone);
+      }
+      
+      // 📊 ANALYTICS: Increment sent metric
+      const { getCampaignMetrics } = await import('@/lib/whatsapp/campaignMetrics');
+      const metricsManager = getCampaignMetrics();
+      await metricsManager.incrementMetric(campaignId, 'sent').catch((err: unknown) => {
+        console.error(`[Batch Executor] Failed to increment sent metric:`, err);
+      });
 
       // Update recipient as SENT
       await updateRecipientStatus(campaignId, recipient.phone, 'SENT', messageId);
       
       // Increment campaign sentCount
       await incrementCampaignMetric(campaignId, 'sentCount');
+      
+      // 🌐 Increment global daily counter
+      await globalLimitGuard.incrementCount();
       
       // Write log entry for observability
       await writeLogEntry(
@@ -870,6 +1075,12 @@ async function executeBatch(
     })
   );
   console.log('🔓 [Batch Executor] Execution lock released');
+  
+  // 🔥 WARMUP: Record sent messages to update daily count
+  if (sent > 0) {
+    console.log(`🌱 [Batch Executor] Recording ${sent} sent messages to warmup manager...`);
+    await warmupManager.recordSent(accountId, sent);
+  }
   
   return {
     processed, // Use actual claimed count, not recipients.length

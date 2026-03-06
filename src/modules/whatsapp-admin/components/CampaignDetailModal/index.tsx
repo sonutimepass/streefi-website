@@ -332,12 +332,14 @@ export default function CampaignDetailModal({
 
               {/* Timestamps & Daily Cap */}
               <div className="space-y-3">
-                {campaign.dailyCap && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Daily Cap</label>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Daily Cap</label>
+                  {campaign.dailyCap ? (
                     <p className="text-sm font-medium text-gray-900">{campaign.dailyCap} messages/day</p>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-sm font-semibold text-red-600">⚠️ NOT SET (UNSAFE)</p>
+                  )}
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Created At</label>
                   <p className="text-sm text-gray-900">{formatDateTime(campaign.createdAt)}</p>

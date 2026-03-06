@@ -232,7 +232,11 @@ export default function CampaignListTable({
                     {campaign.name}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {campaign.dailyCap ? `Cap: ${campaign.dailyCap}/day` : 'No cap'}
+                    {campaign.dailyCap ? (
+                      `Cap: ${campaign.dailyCap}/day`
+                    ) : (
+                      <span className="text-red-600 font-semibold">⚠️ NOT SET</span>
+                    )}
                   </div>
                 </td>
 

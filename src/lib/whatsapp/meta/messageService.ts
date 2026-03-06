@@ -21,6 +21,7 @@
 
 import { getMetaClient, MetaAPIClient, MetaApiError } from './metaClient';
 import { getDailyLimitGuard, type DailyLimitCheckResult } from '../guards';
+import { getMessageRateThrottle } from '../messageRateThrottle';
 
 export interface TemplateMessage {
   type: 'template';
@@ -135,7 +136,10 @@ export class MessageService {
    */
   async sendTemplateMessage(message: TemplateMessage): Promise<MessageResponse> {
     try {
-      // 🛡️ GUARD: Check daily conversation limit BEFORE API call
+      // � RATE THROTTLE: Wait for available slot to prevent Meta 429 errors
+      await getMessageRateThrottle().waitForSlot();
+      
+      // �🛡️ GUARD: Check daily conversation limit BEFORE API call
       const limitCheck = await this.limitGuard.checkLimit(message.to);
       
       if (!limitCheck.allowed) {

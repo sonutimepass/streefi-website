@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { handleMessageStatus, type WebhookStatus } from '@/lib/whatsapp/webhookStatusHandler';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,10 @@ export async function POST(request: NextRequest) {
                       timestamp: status.timestamp,
                       recipient: status.recipient_id,
                     });
+                    
+                    // 🛡️ CRITICAL: Process status for block-rate tracking
+                    await handleMessageStatus(status as WebhookStatus);
+                    
                     // Status values: sent, delivered, read, failed
                   }
                 }
