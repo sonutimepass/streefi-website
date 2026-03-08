@@ -51,7 +51,7 @@ export class AdminRepository {
         new GetItemCommand({
           TableName: this.tableName,
           Key: {
-            admin_id: { S: adminId }
+            email: { S: adminId }
           }
         })
       );
@@ -61,7 +61,7 @@ export class AdminRepository {
       }
 
       return {
-        admin_id: response.Item.admin_id?.S || "",
+        admin_id: response.Item.admin_id?.S || response.Item.email?.S || "",
         password_hash: response.Item.password_hash?.S || "",
         email: response.Item.email?.S || response.Item.admin_id?.S || "",
         role: (response.Item.role?.S as AdminRole) || 'admin',
@@ -103,7 +103,7 @@ export class AdminRepository {
           created_at: { N: now.toString() },
           updated_at: { N: now.toString() },
         },
-        ConditionExpression: 'attribute_not_exists(admin_id)',
+        ConditionExpression: 'attribute_not_exists(email)',
       })
     );
   }
@@ -163,8 +163,8 @@ export class AdminRepository {
       await this.client.send(
         new UpdateItemCommand({
           TableName: this.tableName,
-          Key: { admin_id: { S: adminId } },
-          ConditionExpression: 'attribute_exists(admin_id)',
+          Key: { email: { S: adminId } },
+          ConditionExpression: 'attribute_exists(email)',
           UpdateExpression: 'SET #r = :role, updated_at = :now',
           ExpressionAttributeNames: { '#r': 'role' },
           ExpressionAttributeValues: {
@@ -188,8 +188,8 @@ export class AdminRepository {
       await this.client.send(
         new UpdateItemCommand({
           TableName: this.tableName,
-          Key: { admin_id: { S: adminId } },
-          ConditionExpression: 'attribute_exists(admin_id)',
+          Key: { email: { S: adminId } },
+          ConditionExpression: 'attribute_exists(email)',
           UpdateExpression: 'SET password_hash = :hash, updated_at = :now',
           ExpressionAttributeValues: {
             ':hash': { S: passwordHash },
@@ -211,7 +211,7 @@ export class AdminRepository {
       await this.client.send(
         new DeleteItemCommand({
           TableName: this.tableName,
-          Key: { admin_id: { S: adminId } },
+          Key: { email: { S: adminId } },
         })
       );
     } catch (error) {
