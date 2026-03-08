@@ -13,6 +13,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface SystemSettings {
   maxMessagesPerSecond: number;
@@ -123,7 +124,8 @@ export default function GlobalSettingsPanel() {
 
     try {
       const response = await fetch('/api/campaigns/reconcile', {
-        method: 'POST'
+        method: 'POST',
+        headers: { ...getCsrfHeader() },
       });
       const data = await response.json();
 
@@ -156,7 +158,7 @@ export default function GlobalSettingsPanel() {
     try {
       const response = await fetch('/api/whatsapp-admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify(formData)
       });
 

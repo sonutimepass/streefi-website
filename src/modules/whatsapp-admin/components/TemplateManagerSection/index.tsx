@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import TemplateEditorModal from '../TemplateEditorModal';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface Template {
   templateId: string;
@@ -69,7 +70,8 @@ export default function TemplateManagerSection() {
 
     try {
       const res = await fetch('/api/whatsapp-admin/templates/sync', {
-        method: 'POST'
+        method: 'POST',
+        headers: { ...getCsrfHeader() },
       });
 
       const data = await res.json();
@@ -108,7 +110,7 @@ export default function TemplateManagerSection() {
     try {
       const res = await fetch('/api/whatsapp-admin/templates/test-send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({
           templateName,
           toPhone: testPhone
@@ -156,10 +158,10 @@ export default function TemplateManagerSection() {
     }
 
     try {
-      await fetch('/api/whatsapp-admin/templates', {
+      const deleteUrl = `/api/whatsapp-admin/templates?templateId=${encodeURIComponent(templateId)}`;
+      await fetch(deleteUrl, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templateId }),
+        headers: { ...getCsrfHeader() },
       });
 
       showMessage('success', 'Template deleted');
@@ -181,7 +183,7 @@ export default function TemplateManagerSection() {
     try {
       await fetch('/api/whatsapp-admin/templates', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ templateId, status: newStatus }),
       });
 

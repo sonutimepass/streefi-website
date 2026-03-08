@@ -35,8 +35,7 @@
  * ```
  */
 
-import { PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 const REPLY_WINDOW_HOURS = 24;
 
@@ -57,20 +56,7 @@ export class ReplyAttributionManager {
     try {
       const now = Math.floor(Date.now() / 1000);
       
-      await dynamoClient.send(
-        new PutItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Item: {
-            PK: { S: `USER#${recipientPhone}` },
-            SK: { S: 'LAST_CAMPAIGN' },
-            campaignId: { S: campaignId },
-            sentAt: { N: now.toString() },
-            updatedAt: { N: now.toString() },
-            // 7-day TTL (cleanup old records)
-            ttl: { N: (now + (7 * 24 * 60 * 60)).toString() }
-          }
-        })
-      );
+      await campaignRepository.setLastCampaignForPhone(recipientPhone, campaignId);
       
       console.log(`✅ [ReplyAttribution] Updated last campaign for ${recipientPhone}: ${campaignId}`);
     } catch (error) {
@@ -84,24 +70,7 @@ export class ReplyAttributionManager {
    */
   private async getLastCampaign(recipientPhone: string): Promise<CampaignContext | null> {
     try {
-      const response = await dynamoClient.send(
-        new GetItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: `USER#${recipientPhone}` },
-            SK: { S: 'LAST_CAMPAIGN' }
-          }
-        })
-      );
-
-      if (!response.Item || !response.Item.campaignId?.S || !response.Item.sentAt?.N) {
-        return null;
-      }
-
-      return {
-        campaignId: response.Item.campaignId.S,
-        sentAt: parseInt(response.Item.sentAt.N, 10)
-      };
+      return await campaignRepository.getLastCampaignForPhone(recipientPhone);
     } catch (error) {
       console.error('[ReplyAttribution] Failed to get last campaign:', error);
       return null;

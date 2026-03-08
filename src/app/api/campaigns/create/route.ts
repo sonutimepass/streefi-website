@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { PutItemCommand, BatchWriteItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { campaignRepository, recipientRepository } from '@/lib/repositories';
 import { validateAudienceQuality, getAudienceQualityRecommendation } from '@/lib/whatsapp/audienceQualityValidator';
 
 // Supported campaign channels
@@ -168,93 +167,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5️⃣ Generate Campaign ID and Timestamp
+    // 5️⃣ Generate Campaign ID
     const campaignId = `cmp_${randomUUID()}`;
-    const timestamp = Math.floor(Date.now() / 1000);
+
+    // 6️⃣ Create Campaign Object
+    const timestamp = Math.floor(Date.now() / 1000) * 1000; // Convert to milliseconds for consistency
     const totalRecipients = recipients.length;
     console.log(`🆔 [Campaign Create API] Generated campaign ID: ${campaignId}`);
     console.log(`👥 [Campaign Create API] Total recipients: ${totalRecipients}`);
 
-    // 6️⃣ Create Campaign Item (DynamoDB Format)
-    // PK/SK schema: PK = CAMPAIGN#{id}, SK = METADATA
-    const campaignItem: Record<string, any> = {
-      PK: { S: `CAMPAIGN#${campaignId}` },
-      SK: { S: 'METADATA' },
-      campaignId: { S: campaignId },
-      name: { S: campaignName },
-      channel: { S: channel },
-      createdBy: { S: validation.session.email },
-      status: { S: 'DRAFT' },
-      audienceType: { S: audienceType },
-      totalRecipients: { N: totalRecipients.toString() },
-      sentCount: { N: '0' },
-      failedCount: { N: '0' },
-      blockedCount: { N: '0' }, // 🛡️ Circuit breaker: track blocks for auto-pause
-      dailyCap: { N: (dailyCap || 1000).toString() },
-      createdAt: { N: timestamp.toString() },
-      updatedAt: { N: timestamp.toString() }
+    const campaign = {
+      campaign_id: campaignId,
+      campaign_name: campaignName,
+      template_name: finalTemplates[0], // First template for backward compatibility
+      campaign_status: 'DRAFT' as const,
+      channel: channel as 'WHATSAPP' | 'EMAIL',
+      audience_type: audienceType as 'FIREBASE' | 'MONGODB' | 'CSV' | 'MIXED',
+      created_by: validation.session.email,
+      total_recipients: totalRecipients,
+      sent_count: 0,
+      delivered_count: 0,
+      failed_count: 0,
+      blocked_count: 0,
+      daily_cap: dailyCap || 1000,
+      created_at: timestamp,
+      // Template rotation fields
+      templates: finalTemplates.length > 1 ? finalTemplates : undefined,
+      template_weights: finalTemplateWeights,
+      template_strategy: finalTemplates.length > 1 ? finalTemplateStrategy : undefined
     };
     
-    // ✨ Template Rotation Fields (Phase 1B)
-    if (finalTemplates.length === 1) {
-      // Legacy format: single template
-      campaignItem.templateName = { S: finalTemplates[0] };
-    } else {
-      // New format: multiple templates
-      campaignItem.templates = { L: finalTemplates.map(t => ({ S: t })) };
-      
-      if (finalTemplateWeights) {
-        campaignItem.templateWeights = { L: finalTemplateWeights.map(w => ({ N: w.toString() })) };
-      }
-      
-      campaignItem.templateStrategy = { S: finalTemplateStrategy };
-      
-      // Also store first template in templateName for backward compatibility
-      campaignItem.templateName = { S: finalTemplates[0] };
-    }
-    
-    console.log('📝 [Campaign Create API] Campaign item structure:', JSON.stringify(campaignItem, null, 2));
+    console.log('📝 [Campaign Create API] Campaign object:', JSON.stringify(campaign, null, 2));
 
-    // 7️⃣ Insert Campaign into DynamoDB
-    console.log(`💾 [Campaign Create API] Writing campaign to DynamoDB table: ${TABLES.CAMPAIGNS}`);
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Item: campaignItem
-      })
-    );
+    // 7️⃣ Create Campaign using Repository
+    console.log(`💾 [Campaign Create API] Creating campaign via repository`);
+    await campaignRepository.createCampaign(campaign);
     console.log('✅ [Campaign Create API] Campaign created successfully');
 
-    // 8️⃣ Batch Insert Recipients (DynamoDB BatchWrite supports 25 items per call)
-    // Recipient schema: PK = CAMPAIGN#{id}, SK = RECIPIENT#{phone}
-    const recipientItems = recipients.map((phone: string) => ({
-      PutRequest: {
-        Item: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: `RECIPIENT#${phone}` },
-          phone: { S: phone },
-          status: { S: 'PENDING' },
-          attempts: { N: '0' },
-          createdAt: { N: timestamp.toString() }
-        }
-      }
-    }));
-
-    // Process in batches of 25 (DynamoDB limit)
-    const BATCH_SIZE = 25;
-    console.log(`📤 [Campaign Create API] Writing ${recipientItems.length} recipients in batches of ${BATCH_SIZE}`);
-    for (let i = 0; i < recipientItems.length; i += BATCH_SIZE) {
-      const batch = recipientItems.slice(i, i + BATCH_SIZE);
-      console.log(`📦 [Campaign Create API] Batch ${Math.floor(i / BATCH_SIZE) + 1}: Writing ${batch.length} recipients`);
-      await dynamoClient.send(
-        new BatchWriteItemCommand({
-          RequestItems: {
-            [TABLES.RECIPIENTS]: batch
-          }
-        })
-      );
-    }
-    console.log('✅ [Campaign Create API] All recipients written successfully');
+    // 8️⃣ Create Recipients using Repository (handles batching automatically)
+    console.log(`📤 [Campaign Create API] Creating ${recipients.length} recipients`);
+    await recipientRepository.createRecipients(campaignId, recipients);
+    console.log('✅ [Campaign Create API] All recipients created successfully');
 
     // 9️⃣ Return Success Response
     console.log(`✨ [Campaign Create API] Success! Campaign ${campaignId} created with ${totalRecipients} recipients`);
@@ -267,17 +220,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Campaign creation error:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { 
-        error: 'Internal Server Error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        debug: process.env.META_DRY_RUN === 'true' ? {
-          table: TABLES.CAMPAIGNS,
-          region: process.env.AWS_REGION || 'not set'
-        } : undefined
-      },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

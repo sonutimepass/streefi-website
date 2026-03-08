@@ -23,8 +23,7 @@
  * - Monitor quality metrics
  */
 
-import { GetItemCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 export interface WarmupState {
   accountId: string; // WhatsApp Phone Number ID
@@ -53,30 +52,22 @@ export class AccountWarmupManager {
    */
   async getWarmupState(accountId: string): Promise<WarmupState> {
     try {
-      const response = await dynamoClient.send(
-        new GetItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: 'SYSTEM' },
-            SK: { S: `ACCOUNT#${accountId}` }
-          }
-        })
-      );
+      const data = await campaignRepository.getAccountWarmupData(accountId);
 
-      if (!response.Item) {
+      if (!data) {
         // New account - initialize warmup state
         return await this.initializeAccount(accountId);
       }
 
       const state: WarmupState = {
         accountId,
-        accountAge: parseInt(response.Item.accountAge?.N || '0', 10),
-        firstSendDate: parseInt(response.Item.firstSendDate?.N || '0', 10),
-        dailyLimit: parseInt(response.Item.dailyLimit?.N || '200', 10),
-        totalSent: parseInt(response.Item.totalSent?.N || '0', 10),
-        lastResetDate: response.Item.lastResetDate?.S || '',
-        currentDaySent: parseInt(response.Item.currentDaySent?.N || '0', 10),
-        qualityTier: (response.Item.qualityTier?.S as WarmupState['qualityTier']) || 'GREEN'
+        accountAge: data.accountAge,
+        firstSendDate: data.firstSendDate,
+        dailyLimit: data.dailyLimit,
+        totalSent: data.totalSent,
+        lastResetDate: data.lastResetDate,
+        currentDaySent: data.currentDaySent,
+        qualityTier: data.qualityTier as WarmupState['qualityTier']
       };
 
       // Check if need to reset daily counter
@@ -176,19 +167,7 @@ export class AccountWarmupManager {
    */
   async recordSent(accountId: string, count: number = 1): Promise<void> {
     try {
-      await dynamoClient.send(
-        new UpdateItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: 'SYSTEM' },
-            SK: { S: `ACCOUNT#${accountId}` }
-          },
-          UpdateExpression: 'ADD currentDaySent :count, totalSent :count',
-          ExpressionAttributeValues: {
-            ':count': { N: count.toString() }
-          }
-        })
-      );
+      await campaignRepository.addAccountWarmupSent(accountId, count);
     } catch (error) {
       console.error('[Warmup] Error recording sent count:', error);
     }
@@ -199,23 +178,7 @@ export class AccountWarmupManager {
    */
   private async saveWarmupState(state: WarmupState): Promise<void> {
     try {
-      await dynamoClient.send(
-        new PutItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Item: {
-            PK: { S: 'SYSTEM' },
-            SK: { S: `ACCOUNT#${state.accountId}` },
-            accountAge: { N: state.accountAge.toString() },
-            firstSendDate: { N: state.firstSendDate.toString() },
-            dailyLimit: { N: state.dailyLimit.toString() },
-            totalSent: { N: state.totalSent.toString() },
-            lastResetDate: { S: state.lastResetDate },
-            currentDaySent: { N: state.currentDaySent.toString() },
-            qualityTier: { S: state.qualityTier },
-            updatedAt: { N: Math.floor(Date.now() / 1000).toString() }
-          }
-        })
-      );
+      await campaignRepository.saveAccountWarmupData(state.accountId, state);
     } catch (error) {
       console.error('[Warmup] Error saving warmup state:', error);
     }

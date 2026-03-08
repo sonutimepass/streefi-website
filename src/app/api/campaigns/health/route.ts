@@ -1,41 +1,43 @@
-import { NextResponse } from 'next/server';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
-import { ListTablesCommand } from '@aws-sdk/client-dynamodb';
+import { NextRequest, NextResponse } from 'next/server';
+import { campaignRepository } from '@/lib/repositories';
+import { validateAdminSession } from '@/lib/adminAuth';
 
 /**
  * Health check endpoint for campaign system
- * Tests DynamoDB connectivity and table existence
+ * Tests DynamoDB connectivity via repository layer
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await validateAdminSession(request, 'whatsapp-session');
+    if (!auth.valid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const checks = {
       dryRunMode: process.env.META_DRY_RUN === 'true',
       awsRegion: process.env.AWS_REGION || 'not set',
       tables: {
-        campaigns: process.env.CAMPAIGNS_TABLE_NAME || TABLES.CAMPAIGNS,
-        recipients: process.env.RECIPIENTS_TABLE_NAME || TABLES.RECIPIENTS,
+        campaigns: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
+        recipients: process.env.RECIPIENTS_TABLE_NAME || 'streefi_recipients',
       },
       dynamoConnection: false,
-      tablesExist: {} as Record<string, boolean>,
+      repositoryHealth: false,
     };
 
-    // Test DynamoDB connection
+    // Test DynamoDB connection via repository layer
+    // This tests: repository layer, DynamoDB client, table access
     try {
-      const listResult = await dynamoClient.send(new ListTablesCommand({}));
+      // Attempt to list campaigns (lightweight query via GSI1)
+      await campaignRepository.listCampaigns();
       checks.dynamoConnection = true;
-      
-      // Check if our tables exist
-      const tableNames = listResult.TableNames || [];
-      checks.tablesExist.campaigns = tableNames.includes(checks.tables.campaigns);
-      checks.tablesExist.recipients = tableNames.includes(checks.tables.recipients);
+      checks.repositoryHealth = true;
     } catch (dbError) {
-      console.error('[Health] DynamoDB connection error:', dbError);
+      console.error('[Health] Repository/DynamoDB connection error:', dbError);
       checks.dynamoConnection = false;
+      checks.repositoryHealth = false;
     }
 
-    const allHealthy = checks.dynamoConnection && 
-                       checks.tablesExist.campaigns && 
-                       checks.tablesExist.recipients;
+    const allHealthy = checks.dynamoConnection && checks.repositoryHealth;
 
     return NextResponse.json({
       status: allHealthy ? 'healthy' : 'degraded',
@@ -46,9 +48,10 @@ export async function GET() {
     });
 
   } catch (error) {
+    console.error('[Health] Unexpected error:', error);
     return NextResponse.json({
       status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Health check failed',
       timestamp: new Date().toISOString(),
     }, {
       status: 500

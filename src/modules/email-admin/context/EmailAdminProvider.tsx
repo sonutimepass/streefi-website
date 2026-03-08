@@ -2,6 +2,7 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import type { StatusType, MessageType, LogItem } from '../hooks/useEmailAdmin';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 // Auth-specific context type
 interface EmailAdminAuthContextType {
@@ -11,7 +12,7 @@ interface EmailAdminAuthContextType {
   error: string | null;
   
   // Auth actions
-  login: (password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -93,7 +94,11 @@ export function EmailAdminProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Login function
-  const login = useCallback(async (password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    if (!email || email.trim().length === 0) {
+      setError('Email is required');
+      return { success: false, error: 'Email is required' };
+    }
     if (!password || password.trim().length === 0) {
       setError('Password is required');
       return { success: false, error: 'Password is required' };
@@ -105,9 +110,9 @@ export function EmailAdminProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch('/api/email-admin-auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         credentials: 'include',
-        body: JSON.stringify({ password: password.trim() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password: password.trim() }),
       });
 
       const data = await response.json();
@@ -117,7 +122,7 @@ export function EmailAdminProvider({ children }: { children: ReactNode }) {
         setError(null);
         return { success: true };
       } else {
-        const errorMsg = data.error || 'Invalid password';
+        const errorMsg = data.error || 'Invalid email or password';
         setError(errorMsg);
         setIsAuthenticated(false);
         return { success: false, error: errorMsg };
@@ -139,6 +144,7 @@ export function EmailAdminProvider({ children }: { children: ReactNode }) {
       await fetch('/api/email-admin-auth/logout', {
         method: 'POST',
         credentials: 'include',
+        headers: { ...getCsrfHeader() },
       });
       
       setIsAuthenticated(false);
@@ -190,7 +196,7 @@ export function EmailAdminProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch('/api/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         credentials: 'include',
         body: JSON.stringify({
           to: to.trim(),
@@ -274,7 +280,7 @@ export function EmailAdminProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch('/api/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         credentials: 'include',
         body: JSON.stringify({
           to: uniqueEmails,

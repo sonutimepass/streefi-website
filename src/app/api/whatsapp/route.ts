@@ -1,11 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { handleMessageStatus, type WebhookStatus } from '@/lib/whatsapp/webhookStatusHandler';
+import { whatsappRepository } from '@/lib/repositories/whatsappRepository';
 
 export const dynamic = 'force-dynamic';
 
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'streefi_secure_token';
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
+
+/**
+ * Verify the X-Hub-Signature-256 header sent by Meta on every webhook POST.
+ * Returns true only when the HMAC-SHA256 of the raw body matches the header.
+ */
+function verifyWebhookSignature(rawBody: string, signature: string | null, appSecret: string): boolean {
+  if (!signature) return false;
+  const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody).digest('hex');
+  // Use timing-safe comparison to prevent side-channel attacks
+  try {
+    return signature.length === expected.length &&
+      timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 /**
  * GET - WhatsApp Webhook Verification
@@ -35,7 +52,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify webhook from Meta
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!verifyToken) {
+      console.error('❌ WHATSAPP_VERIFY_TOKEN not configured');
+      return new NextResponse('Server configuration error', { status: 500 });
+    }
+
+    if (mode === 'subscribe' && token !== null && timingSafeEqual(Buffer.from(token), Buffer.from(verifyToken))) {
       // Respond with 200 OK and challenge token from the request
       console.log('✅ Webhook verified successfully!');
       return new NextResponse(challenge, { 
@@ -80,10 +103,31 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Read raw body first so we can verify the HMAC signature before parsing
+    const rawBody = await request.text();
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
     // Check if this is a webhook event from Meta (incoming message)
     if (body.object === 'whatsapp_business_account') {
+      // 🔒 SECURITY: Verify Meta webhook signature before processing any payload
+      const appSecret = process.env.WHATSAPP_APP_SECRET;
+      if (!appSecret) {
+        console.error('❌ WHATSAPP_APP_SECRET not configured — cannot verify webhook signature');
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      }
+
+      const signature = request.headers.get('x-hub-signature-256');
+      if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
+        console.warn('⚠️ Webhook signature verification failed — possible spoofed event, rejecting');
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      console.log('✅ Webhook signature verified');
       console.log('📨 Incoming WhatsApp webhook:', JSON.stringify(body, null, 2));
 
       // Process webhook entries
@@ -104,27 +148,29 @@ export async function POST(request: NextRequest) {
                       timestamp: message.timestamp,
                     });
 
-                    // Handle different message types
+                    // Derive text content or serialise media payload
+                    let content = '';
                     if (message.type === 'text') {
-                      console.log('💬 Text message:', message.text.body);
-                    } else if (message.type === 'image') {
-                      console.log('🖼️ Image message:', message.image);
-                    } else if (message.type === 'document') {
-                      console.log('📄 Document message:', message.document);
-                    } else if (message.type === 'audio') {
-                      console.log('🎵 Audio message:', message.audio);
-                    } else if (message.type === 'video') {
-                      console.log('🎥 Video message:', message.video);
-                    } else if (message.type === 'location') {
-                      console.log('📍 Location message:', message.location);
-                    } else if (message.type === 'contacts') {
-                      console.log('👤 Contact message:', message.contacts);
+                      content = message.text?.body || '';
                     } else if (message.type === 'button' || message.type === 'interactive') {
-                      console.log('🔘 Interactive message:', message);
+                      content = JSON.stringify(message.interactive || message.button || {});
+                    } else {
+                      // image, document, audio, video, location, contacts, etc.
+                      content = JSON.stringify(message[message.type] || {});
                     }
 
-                    // TODO: Add your custom message handling logic here
-                    // For example: save to database, trigger notifications, auto-reply, etc.
+                    // Persist inbound message to DynamoDB (best-effort)
+                    try {
+                      await whatsappRepository.saveInboundMessage({
+                        phone: message.from,
+                        messageId: message.id,
+                        type: message.type,
+                        timestamp: parseInt(message.timestamp, 10) || Math.floor(Date.now() / 1000),
+                        content,
+                      });
+                    } catch (saveErr) {
+                      console.error('❌ Failed to persist inbound message:', saveErr);
+                    }
                   }
                 }
 

@@ -32,8 +32,7 @@
  * - Scale to 100k+ messages
  */
 
-import { ScanCommand, UpdateItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 interface CampaignDispatchItem {
   campaignId: string;
@@ -41,7 +40,7 @@ interface CampaignDispatchItem {
   priority?: number;
   totalRecipients: number;
   sentCount: number;
-  nextBatchTime?: number;
+  lastDispatchAt?: number;
 }
 
 export class CampaignDispatcher {
@@ -53,41 +52,31 @@ export class CampaignDispatcher {
    */
   async findPendingCampaigns(): Promise<CampaignDispatchItem[]> {
     try {
-      // Query campaigns with RUNNING status
-      const response = await dynamoClient.send(
-        new ScanCommand({
-          TableName: TABLES.CAMPAIGNS,
-          FilterExpression: 'campaign_status = :status AND SK = :sk',
-          ExpressionAttributeValues: {
-            ':status': { S: 'RUNNING' },
-            ':sk': { S: 'METADATA' }
-          }
-        })
-      );
+      const runningCampaigns = await campaignRepository.getRunningCampaigns();
 
-      if (!response.Items || response.Items.length === 0) {
+      if (runningCampaigns.length === 0) {
         console.log('📭 [Dispatcher] No active campaigns found');
         return [];
       }
 
-      const campaigns: CampaignDispatchItem[] = response.Items.map(item => ({
-        campaignId: item.PK?.S?.replace('CAMPAIGN#', '') || '',
-        status: (item.campaign_status?.S as CampaignDispatchItem['status']) || 'DRAFT',
-        priority: parseInt(item.priority?.N || '5', 10),
-        totalRecipients: parseInt(item.totalRecipients?.N || '0', 10),
-        sentCount: parseInt(item.sentCount?.N || '0', 10),
-        nextBatchTime: parseInt(item.nextBatchTime?.N || '0', 10)
+      const campaigns: CampaignDispatchItem[] = runningCampaigns.map(c => ({
+        campaignId: c.campaign_id,
+        status: c.campaign_status as CampaignDispatchItem['status'],
+        totalRecipients: c.total_recipients,
+        sentCount: c.sent_count,
+        lastDispatchAt: c.last_dispatch_at
       }));
 
       // Filter campaigns that are ready for next batch
       const now = Math.floor(Date.now() / 1000);
+      const DISPATCH_COOLDOWN = 60; // 1-minute cooldown between dispatches
       const readyCampaigns = campaigns.filter(c => {
         // Skip if already completed
         if (c.sentCount >= c.totalRecipients) return false;
-        
-        // Check if cooldown period passed
-        if (c.nextBatchTime && c.nextBatchTime > now) return false;
-        
+
+        // Check if cooldown period has passed
+        if (c.lastDispatchAt && (now - c.lastDispatchAt) < DISPATCH_COOLDOWN) return false;
+
         return true;
       });
 
@@ -137,38 +126,13 @@ export class CampaignDispatcher {
       const result = await response.json();
       console.log(`✅ [Dispatcher] Campaign ${campaignId} dispatched: ${result.sent} messages sent`);
 
-      // Update next batch time (1 minute cooldown)
-      await this.updateNextBatchTime(campaignId, 60);
+      // Record dispatch time for cooldown tracking
+      await campaignRepository.updateLastDispatch(campaignId);
 
       return true;
     } catch (error) {
       console.error(`[Dispatcher] Error dispatching campaign ${campaignId}:`, error);
       return false;
-    }
-  }
-
-  /**
-   * Update campaign's next batch execution time
-   */
-  private async updateNextBatchTime(campaignId: string, cooldownSeconds: number): Promise<void> {
-    try {
-      const nextTime = Math.floor(Date.now() / 1000) + cooldownSeconds;
-      
-      await dynamoClient.send(
-        new UpdateItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: `CAMPAIGN#${campaignId}` },
-            SK: { S: 'METADATA' }
-          },
-          UpdateExpression: 'SET nextBatchTime = :time',
-          ExpressionAttributeValues: {
-            ':time': { N: nextTime.toString() }
-          }
-        })
-      );
-    } catch (error) {
-      console.error('[Dispatcher] Failed to update next batch time:', error);
     }
   }
 

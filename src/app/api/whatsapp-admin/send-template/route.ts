@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
-import { getTemplate } from '@/lib/whatsapp/templates/services';
+import { whatsappRepository } from '@/lib/repositories';
 import { MessageService, TemplateMessage, TemplateParameter } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
@@ -57,8 +57,7 @@ export async function POST(request: Request) {
 
     // Step 3: Fetch and validate template from DB
     console.log("Step 3: Fetching template from DB...");
-    const templates = await import('@/lib/whatsapp/templates/services').then(m => m.listTemplates());
-    const template = templates.find(t => t.name === body.templateName);
+    const template = await whatsappRepository.getTemplateByName(body.templateName);
 
     if (!template) {
       console.log("Template not found:", body.templateName);

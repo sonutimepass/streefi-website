@@ -2,6 +2,7 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import type { StatusType, MessageType, LogItem } from '../hooks/useWhatsAppAdmin';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 // Auth-specific context type
 interface WhatsAppAdminAuthContextType {
@@ -11,7 +12,7 @@ interface WhatsAppAdminAuthContextType {
   error: string | null;
   
   // Auth actions
-  login: (password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -107,7 +108,7 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Login function
-  const login = useCallback(async (password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     // 🔓 LOCAL DEV BYPASS - Skip login if environment variable is set
     if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
       console.warn('⚠️ AUTH BYPASS ACTIVE - Login skipped for local development');
@@ -116,6 +117,10 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
 
+    if (!email || email.trim().length === 0) {
+      setError('Email is required');
+      return { success: false, error: 'Email is required' };
+    }
     if (!password || password.trim().length === 0) {
       setError('Password is required');
       return { success: false, error: 'Password is required' };
@@ -127,9 +132,9 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch('/api/whatsapp-admin-auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         credentials: 'include',
-        body: JSON.stringify({ password: password.trim() }),
+        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
       });
 
       const data = await response.json();
@@ -139,7 +144,7 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
         setError(null);
         return { success: true };
       } else {
-        const errorMsg = data.error || 'Invalid password';
+        const errorMsg = data.error || 'Invalid email or password';
         setError(errorMsg);
         setIsAuthenticated(false);
         return { success: false, error: errorMsg };
@@ -163,6 +168,7 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
         await fetch('/api/whatsapp-admin-auth/logout', {
           method: 'POST',
           credentials: 'include',
+          headers: { ...getCsrfHeader() },
         });
       } else {
         console.warn('⚠️ AUTH BYPASS ACTIVE - Logout API call skipped');
@@ -257,7 +263,7 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
 
       const response = await fetch('/api/whatsapp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         credentials: 'include',
         body: JSON.stringify(payload),
       });
@@ -352,7 +358,7 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
       try {
         const response = await fetch('/api/whatsapp', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
           credentials: 'include',
           body: JSON.stringify({ phone, message }),
         });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface Props {
   onClose: () => void;
@@ -27,7 +28,7 @@ export default function TemplateEditorModal({ onClose, onCreated, template }: Pr
 
       await fetch('/api/whatsapp-admin/templates', {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({
           templateId: template?.templateId,
           name,

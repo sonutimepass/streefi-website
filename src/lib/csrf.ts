@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto';
 import { generateCSRFToken, hashToken, verifyToken } from './crypto';
 
 /**
@@ -20,10 +21,8 @@ export function createCSRFToken(): { token: string; hash: string } {
 }
 
 /**
- * Validate CSRF token from request
- * @param cookieToken - Token from cookie
- * @param headerToken - Token from request header/body
- * @returns true if tokens match and are valid
+ * Validate CSRF token from request (double-submit cookie pattern).
+ * Uses a timing-safe comparison to prevent oracle attacks.
  */
 export function validateCSRFToken(
   cookieToken: string | undefined,
@@ -32,9 +31,33 @@ export function validateCSRFToken(
   if (!cookieToken || !headerToken) {
     return false;
   }
-  
-  // Both tokens should be identical (double-submit pattern)
-  return cookieToken === headerToken;
+  // Tokens must be the same byte length for timingSafeEqual
+  if (cookieToken.length !== headerToken.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate CSRF for an incoming Next.js Request.
+ * Reads the cookie and the x-csrf-token header and compares them.
+ * Returns true (skip check) for GET/HEAD/OPTIONS since they are safe methods.
+ */
+export function validateRequestCSRF(
+  request: Request,
+  cookieToken: string | undefined
+): boolean {
+  const method = request.method.toUpperCase();
+  // Safe methods do not need CSRF protection
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+    return true;
+  }
+  const headerToken = request.headers.get(CSRF_HEADER_NAME) ?? undefined;
+  return validateCSRFToken(cookieToken, headerToken);
 }
 
 /**

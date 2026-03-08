@@ -9,15 +9,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ScanCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { campaignService } from '@/services';
 
 interface CampaignListItem {
   id: string;
   name: string;
   templateName: string;
-  status: 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
+  status: 'DRAFT' | 'SCHEDULED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED';
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
@@ -46,20 +45,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2️⃣ Scan campaigns table for all METADATA entries
-    // 🛡️ SAFETY: Limited to 1000 campaigns to prevent AWS bill explosion
-    const response = await dynamoClient.send(
-      new ScanCommand({
-        TableName: TABLES.CAMPAIGNS,
-        FilterExpression: 'SK = :metadata',
-        ExpressionAttributeValues: {
-          ':metadata': { S: 'METADATA' }
-        },
-        Limit: 1000  // Hard cap: If you hit 1000 campaigns, you need pagination
-      })
-    );
+    // 2️⃣ Get campaigns from service layer (uses GSI1 Query, not Scan)
+    const campaigns = await campaignService.listCampaigns();
 
-    if (!response.Items || response.Items.length === 0) {
+    if (campaigns.length === 0) {
       return NextResponse.json({
         success: true,
         campaigns: [],
@@ -67,52 +56,47 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 3️⃣ Parse campaigns
-    const campaigns: CampaignListItem[] = response.Items.map(item => {
-      const campaignId = item.PK?.S?.replace('CAMPAIGN#', '') || '';
-      const totalRecipients = parseInt(item.totalRecipients?.N || '0', 10);
-      const sentCount = parseInt(item.sentCount?.N || '0', 10);
-      const failedCount = parseInt(item.failedCount?.N || '0', 10);
+    // 3️⃣ Transform to list format with calculated fields
+    const campaignList: CampaignListItem[] = campaigns.map(campaign => {
+      const totalRecipients = campaign.totalRecipients;
+      const sentCount = campaign.sentCount;
+      const failedCount = campaign.failedCount;
       const pendingCount = totalRecipients - sentCount - failedCount;
       const progressPercentage = totalRecipients > 0 
         ? Math.round(((sentCount + failedCount) / totalRecipients) * 100)
         : 0;
 
       return {
-        id: campaignId,
-        name: item.name?.S || 'Untitled Campaign',
-        templateName: item.templateName?.S || 'N/A',
-        status: (item.status?.S as CampaignListItem['status']) || 'DRAFT',
+        id: campaign.id,
+        name: campaign.name,
+        templateName: campaign.templateName,
+        status: campaign.status as CampaignListItem['status'],
         totalRecipients,
         sentCount,
         failedCount,
         pendingCount,
         progressPercentage,
-        dailyCap: item.dailyCap?.N ? parseInt(item.dailyCap.N, 10) : undefined,
-        createdAt: parseInt(item.createdAt?.N || '0', 10),
-        startedAt: item.startedAt?.N ? parseInt(item.startedAt.N, 10) : undefined,
-        completedAt: item.completedAt?.N ? parseInt(item.completedAt.N, 10) : undefined,
-        pausedReason: item.pausedReason?.S
+        dailyCap: campaign.dailyCap,
+        createdAt: campaign.createdAt.getTime(),
+        startedAt: campaign.startedAt?.getTime(),
+        completedAt: campaign.completedAt?.getTime(),
+        pausedReason: undefined // Not in current Campaign type
       };
     });
 
     // 4️⃣ Sort by most recent first
-    campaigns.sort((a, b) => b.createdAt - a.createdAt);
+    campaignList.sort((a, b) => b.createdAt - a.createdAt);
 
     return NextResponse.json({
       success: true,
-      campaigns,
-      count: campaigns.length
+      campaigns: campaignList,
+      count: campaignList.length
     });
 
   } catch (error) {
     console.error('❌ List campaigns error:', error);
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to list campaigns',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to list campaigns' },
       { status: 500 }
     );
   }

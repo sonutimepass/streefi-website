@@ -1,17 +1,6 @@
-import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { cookies } from "next/headers";
-
-// Initialize DynamoDB client
-const dynamoClient = new DynamoDBClient({
-  region: process.env.AWS_REGION,
-});
-
-// Three separate tables:
-// 1. streefi_admins (email key) - Admin credentials and profiles
-// 2. streefi_sessions (session_id key) - Active sessions for multi-device support
-// 3. streefi_whatsapp (PK/SK keys) - WhatsApp templates
-const ADMIN_TABLE_NAME = process.env.ADMIN_TABLE_NAME || "streefi_admins";
-const SESSION_TABLE_NAME = process.env.SESSION_TABLE_NAME || "streefi_sessions";
+import { sessionRepository } from "./repositories/sessionRepository";
+import { validateRequestCSRF, CSRF_COOKIE_NAME } from "./csrf";
 
 // Session types
 export type SessionType = "email-session" | "whatsapp-session";
@@ -48,30 +37,20 @@ export async function validateAdminSession(
 ): Promise<ValidationResult> {
   try {
     console.log("[AdminAuth] Validating session for type:", requiredType);
-    
-    // 🧪 PHASE 1A: Force bypass authentication for testing
-    // This ensures all API calls work in dry run mode regardless of environment vars
-    const isPhase1A = true; // ⚠️ Phase 1A testing - always bypass
-    
-    if (isPhase1A) {
-      console.log("[AdminAuth] PHASE 1A: Bypassing authentication for dry run testing");
-      return {
-        valid: true,
-        session: {
-          email: "test@streefi.in",
-          type: requiredType,
-          status: "active",
-          createdAt: new Date().toISOString(),
-        },
-      };
+
+    // 1. CSRF check — reject non-GET requests with invalid or missing CSRF token
+    const cookieStore = await cookies();
+    const csrfCookie = cookieStore.get(CSRF_COOKIE_NAME)?.value;
+    if (!validateRequestCSRF(request, csrfCookie)) {
+      console.warn("[AdminAuth] CSRF token validation failed");
+      return { valid: false, error: "Invalid or missing CSRF token" };
     }
     
-    // 1. Get cookie name for this session type
+    // 2. Get cookie name for this session type
     const cookieName = COOKIE_NAMES[requiredType];
     console.log("[AdminAuth] Cookie name:", cookieName);
     
-    // 2. Read session ID from cookie
-    const cookieStore = await cookies();
+    // 3. Read session ID from cookie (reuse cookieStore already fetched above)
     const sessionCookie = cookieStore.get(cookieName);
 
     if (!sessionCookie || !sessionCookie.value) {
@@ -94,7 +73,7 @@ export async function validateAdminSession(
       };
     }
 
-    // 4. Validate session against DynamoDB
+    // 5. Validate session against DynamoDB
     console.log("[AdminAuth] Validating against DynamoDB...");
     const result = await validateAdminSessionFromDB(sessionId, requiredType);
     console.log("[AdminAuth] DynamoDB validation result:", result.valid);
@@ -118,35 +97,27 @@ export async function validateAdminSessionFromDB(
   requiredType: SessionType
 ): Promise<ValidationResult> {
   try {
-    console.log('[AdminAuth] Querying session table:', SESSION_TABLE_NAME);
-    console.log('[AdminAuth] Session ID:', sessionId);
+    console.log('[AdminAuth] Validating session:', sessionId);
     
     // 1. Fetch session from streefi_sessions table using session_id key
-    const result = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: SESSION_TABLE_NAME,
-        Key: {
-          session_id: { S: sessionId },
-        },
-      })
-    );
+    const sessionRecord = await sessionRepository.getSessionById(sessionId);
 
-    // 2. Check if session exists
-    if (!result.Item) {
-      console.log('[AdminAuth] Session not found in database');
+    // 2. Check if session exists (getSessionById returns null if not found or expired)
+    if (!sessionRecord) {
+      console.log('[AdminAuth] Session not found or expired');
       return {
         valid: false,
-        error: "Session not found in database",
+        error: "Session not found or expired",
       };
     }
 
     // 3. Parse session data
     const session = {
-      email: result.Item.email?.S || "",
-      type: result.Item.type?.S || "",
-      status: result.Item.status?.S || "",
-      createdAt: result.Item.createdAt?.S || "",
-      expiresAt: result.Item.expiresAt?.N ? parseInt(result.Item.expiresAt.N) : undefined,
+      email: sessionRecord.email,
+      type: sessionRecord.type,
+      status: sessionRecord.status,
+      createdAt: sessionRecord.createdAt,
+      expiresAt: sessionRecord.expiresAt,
     };
 
     console.log('[AdminAuth] Session found for email:', session.email);
@@ -169,16 +140,7 @@ export async function validateAdminSessionFromDB(
       };
     }
 
-    // 6. Check expiration
-    if (session.expiresAt) {
-      const now = Math.floor(Date.now() / 1000);
-      if (now > session.expiresAt) {
-        return {
-          valid: false,
-          error: "Session has expired",
-        };
-      }
-    }
+    // 6. Expiration is already checked by repository layer
 
     // 7. Session is valid
     console.log('[AdminAuth] Session validation successful');
@@ -187,7 +149,7 @@ export async function validateAdminSessionFromDB(
       session,
     };
   } catch (error) {
-    console.error("[AdminAuth] DynamoDB session validation error:", error);
+    console.error("[AdminAuth] Session validation error:", error);
     return {
       valid: false,
       error: error instanceof Error ? error.message : "Database validation failed",

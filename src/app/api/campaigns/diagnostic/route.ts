@@ -1,14 +1,33 @@
-import { NextResponse } from 'next/server';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { NextRequest, NextResponse } from 'next/server';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DescribeTableCommand, ListTablesCommand } from '@aws-sdk/client-dynamodb';
+import { validateAdminSession } from '@/lib/adminAuth';
+
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+});
+
+// Table configuration — must match dynamoClient.ts TABLES constants
+const TABLE_CONFIG = {
+  CAMPAIGNS: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
+  RECIPIENTS: process.env.RECIPIENTS_TABLE_NAME || 'streefi_campaign_recipients',
+  WHATSAPP: process.env.DYNAMODB_TABLE_NAME || 'whatsapp_conversations',
+  ADMINS: process.env.ADMIN_TABLE_NAME || 'streefi_admins',
+  SESSIONS: process.env.SESSION_TABLE_NAME || 'streefi_sessions',
+} as const;
 
 /**
  * DynamoDB Tables Diagnostic Endpoint
  * Checks all tables exist and have correct schema
  * Access at: /api/campaigns/diagnostic
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await validateAdminSession(request, 'whatsapp-session');
+    if (!auth.valid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const diagnostics = {
       timestamp: new Date().toISOString(),
       region: process.env.AWS_REGION || 'not set',
@@ -18,17 +37,17 @@ export async function GET() {
 
     // List of tables to check
     const tablesToCheck = [
-      { name: TABLES.CAMPAIGNS, expectedPK: 'PK', expectedSK: 'SK' },
-      { name: TABLES.RECIPIENTS, expectedPK: 'PK', expectedSK: 'SK' },
-      { name: TABLES.WHATSAPP, expectedPK: 'PK', expectedSK: 'SK' },
-      { name: TABLES.ADMINS, expectedPK: 'email', expectedSK: null },
-      { name: TABLES.SESSIONS, expectedPK: 'session_id', expectedSK: null },
+      { name: TABLE_CONFIG.CAMPAIGNS, expectedPK: 'PK', expectedSK: 'SK' },
+      { name: TABLE_CONFIG.RECIPIENTS, expectedPK: 'PK', expectedSK: 'SK' },
+      { name: TABLE_CONFIG.WHATSAPP, expectedPK: 'PK', expectedSK: 'SK' },
+      { name: TABLE_CONFIG.ADMINS, expectedPK: 'email', expectedSK: null },
+      { name: TABLE_CONFIG.SESSIONS, expectedPK: 'session_id', expectedSK: null },
     ];
 
     // First, get list of all tables
     let allTableNames: string[] = [];
     try {
-      const listResult = await dynamoClient.send(new ListTablesCommand({}));
+      const listResult = await client.send(new ListTablesCommand({}));
       allTableNames = listResult.TableNames || [];
     } catch (error) {
       console.error('[Diagnostic] Failed to list tables:', error);
@@ -54,7 +73,7 @@ export async function GET() {
           diagnostics.allHealthy = false;
         } else {
           // Describe table to get details
-          const result = await dynamoClient.send(
+          const result = await client.send(
             new DescribeTableCommand({ TableName: tableConfig.name })
           );
 
@@ -120,7 +139,6 @@ export async function GET() {
     console.error('[Diagnostic] Fatal error:', error);
     return NextResponse.json({
       error: 'Diagnostic failed',
-      details: error instanceof Error ? error.message : String(error),
     }, {
       status: 500,
     });

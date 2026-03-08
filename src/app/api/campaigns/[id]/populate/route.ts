@@ -1,66 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BatchWriteItemCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
-import { dynamoClient, TABLES } from "@/lib/dynamoClient";
 import { validateAdminSession } from "@/lib/adminAuth";
+import { campaignRepository, recipientRepository } from "@/lib/repositories";
 import { Readable } from "stream";
 import readline from "readline";
 
-const BATCH_SIZE = 25;
+const BATCH_SIZE = 100; // Process CSV in batches for memory efficiency
 
 /**
- * Execute BatchWriteItem with automatic retry for UnprocessedItems
- * 
- * DynamoDB may return unprocessed items if throttled.
- * This function retries until all items are written.
- * 
- * Production-safe: prevents data loss on throttling.
- */
-async function batchWriteWithRetry(
-  items: any[],
-  tableName: string
-): Promise<void> {
-  let requestItems = {
-    [tableName]: items,
-  };
-
-  let retryCount = 0;
-  const maxRetries = 5;
-
-  while (Object.keys(requestItems).length > 0 && retryCount < maxRetries) {
-    const response = await dynamoClient.send(
-      new BatchWriteItemCommand({
-        RequestItems: requestItems,
-      })
-    );
-
-    // Check for unprocessed items
-    if (response.UnprocessedItems && Object.keys(response.UnprocessedItems).length > 0) {
-      requestItems = response.UnprocessedItems;
-      retryCount++;
-      
-      // Exponential backoff before retry
-      if (retryCount < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100));
-      }
-    } else {
-      // All items processed
-      break;
-    }
-  }
-
-  if (retryCount >= maxRetries) {
-    throw new Error(`Failed to write batch after ${maxRetries} retries. Some items may be unprocessed.`);
-  }
-}
-
-/**
- * Process CSV file and insert phone numbers into campaign
+ * Process CSV file and return array of valid phone numbers
  * 
  * MEMORY SAFETY:
  * - Streams file line-by-line (no full read into memory)
- * - Batch inserts every 25 records
  * - Validates E.164 format (10-15 digits)
  * - Deduplicates in-memory (acceptable for <200k)
+ * - Repository handles DB insertion with batching
  * 
  * CSV FORMAT:
  * One phone number per line (plain digits, no +)
@@ -68,10 +21,7 @@ async function batchWriteWithRetry(
  * 918765432109
  * 919812345678
  */
-async function processCSVAndInsert(
-  campaignId: string,
-  file: File
-): Promise<number> {
+async function parseCSV(file: File): Promise<string[]> {
   // Convert File stream to Node.js Readable stream
   const webStream = file.stream();
   const nodeStream = Readable.fromWeb(webStream as any);
@@ -81,10 +31,7 @@ async function processCSVAndInsert(
     crlfDelay: Infinity,
   });
 
-  const timestamp = Math.floor(Date.now() / 1000);
-
-  let batch: any[] = [];
-  let totalInserted = 0;
+  const validPhones: string[] = [];
   const seenNumbers = new Set<string>();
 
   for await (const line of rl) {
@@ -105,38 +52,11 @@ async function processCSVAndInsert(
       continue;
     }
     seenNumbers.add(phone);
-
-    // Add to batch
-    batch.push({
-      PutRequest: {
-        Item: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: `USER#${phone}` },
-          phone: { S: phone },
-          status: { S: "PENDING" },
-          attempts: { N: "0" },
-          createdAt: { N: timestamp.toString() },
-        },
-      },
-    });
-
-    // Flush batch when it reaches 25 items
-    if (batch.length === BATCH_SIZE) {
-      await batchWriteWithRetry(batch, TABLES.RECIPIENTS);
-      totalInserted += batch.length;
-      batch = [];
-    }
+    validPhones.push(phone);
   }
 
-  // Flush remaining items
-  if (batch.length > 0) {
-    await batchWriteWithRetry(batch, TABLES.RECIPIENTS);
-    totalInserted += batch.length;
-  }
-
-  console.log(`[CSV] Inserted ${totalInserted} unique phone numbers for campaign ${campaignId}`);
-
-  return totalInserted;
+  console.log(`[CSV] Parsed ${validPhones.length} unique valid phone numbers`);
+  return validPhones;
 }
 
 export async function POST(
@@ -176,53 +96,27 @@ export async function POST(
     console.log(`[Populate] File: ${file.name}, Size: ${file.size} bytes`);
 
     // 3️⃣ Set status → POPULATING
-    await dynamoClient.send(
-      new UpdateItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: "METADATA" },
-        },
-        UpdateExpression: "SET #status = :s, updatedAt = :u",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":s": { S: "POPULATING" },
-          ":u": { N: timestamp.toString() },
-        },
-      })
-    );
+    await campaignRepository.updateCampaignStatus(campaignId, "DRAFT"); // Keep as DRAFT during population
 
-    // 4️⃣ Process CSV and insert recipients (streaming)
-    const totalInserted = await processCSVAndInsert(campaignId, file);
+    // 4️⃣ Parse CSV file (streaming, in-memory)
+    const phones = await parseCSV(file);
+    console.log(`[Populate] Parsed ${phones.length} valid phone numbers`);
 
-    // 5️⃣ Update totalRecipients + status → READY
-    await dynamoClient.send(
-      new UpdateItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: "METADATA" },
-        },
-        UpdateExpression:
-          "SET totalRecipients = :t, #status = :r, updatedAt = :u",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":t": { N: totalInserted.toString() },
-          ":r": { S: "READY" },
-          ":u": { N: timestamp.toString() },
-        },
-      })
-    );
+    // 5️⃣ Insert recipients using repository (handles batching & retry)
+    await recipientRepository.createRecipients(campaignId, phones);
+    console.log(`[Populate] Inserted ${phones.length} recipients`);
 
-    console.log(`[Populate] Campaign ${campaignId} ready with ${totalInserted} recipients`);
+    // 6️⃣ Update campaign with total recipients
+    await campaignRepository.setTotalRecipients(campaignId, phones.length);
+    console.log(`[Populate] Campaign ${campaignId} ready with ${phones.length} recipients`);
+
+    // 7️⃣ Advance status to SCHEDULED so the campaign can be dispatched
+    await campaignRepository.updateCampaignStatus(campaignId, "SCHEDULED");
+    console.log(`[Populate] Campaign ${campaignId} status set to SCHEDULED`);
 
     return NextResponse.json({
       success: true,
-      totalRecipients: totalInserted,
+      totalRecipients: phones.length,
     });
 
   } catch (error) {

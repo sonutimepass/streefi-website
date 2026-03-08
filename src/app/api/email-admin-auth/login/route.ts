@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyPassword } from '@/lib/crypto';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { randomUUID } from 'crypto';
 import { checkLoginRateLimit, recordFailedAttempt, resetAttempts } from '@/lib/rateLimit';
+import { sessionRepository } from '@/lib/repositories/sessionRepository';
+import { getAdminByEmail, verifyAdminPassword } from '@/lib/adminService';
+import { generateCSRFToken } from '@/lib/crypto';
+import { CSRF_COOKIE_NAME } from '@/lib/csrf';
 
 // Force Node.js runtime for proper environment variable access
 export const runtime = 'nodejs';
@@ -35,70 +37,59 @@ export async function POST(request: Request) {
       );
     }
     
-    const { password } = await request.json();
-    
-    if (!password) {
+    const body = await request.json();
+    const email: string = (body.email || '').trim().toLowerCase();
+    const password: string = body.password || '';
+
+    if (!email || !password) {
       return NextResponse.json(
-        { success: false, error: 'Password is required' },
+        { success: false, error: 'Email and password are required' },
         { status: 400 }
       );
     }
-    
-    // Get admin password hash from environment variable
-    const adminPasswordHash = process.env.EMAIL_ADMIN_PASSWORD_HASH;
-    
-    if (!adminPasswordHash) {
-      console.error('❌ EMAIL_ADMIN_PASSWORD_HASH environment variable not set');
-      return NextResponse.json(
-        { success: false, error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-    
-    // Validate password using secure hashing
-    const isValid = verifyPassword(password, adminPasswordHash);
-    
-    if (!isValid) {
-      // Record failed attempt for rate limiting
+
+    // Look up admin by email in DynamoDB (same table as WhatsApp admin)
+    const admin = await getAdminByEmail(email);
+
+    if (!admin) {
       await recordFailedAttempt(ip);
-      
-      // Add small delay to prevent timing attacks
       await new Promise(resolve => setTimeout(resolve, 100));
-      
       return NextResponse.json(
-        { success: false, error: 'Invalid password' },
+        { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
-    
-    // Password correct - reset rate limit counter
+
+    // Validate password using per-user hash
+    const isValid = verifyAdminPassword(password, admin.password_hash);
+
+    if (!isValid) {
+      await recordFailedAttempt(ip);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return NextResponse.json(
+        { success: false, error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // Password correct — reset rate limit counter
     await resetAttempts(ip);
-    
-    // Password is correct - create session in streefi_sessions table (multi-device support)
+
+    // Create session in streefi_sessions table
     const sessionId = `sess_${randomUUID()}`;
     const expiresAt = Math.floor(Date.now() / 1000) + COOKIE_MAX_AGE;
-    
-    // Store session in DynamoDB sessions table
-    const dynamoClient = new DynamoDBClient({
-      region: process.env.AWS_REGION,
-    });
-    
+
     try {
-      await dynamoClient.send(
-        new PutItemCommand({
-          TableName: process.env.SESSION_TABLE_NAME || 'streefi_sessions',
-          Item: {
-            session_id: { S: sessionId }, // Partition key
-            email: { S: 'admin@streefi.in' }, // Admin email for this session
-            type: { S: 'email-session' },
-            status: { S: 'active' },
-            expiresAt: { N: expiresAt.toString() },
-            createdAt: { S: new Date().toISOString() },
-          },
-        })
-      );
-      
-      console.log('✅ Session created in streefi_sessions:', sessionId);
+      await sessionRepository.createSession({
+        session_id: sessionId,
+        email: admin.email,
+        type: 'email-session',
+        status: 'active',
+        expiresAt: expiresAt,
+        createdAt: new Date().toISOString()
+      });
+
+      console.log(`✅ Session created for ${admin.email} (${admin.role}):`, sessionId);
     } catch (dbError) {
       console.error('❌ Failed to create session in DynamoDB:', dbError);
       return NextResponse.json(
@@ -106,7 +97,7 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-    
+
     // Set httpOnly secure cookie with sessionId
     const cookieStore = await cookies();
     cookieStore.set(COOKIE_NAME, sessionId, {
@@ -116,8 +107,18 @@ export async function POST(request: Request) {
       maxAge: COOKIE_MAX_AGE,
       path: '/',
     });
-    
-    return NextResponse.json({ success: true });
+
+    // Issue CSRF token in a readable (non-HttpOnly) cookie so browser JS can read it
+    const csrfToken = generateCSRFToken();
+    cookieStore.set(CSRF_COOKIE_NAME, csrfToken, {
+      httpOnly: false, // intentionally readable by JS
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: COOKIE_MAX_AGE,
+      path: '/',
+    });
+
+    return NextResponse.json({ success: true, role: admin.role });
   } catch (error) {
     console.error('Authentication error:', error);
     return NextResponse.json(

@@ -24,8 +24,7 @@
  * ```
  */
 
-import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 export interface GlobalState {
   paused: boolean;
@@ -42,8 +41,6 @@ interface PauseCache {
 }
 
 class GlobalStateManager {
-  private readonly PK = 'SYSTEM';
-  private readonly SK = 'GLOBAL_STATE';
   private readonly CACHE_TTL_MS = 10000; // 10 seconds
   private pauseCache: PauseCache | null = null;
 
@@ -63,21 +60,12 @@ class GlobalStateManager {
       };
     }
     
-    // Cache miss or expired - query DynamoDB
+    // Cache miss or expired - query repository
     try {
-      const response = await dynamoClient.send(
-        new GetItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: this.PK },
-            SK: { S: this.SK }
-          }
-        })
-      );
+      const state = await campaignRepository.getGlobalPauseState();
+      const paused = state.paused;
+      const reason = state.reason;
 
-      const paused = response.Item?.paused?.BOOL || false;
-      const reason = response.Item?.reason?.S;
-      
       // Update cache
       this.pauseCache = {
         paused,
@@ -106,21 +94,8 @@ class GlobalStateManager {
   ): Promise<void> {
     const timestamp = Math.floor(Date.now() / 1000);
 
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Item: {
-          PK: { S: this.PK },
-          SK: { S: this.SK },
-          paused: { BOOL: paused },
-          ...(reason && { reason: { S: reason } }),
-          ...(paused && { pausedAt: { N: timestamp.toString() } }),
-          ...(pausedBy && { pausedBy: { S: pausedBy } }),
-          updatedAt: { N: timestamp.toString() }
-        }
-      })
-    );
-    
+    await campaignRepository.setGlobalPauseState(paused, pausedBy || 'system', reason);
+
     // Invalidate cache immediately
     this.pauseCache = {
       paused,
@@ -139,26 +114,7 @@ class GlobalStateManager {
    */
   async getGlobalState(): Promise<GlobalState> {
     try {
-      const response = await dynamoClient.send(
-        new GetItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: this.PK },
-            SK: { S: this.SK }
-          }
-        })
-      );
-
-      if (!response.Item) {
-        return { paused: false };
-      }
-
-      return {
-        paused: response.Item.paused?.BOOL || false,
-        reason: response.Item.reason?.S,
-        pausedAt: response.Item.pausedAt?.N ? parseInt(response.Item.pausedAt.N, 10) : undefined,
-        pausedBy: response.Item.pausedBy?.S
-      };
+      return await campaignRepository.getGlobalPauseState();
     } catch (error) {
       console.error('[GlobalStateManager] Error getting global state:', error);
       return { paused: false };

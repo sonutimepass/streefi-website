@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { CampaignListItem } from '../CampaignListTable';
 import LogsPanel from '../LogsPanel';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface BatchResult {
   processed: number;
@@ -80,7 +81,7 @@ export default function CampaignDetailModal({
     try {
       const response = await fetch(`/api/campaigns/${campaign.id}/control`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ action })
       });
 
@@ -115,7 +116,8 @@ export default function CampaignDetailModal({
 
     try {
       const response = await fetch(`/api/campaigns/${campaign.id}/execute-batch`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { ...getCsrfHeader() },
       });
 
       const data = await response.json();
@@ -160,7 +162,8 @@ export default function CampaignDetailModal({
 
     try {
       const response = await fetch(`/api/campaigns/${campaign.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { ...getCsrfHeader() },
       });
 
       const data = await response.json();
@@ -204,7 +207,8 @@ export default function CampaignDetailModal({
 
     try {
       const response = await fetch(`/api/campaigns/${campaign.id}/retry-failed`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { ...getCsrfHeader() },
       });
 
       const data = await response.json();
@@ -249,8 +253,10 @@ export default function CampaignDetailModal({
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'COMPLETED':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'READY':
+      case 'SCHEDULED':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'FAILED':
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'DRAFT':
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -433,7 +439,7 @@ export default function CampaignDetailModal({
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Controls</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {/* Start Button */}
-                {(campaign.status === 'DRAFT' || campaign.status === 'READY') && (
+                {(campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED') && (
                   <button
                     onClick={() => controlCampaign('start')}
                     disabled={loading}

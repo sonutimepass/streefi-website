@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useWhatsAppAdminContext } from '../../context/WhatsAppAdminProvider';
 import EmergencyKillSwitch from '../EmergencyKillSwitch';
 import GlobalSendingStateIndicator from '../GlobalSendingStateIndicator';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface CampaignDetail {
   id: string;
@@ -77,7 +78,7 @@ export default function CampaignDetailPageContent({ campaignId }: { campaignId: 
     try {
       const res = await fetch(`/api/campaigns/${campaignId}/control`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ action })
       });
 

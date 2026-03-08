@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { getMessageService } from '@/lib/whatsapp/meta/messageService';
+import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 
 interface SendTestRequest {
   templateName: string;
@@ -61,7 +62,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4️⃣ Build template message
+    // 4️⃣ Check kill switch before sending
+    const killSwitch = await isKillSwitchEnabled();
+    if (killSwitch.enabled) {
+      return NextResponse.json(
+        { error: 'Sending is currently disabled by kill switch', reason: killSwitch.reason },
+        { status: 503 }
+      );
+    }
+
+    // 5️⃣ Build template message
     const messageService = getMessageService();
     
     const templateMessage: any = {
@@ -88,7 +98,7 @@ export async function POST(req: NextRequest) {
       ];
     }
 
-    // 5️⃣ Send test message
+    // 6️⃣ Send test message
     const response = await messageService.sendTemplateMessage(templateMessage);
 
     // Extract message ID from response

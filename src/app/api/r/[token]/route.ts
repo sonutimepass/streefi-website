@@ -23,8 +23,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
 import { verifyTrackingToken } from '@/lib/whatsapp/trackingToken';
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,17 +65,9 @@ export async function GET(
     });
 
     // 3. Look up campaign to get redirect URL
-    const campaignResponse = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: 'METADATA' }
-        }
-      })
-    );
+    const campaign = await campaignRepository.getCampaign(campaignId);
 
-    if (!campaignResponse.Item) {
+    if (!campaign) {
       console.error('[ClickTracker] Campaign not found:', campaignId);
       return NextResponse.json(
         { error: 'Campaign not found' },
@@ -85,7 +76,7 @@ export async function GET(
     }
 
     // 4. Get redirect URL from campaign metadata
-    const redirectUrl = campaignResponse.Item.redirectUrl?.S;
+    const redirectUrl = campaign.redirect_url;
     
     if (!redirectUrl) {
       console.error('[ClickTracker] No redirect URL configured for campaign:', campaignId);

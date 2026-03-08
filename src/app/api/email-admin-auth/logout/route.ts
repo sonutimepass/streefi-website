@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
+import { sessionRepository } from '@/lib/repositories/sessionRepository';
 
 const COOKIE_NAME = 'email_admin_session';
 
@@ -14,19 +14,8 @@ export async function POST() {
     if (sessionCookie?.value) {
       const sessionId = sessionCookie.value;
       
-      const dynamoClient = new DynamoDBClient({
-        region: process.env.AWS_REGION,
-      });
-      
       try {
-        await dynamoClient.send(
-          new DeleteItemCommand({
-            TableName: process.env.SESSION_TABLE_NAME || 'streefi_sessions',
-            Key: {
-              session_id: { S: sessionId },
-            },
-          })
-        );
+        await sessionRepository.deleteSession(sessionId);
         console.log('✅ Session deleted from streefi_sessions:', sessionId);
       } catch (dbError) {
         console.error('⚠️ Failed to delete session from DynamoDB:', dbError);

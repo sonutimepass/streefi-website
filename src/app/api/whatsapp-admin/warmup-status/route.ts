@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAccountWarmupManager } from '@/lib/whatsapp/accountWarmupManager';
+import { validateAdminSession } from '@/lib/adminAuth';
 
 /**
  * GET /api/whatsapp-admin/warmup-status
@@ -11,8 +12,13 @@ import { getAccountWarmupManager } from '@/lib/whatsapp/accountWarmupManager';
  * - Daily limit enforcement monitoring
  * - Warmup progress tracking
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await validateAdminSession(request, 'whatsapp-session');
+    if (!auth.valid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const accountId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     
     if (!accountId) {

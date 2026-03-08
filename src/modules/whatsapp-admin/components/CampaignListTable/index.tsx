@@ -14,12 +14,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 export interface CampaignListItem {
   id: string;
   name: string;
   templateName: string;
-  status: 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
+  status: 'DRAFT' | 'SCHEDULED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED';
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
@@ -48,7 +49,7 @@ export default function CampaignListTable({
 
   // Format timestamp to readable date
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+    return new Date(timestamp).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -66,8 +67,10 @@ export default function CampaignListTable({
         return 'bg-yellow-100 text-yellow-800';
       case 'COMPLETED':
         return 'bg-blue-100 text-blue-800';
-      case 'READY':
+      case 'SCHEDULED':
         return 'bg-purple-100 text-purple-800';
+      case 'FAILED':
+        return 'bg-red-100 text-red-800';
       case 'DRAFT':
       default:
         return 'bg-gray-100 text-gray-800';
@@ -81,7 +84,7 @@ export default function CampaignListTable({
     try {
       const response = await fetch(`/api/campaigns/${campaignId}/control`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ action })
       });
 
@@ -116,7 +119,8 @@ export default function CampaignListTable({
     setActionLoading(campaignId);
     try {
       const response = await fetch(`/api/campaigns/${campaignId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { ...getCsrfHeader() },
       });
 
       const data = await response.json();
@@ -306,8 +310,8 @@ export default function CampaignListTable({
                       View
                     </button>
 
-                    {/* Start Button (for DRAFT/READY) */}
-                    {(campaign.status === 'DRAFT' || campaign.status === 'READY') && (
+                    {/* Start Button (for DRAFT/SCHEDULED) */}
+                    {(campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED') && (
                       <button
                         onClick={() => handleAction(campaign.id, 'START')}
                         disabled={actionLoading === campaign.id}
@@ -436,7 +440,7 @@ export default function CampaignListTable({
               </button>
 
               {/* Start Button */}
-              {(campaign.status === 'DRAFT' || campaign.status === 'READY') && (
+              {(campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED') && (
                 <button
                   onClick={() => handleAction(campaign.id, 'START')}
                   disabled={actionLoading === campaign.id}

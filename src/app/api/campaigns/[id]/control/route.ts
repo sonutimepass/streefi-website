@@ -16,11 +16,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 import { getCampaignStateValidator, type CampaignStatus } from '@/lib/whatsapp/campaignStateValidator';
+import { campaignRepository } from '@/lib/repositories';
 
 type ControlAction = 'start' | 'pause' | 'resume';
 
@@ -33,90 +32,23 @@ interface ControlRequest {
  * Load campaign metadata (status and totalRecipients for validation)
  */
 async function getCampaignMetadata(campaignId: string): Promise<{ status: CampaignStatus; totalRecipients: number } | null> {
-  const response = await dynamoClient.send(
-    new GetItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      }
-    })
-  );
-
-  if (!response.Item) {
+  const campaign = await campaignRepository.getCampaign(campaignId);
+  
+  if (!campaign) {
     return null;
   }
 
   // Map legacy 'READY' status to 'POPULATED' for state validator compatibility
-  let status = response.Item.status?.S || 'DRAFT';
+  // Campaign status from DB might use different naming than validator
+  let status: string = campaign.campaign_status || 'DRAFT';
   if (status === 'READY') {
     status = 'POPULATED';
   }
 
   return {
     status: status as CampaignStatus,
-    totalRecipients: parseInt(response.Item.totalRecipients?.N || '0', 10)
+    totalRecipients: campaign.total_recipients || 0
   };
-}
-
-// Removed: validateTransition function replaced by state validator below
-
-/**
- * Update campaign status
- */
-async function updateCampaignStatus(
-  campaignId: string,
-  action: ControlAction,
-  reason?: string
-): Promise<void> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  
-  let updateExpression: string;
-  let expressionAttributeValues: Record<string, any>;
-
-  switch (action) {
-    case 'start':
-    case 'resume':
-      updateExpression = 'SET #status = :running, startedAt = :timestamp REMOVE pausedAt, pausedReason';
-      expressionAttributeValues = {
-        ':running': { S: 'RUNNING' },
-        ':timestamp': { N: timestamp.toString() }
-      };
-      break;
-
-    case 'pause':
-      updateExpression = reason
-        ? 'SET #status = :paused, pausedAt = :timestamp, pausedReason = :reason'
-        : 'SET #status = :paused, pausedAt = :timestamp';
-      
-      expressionAttributeValues = {
-        ':paused': { S: 'PAUSED' },
-        ':timestamp': { N: timestamp.toString() }
-      };
-      
-      if (reason) {
-        expressionAttributeValues[':reason'] = { S: reason };
-      }
-      break;
-
-    default:
-      throw new Error(`Unknown action: ${action}`);
-  }
-
-  await dynamoClient.send(
-    new UpdateItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: expressionAttributeValues
-    })
-  );
 }
 
 /**
@@ -227,7 +159,13 @@ export async function POST(
 
     // 5️⃣ Update campaign status
     console.log('💾 [Campaign Control API] Updating campaign status...');
-    await updateCampaignStatus(campaignId, action, reason);
+    
+    if (action === 'start' || action === 'resume') {
+      await campaignRepository.startCampaign(campaignId);
+    } else if (action === 'pause') {
+      await campaignRepository.pauseCampaign(campaignId, reason);
+    }
+    
     console.log('✅ [Campaign Control API] Status updated successfully');
 
     // 6️⃣ Return success
@@ -242,12 +180,8 @@ export async function POST(
 
   } catch (error) {
     console.error('❌ [Campaign Control API] Error:', error);
-    
     return NextResponse.json(
-      { 
-        error: 'Campaign control failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Campaign control failed' },
       { status: 500 }
     );
   }

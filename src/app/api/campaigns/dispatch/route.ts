@@ -33,6 +33,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCampaignDispatcher } from '@/lib/whatsapp/campaignDispatcher';
+import { validateAdminSession } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow 60s execution (for Vercel Pro)
@@ -44,8 +45,13 @@ export async function POST(request: NextRequest) {
   try {
     // 🔒 SECURITY: Verify dispatcher key
     const authHeader = request.headers.get('x-dispatcher-key');
-    const expectedKey = process.env.DISPATCHER_SECRET_KEY || 'internal-dispatcher';
-    
+    const expectedKey = process.env.DISPATCHER_SECRET_KEY;
+
+    if (!expectedKey) {
+      console.error('❌ DISPATCHER_SECRET_KEY not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     if (authHeader !== expectedKey) {
       console.warn('⚠️ [Dispatch] Unauthorized dispatch attempt');
       return NextResponse.json(
@@ -69,11 +75,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Dispatch] Dispatcher error:', error);
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Dispatcher failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { success: false, error: 'Dispatcher failed' },
       { status: 500 }
     );
   }
@@ -84,6 +86,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await validateAdminSession(request, 'whatsapp-session');
+    if (!auth.valid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const dispatcher = getCampaignDispatcher();
     const campaigns = await dispatcher.findPendingCampaigns();
 

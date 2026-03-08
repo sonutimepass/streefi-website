@@ -21,15 +21,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  GetItemCommand, 
-  QueryCommand, 
-  UpdateItemCommand,
-  PutItemCommand,
-  type AttributeValue
-} from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
+import { recipientRepository } from '@/lib/repositories/recipientRepository';
+import { whatsappRepository } from '@/lib/repositories/whatsappRepository';
+import { sessionRepository } from '@/lib/repositories/sessionRepository';
 import { getMessageService, MessageService, DailyLimitExceededError } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
@@ -40,62 +36,12 @@ import { parseTemplateConfig, selectTemplate } from '@/lib/whatsapp/templateRota
 import { logMessageForWebhookTracking } from '@/lib/whatsapp/webhookStatusHandler';
 import { getGlobalStateManager } from '@/lib/whatsapp/globalStateManager';
 
-// ⏱️ RATE LIMITING: In-memory store for per-IP request tracking
-// Limits: 5 requests per 60 seconds per IP
-const rateLimitStore = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 60 seconds in ms
+// Rate limiting constants (DynamoDB-backed via sessionRepository)
 const RATE_LIMIT_MAX_REQUESTS = 5;
-
-function checkRateLimit(ip: string): { allowed: boolean; remainingTime?: number } {
-  const now = Date.now();
-  const requests = rateLimitStore.get(ip) || [];
-  
-  // Remove requests outside the time window
-  const recentRequests = requests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
-  
-  if (recentRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
-    const oldestRequest = recentRequests[0];
-    const remainingTime = Math.ceil((oldestRequest + RATE_LIMIT_WINDOW - now) / 1000);
-    return { allowed: false, remainingTime };
-  }
-  
-  // Add current request and update store
-  recentRequests.push(now);
-  rateLimitStore.set(ip, recentRequests);
-  
-  // Cleanup: Remove expired entries every 100 requests
-  if (rateLimitStore.size > 100) {
-    for (const [key, timestamps] of rateLimitStore.entries()) {
-      const validTimestamps = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
-      if (validTimestamps.length === 0) {
-        rateLimitStore.delete(key);
-      }
-    }
-  }
-  
-  return { allowed: true };
-}
+const RATE_LIMIT_WINDOW_MINUTES = 1;
 
 const BATCH_SIZE = 25;
 const SEND_DELAY_MS = 50; // 20 messages/sec safe for Meta rate limits
-
-interface Campaign {
-  id: string;
-  name: string;
-  templateName?: string;        // Legacy: single template
-  templates?: string[];         // New: multiple templates for rotation
-  templateWeights?: number[];   // Optional: weights for weighted selection
-  templateStrategy?: 'random' | 'weighted' | 'round-robin'; // Selection strategy
-  status: 'DRAFT' | 'RUNNING' | 'PAUSED' | 'COMPLETED';
-  totalRecipients: number;
-  sentCount: number;
-  failedCount: number;
-  blockedCount: number;         // 🛡️ Circuit breaker: tracked blocks
-  dailyCap: number;
-  executionLock?: boolean;
-  lockedAt?: number;
-  lastBatchAt?: number;
-}
 
 interface Recipient {
   phone: string;
@@ -117,374 +63,7 @@ interface BatchExecutionResult {
  * Sleep utility for rate control
  */
 async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Load campaign metadata
- */
-async function loadCampaign(campaignId: string): Promise<Campaign | null> {
-  const response = await dynamoClient.send(
-    new GetItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      }
-    })
-  );
-
-  if (!response.Item) {
-    return null;
-  }
-
-  const item = response.Item;
-  
-  // Parse templates (support both legacy and new format)
-  const templateName = item.templateName?.S;
-  const templates = item.templates?.L?.map(t => t.S!).filter(Boolean);
-  const templateWeights = item.templateWeights?.L?.map(w => parseInt(w.N!, 10)).filter(w => !isNaN(w));
-  const templateStrategy = (item.templateStrategy?.S as Campaign['templateStrategy']) || 'weighted';
-  
-  return {
-    id: campaignId,
-    name: item.name?.S || '',
-    templateName,
-    templates,
-    templateWeights,
-    templateStrategy,
-    status: (item.status?.S as Campaign['status']) || 'DRAFT',
-    totalRecipients: parseInt(item.totalRecipients?.N || '0', 10),
-    sentCount: parseInt(item.sentCount?.N || '0', 10),
-    failedCount: parseInt(item.failedCount?.N || '0', 10),
-    blockedCount: parseInt(item.blockedCount?.N || '0', 10),
-    dailyCap: parseInt(item.dailyCap?.N || '1000', 10),
-    executionLock: item.executionLock?.BOOL || false,
-    lockedAt: item.lockedAt?.N ? parseInt(item.lockedAt.N, 10) : undefined,
-    lastBatchAt: item.lastBatchAt?.N ? parseInt(item.lastBatchAt.N, 10) : undefined
-  };
-}
-
-/**
- * Query PENDING recipients (limit 25)
- */
-async function getPendingRecipients(campaignId: string): Promise<Recipient[]> {
-  const response = await dynamoClient.send(
-    new QueryCommand({
-      TableName: TABLES.RECIPIENTS,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      FilterExpression: '#status = :pending',
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: {
-        ':pk': { S: `CAMPAIGN#${campaignId}` },
-        ':sk': { S: 'RECIPIENT#' },
-        ':pending': { S: 'PENDING' }
-      },
-      Limit: BATCH_SIZE
-    })
-  );
-
-  if (!response.Items || response.Items.length === 0) {
-    return [];
-  }
-
-  return response.Items.map(item => ({
-    phone: item.phone?.S || '',
-    status: (item.status?.S as Recipient['status']) || 'PENDING',
-    attempts: parseInt(item.attempts?.N || '0', 10)
-  }));
-}
-
-/**
- * Claim recipient for processing (optimistic lock)
- * Returns true if claimed successfully, false if already claimed by another execution
- */
-async function claimRecipient(campaignId: string, phone: string): Promise<boolean> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  try {
-    await dynamoClient.send(
-      new UpdateItemCommand({
-        TableName: TABLES.RECIPIENTS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: `RECIPIENT#${phone}` }
-        },
-        UpdateExpression: 'SET #status = :processing, processingAt = :timestamp',
-        ConditionExpression: '#status = :pending',
-        ExpressionAttributeNames: {
-          '#status': 'status'
-        },
-        ExpressionAttributeValues: {
-          ':processing': { S: 'PROCESSING' },
-          ':pending': { S: 'PENDING' },
-          ':timestamp': { N: timestamp.toString() }
-        }
-      })
-    );
-    return true;
-  } catch (error: any) {
-    // ConditionalCheckFailedException means another execution already claimed it
-    if (error.name === 'ConditionalCheckFailedException') {
-      return false;
-    }
-    throw error;
-  }
-}
-
-/**
- * Update recipient status atomically
- * Uses ADD for attempts to avoid read-modify-write race conditions
- */
-async function updateRecipientStatus(
-  campaignId: string,
-  phone: string,
-  status: 'SENT' | 'FAILED',
-  messageId?: string,
-  errorCode?: string
-): Promise<void> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  
-  const updateExpression = status === 'SENT'
-    ? 'SET #status = :status, sentAt = :timestamp, messageId = :messageId ADD attempts :inc'
-    : 'SET #status = :status, failedAt = :timestamp, errorCode = :errorCode ADD attempts :inc';
-
-  const expressionAttributeValues: Record<string, AttributeValue> = {
-    ':status': { S: status },
-    ':timestamp': { N: timestamp.toString() },
-    ':inc': { N: '1' }
-  };
-
-  if (status === 'SENT' && messageId) {
-    expressionAttributeValues[':messageId'] = { S: messageId };
-  }
-  if (status === 'FAILED' && errorCode) {
-    expressionAttributeValues[':errorCode'] = { S: errorCode };
-  }
-
-  await dynamoClient.send(
-    new UpdateItemCommand({
-      TableName: TABLES.RECIPIENTS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: `RECIPIENT#${phone}` }
-      },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: expressionAttributeValues
-    })
-  );
-}
-
-/**
- * Write log entry for observability (Phase UI-3)
- * Stored as: PK=CAMPAIGN#${id}, SK=LOG#${timestamp}#${phone}
- */
-async function writeLogEntry(
-  campaignId: string,
-  phone: string,
-  status: 'SENT' | 'FAILED' | 'PROCESSING',
-  messageId?: string,
-  errorCode?: string,
-  errorMessage?: string,
-  metaResponse?: string,
-  attempts?: number
-): Promise<void> {
-  const timestamp = new Date().toISOString();
-  const timestampMs = Date.now();
-  
-  const item: Record<string, AttributeValue> = {
-    PK: { S: `CAMPAIGN#${campaignId}` },
-    SK: { S: `LOG#${timestampMs}#${phone}` },
-    timestamp: { S: timestamp },
-    phone: { S: phone },
-    status: { S: status }
-  };
-
-  if (messageId) {
-    item.messageId = { S: messageId };
-  }
-
-  if (errorCode) {
-    item.errorCode = { S: errorCode };
-  }
-
-  if (errorMessage) {
-    item.errorMessage = { S: errorMessage };
-  }
-
-  if (metaResponse) {
-    item.metaResponse = { S: metaResponse };
-  }
-
-  if (attempts !== undefined) {
-    item.attempts = { N: attempts.toString() };
-  }
-
-  try {
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Item: item
-      })
-    );
-  } catch (error) {
-    // Log write failures shouldn't stop execution
-    console.error(`[LogWriter] Failed to write log for ${phone}:`, error);
-  }
-}
-
-/**
- * Update campaign metrics atomically
- * Uses ADD to safely increment counters without race conditions
- */
-async function incrementCampaignMetric(
-  campaignId: string,
-  metric: 'sentCount' | 'failedCount',
-  amount: number = 1
-): Promise<void> {
-  await dynamoClient.send(
-    new UpdateItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      },
-      UpdateExpression: `ADD ${metric} :amount`,
-      ExpressionAttributeValues: {
-        ':amount': { N: amount.toString() }
-      }
-    })
-  );
-}
-
-/**
- * Pause campaign with reason
- */
-async function pauseCampaign(campaignId: string, reason: string): Promise<void> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  
-  await dynamoClient.send(
-    new UpdateItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      },
-      UpdateExpression: 'SET #status = :paused, pausedAt = :timestamp, pausedReason = :reason',
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: {
-        ':paused': { S: 'PAUSED' },
-        ':timestamp': { N: timestamp.toString() },
-        ':reason': { S: reason }
-      }
-    })
-  );
-}
-
-/**
- * Complete campaign
- */
-async function completeCampaign(campaignId: string): Promise<void> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  
-  await dynamoClient.send(
-    new UpdateItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      },
-      UpdateExpression: 'SET #status = :completed, completedAt = :timestamp',
-      ExpressionAttributeNames: {
-        '#status': 'status'
-      },
-      ExpressionAttributeValues: {
-        ':completed': { S: 'COMPLETED' },
-        ':timestamp': { N: timestamp.toString() }
-      }
-    })
-  );
-}
-
-/**
- * Reconcile stuck recipients before batch execution
- * Finds PROCESSING recipients older than 5 minutes and marks as FAILED
- */
-async function reconcileStuckRecipients(campaignId: string): Promise<number> {
-  const now = Math.floor(Date.now() / 1000);
-  const stuckThreshold = now - (5 * 60); // 5 minutes ago
-  
-  try {
-    // Query PROCESSING recipients for this campaign
-    const response = await dynamoClient.send(
-      new QueryCommand({
-        TableName: TABLES.RECIPIENTS,
-        KeyConditionExpression: 'PK = :pk',
-        FilterExpression: '#status = :processing AND processingAt < :threshold',
-        ExpressionAttributeNames: {
-          '#status': 'status'
-        },
-        ExpressionAttributeValues: {
-          ':pk': { S: `CAMPAIGN#${campaignId}` },
-          ':processing': { S: 'PROCESSING' },
-          ':threshold': { N: stuckThreshold.toString() }
-        }
-      })
-    );
-
-    const stuckRecipients = response.Items || [];
-    
-    if (stuckRecipients.length === 0) {
-      return 0;
-    }
-
-    console.log(`🔧 [Batch Executor] Found ${stuckRecipients.length} stuck recipients, recovering...`);
-
-    // Recover each stuck recipient
-    let recovered = 0;
-    for (const item of stuckRecipients) {
-      const phone = item.phone?.S;
-      if (!phone) continue;
-
-      try {
-        await dynamoClient.send(
-          new UpdateItemCommand({
-            TableName: TABLES.RECIPIENTS,
-            Key: {
-              PK: { S: `CAMPAIGN#${campaignId}` },
-              SK: { S: `RECIPIENT#${phone}` }
-            },
-            UpdateExpression: 'SET #status = :failed, failedAt = :timestamp, errorCode = :code, errorMessage = :message ADD attempts :inc',
-            ExpressionAttributeNames: {
-              '#status': 'status'
-            },
-            ExpressionAttributeValues: {
-              ':failed': { S: 'FAILED' },
-              ':timestamp': { N: now.toString() },
-              ':code': { S: 'DB_WRITE_TIMEOUT' },
-              ':message': { S: 'Recovered from stuck PROCESSING state' },
-              ':inc': { N: '1' }
-            }
-          })
-        );
-        recovered++;
-      } catch (err) {
-        console.error(`❌ [Batch Executor] Failed to recover ${phone}:`, err);
-      }
-    }
-
-    console.log(`✅ [Batch Executor] Recovered ${recovered}/${stuckRecipients.length} stuck recipients`);
-    return recovered;
-  } catch (err) {
-    console.error('❌ [Batch Executor] Reconciliation failed:', err);
-    return 0;
-  }
+return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
@@ -498,39 +77,19 @@ async function executeBatch(
   
   // 🔒 CRITICAL: Acquire execution lock (prevents concurrent batch execution)
   console.log('🔒 [Batch Executor] Attempting to acquire execution lock...');
-  try {
-    await dynamoClient.send(
-      new UpdateItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: 'METADATA' }
-        },
-        UpdateExpression: 'SET executionLock = :true, lockedAt = :now',
-        ConditionExpression: 'attribute_not_exists(executionLock) OR executionLock = :false OR lockedAt < :staleThreshold',
-        ExpressionAttributeValues: {
-          ':true': { BOOL: true },
-          ':false': { BOOL: false },
-          ':now': { N: now.toString() },
-          ':staleThreshold': { N: (now - 120).toString() } // 2-minute stale lock expiry
-        }
-      })
-    );
-    console.log('✅ [Batch Executor] Execution lock acquired');
-  } catch (error: any) {
-    if (error.name === 'ConditionalCheckFailedException') {
-      console.warn('⚠️ [Batch Executor] Batch execution already in progress');
-      return {
-        processed: 0,
-        sent: 0,
-        failed: 0,
-        paused: false,
-        completed: false,
-        pauseReason: 'Batch execution already in progress (locked)'
-      };
-    }
-    throw error;
+  const lockAcquired = await campaignRepository.acquireExecutionLock(campaignId, now);
+  if (!lockAcquired) {
+    console.warn('⚠️ [Batch Executor] Batch execution already in progress');
+    return {
+      processed: 0,
+      sent: 0,
+      failed: 0,
+      paused: false,
+      completed: false,
+      pauseReason: 'Batch execution already in progress (locked)'
+    };
   }
+  console.log('✅ [Batch Executor] Execution lock acquired');
 
   try {
     // � CRITICAL: Global emergency pause check (environment variable)
@@ -542,9 +101,9 @@ async function executeBatch(
       console.error('🚨 [Batch Executor] GLOBAL EMERGENCY PAUSE ACTIVE');
       console.error('🚨 [Batch Executor] Reason:', globalPauseCheck.reason || 'Manual pause');
       
-      const campaign = await loadCampaign(campaignId);
-      if (campaign && campaign.status === 'RUNNING') {
-        await pauseCampaign(
+      const campaign = await campaignRepository.getCampaign(campaignId);
+      if (campaign && campaign.campaign_status === 'RUNNING') {
+        await campaignRepository.pauseCampaign(
           campaignId,
           `System-wide emergency pause: ${globalPauseCheck.reason || 'Manual pause'}`
         );
@@ -562,7 +121,18 @@ async function executeBatch(
     
     // �🔧 AUTO-RECONCILIATION: Recover stuck recipients before batch starts
     console.log('🔧 [Batch Executor] Running auto-reconciliation...');
-    const recovered = await reconcileStuckRecipients(campaignId);
+    const stuckRecipients = await recipientRepository.getStuckRecipients(120); // 2-minute threshold
+    const campaignStuck = stuckRecipients.filter(r => r.campaignId === campaignId);
+    let recovered = 0;
+    for (const stuck of campaignStuck) {
+      await recipientRepository.markRecipientAsFailed(
+        campaignId,
+        stuck.phone,
+        'STUCK_PROCESSING',
+        `Stuck in PROCESSING for ${stuck.stuckDuration}s - auto-recovered`
+      );
+      recovered++;
+    }
     if (recovered > 0) {
       console.log(`✅ [Batch Executor] Auto-reconciliation recovered ${recovered} stuck recipients`);
     }
@@ -576,9 +146,9 @@ async function executeBatch(
       console.warn('🚨 [Batch Executor] Reason:', killSwitch.reason);
       
       // Pause campaign if not already paused
-      const campaign = await loadCampaign(campaignId);
-      if (campaign && campaign.status === 'RUNNING') {
-        await pauseCampaign(
+      const campaign = await campaignRepository.getCampaign(campaignId);
+      if (campaign && campaign.campaign_status === 'RUNNING') {
+        await campaignRepository.pauseCampaign(
           campaignId,
           `Emergency stop: ${killSwitch.reason || 'Kill switch enabled'}`
         );
@@ -604,9 +174,9 @@ async function executeBatch(
       console.warn(`🚫 [Batch Executor] ${globalLimitCheck.currentCount}/${globalLimitCheck.limit} messages sent today`);
       
       // Pause this campaign
-      const campaign = await loadCampaign(campaignId);
-      if (campaign && campaign.status === 'RUNNING') {
-        await pauseCampaign(
+      const campaign = await campaignRepository.getCampaign(campaignId);
+      if (campaign && campaign.campaign_status === 'RUNNING') {
+        await campaignRepository.pauseCampaign(
           campaignId,
           globalLimitCheck.reason || 'Global daily limit reached'
         );
@@ -628,13 +198,7 @@ async function executeBatch(
     // 🔥 WARMUP: Check account age-based daily limits
     console.log('🌱 [Batch Executor] Checking account warmup limits...');
     const warmupManager = getAccountWarmupManager();
-    const accountId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
-    
-    if (!accountId) {
-      console.error('❌ [Batch Executor] WHATSAPP_PHONE_NUMBER_ID not configured');
-      throw new Error('WhatsApp account not configured');
-    }
-    
+    const accountId = process.env.WHATSAPP_PHONE_NUMBER_ID!; // validated in POST handler before lock
     const warmupCheck = await warmupManager.canSend(accountId, BATCH_SIZE);
     
     if (!warmupCheck.allowed) {
@@ -643,9 +207,9 @@ async function executeBatch(
       console.warn(`🚫 [Batch Executor] Remaining today: ${warmupCheck.remainingToday}/${warmupCheck.dailyLimit}`);
       
       // Pause this campaign
-      const campaign = await loadCampaign(campaignId);
-      if (campaign && campaign.status === 'RUNNING') {
-        await pauseCampaign(
+      const campaign = await campaignRepository.getCampaign(campaignId);
+      if (campaign && campaign.campaign_status === 'RUNNING') {
+        await campaignRepository.pauseCampaign(
           campaignId,
           warmupCheck.reason || 'Daily warmup limit reached'
         );
@@ -666,7 +230,7 @@ async function executeBatch(
     
     console.log('📥 [Batch Executor] Loading campaign metadata...');
     // 1️⃣ Load campaign metadata
-    const campaign = await loadCampaign(campaignId);
+    const campaign = await campaignRepository.getCampaign(campaignId);
     
     if (!campaign) {
       console.error('❌ [Batch Executor] Campaign not found:', campaignId);
@@ -684,9 +248,15 @@ async function executeBatch(
       console.error('🚨 [Batch Executor] BLOCK RATE CRITICAL - TRIGGERING KILL SWITCH');
       console.error(`🚨 [Batch Executor] ${blockRateCheck.reason}`);
       
-      // TODO: Trigger system-wide kill switch
-      // For now, pause this campaign
-      await pauseCampaign(campaignId, blockRateCheck.reason!);
+      // Trigger system-wide kill switch to halt all campaigns
+      try {
+        await whatsappRepository.updateKillSwitchStatus('enable', 'system', `Auto-triggered: ${blockRateCheck.reason}`);
+        console.error('🚨 [Batch Executor] Global kill switch ENABLED');
+      } catch (ksError) {
+        console.error('🚨 [Batch Executor] Failed to enable kill switch:', ksError);
+      }
+
+      await campaignRepository.pauseCampaign(campaignId, blockRateCheck.reason!);
       
       return {
         processed: 0,
@@ -702,7 +272,7 @@ async function executeBatch(
       console.warn('⚠️ [Batch Executor] BLOCK RATE ELEVATED - AUTO-PAUSING CAMPAIGN');
       console.warn(`⚠️ [Batch Executor] ${blockRateCheck.reason}`);
       
-      await pauseCampaign(campaignId, blockRateCheck.reason!);
+      await campaignRepository.pauseCampaign(campaignId, blockRateCheck.reason!);
       
       return {
         processed: 0,
@@ -720,8 +290,8 @@ async function executeBatch(
     }
 
     // ⏱️ CRITICAL: Server-side cooldown check (30 seconds minimum between batches)
-    if (campaign.lastBatchAt) {
-      const timeSinceLastBatch = now - campaign.lastBatchAt;
+    if (campaign.last_dispatch_at) {
+      const timeSinceLastBatch = now - campaign.last_dispatch_at;
       if (timeSinceLastBatch < 30) {
         const remainingCooldown = 30 - timeSinceLastBatch;
         console.warn(`⏱️ [Batch Executor] Cooldown active: ${remainingCooldown}s remaining`);
@@ -737,24 +307,24 @@ async function executeBatch(
     }
 
     // 🎯 CRITICAL: Campaign daily cap enforcement
-    if (campaign.sentCount >= campaign.dailyCap) {
-      console.warn(`🎯 [Batch Executor] Campaign daily cap reached: ${campaign.sentCount}/${campaign.dailyCap}`);
-      await pauseCampaign(campaignId, `Campaign daily cap reached: ${campaign.dailyCap} messages`);
+    if (campaign.sent_count >= (campaign.daily_cap ?? Infinity)) {
+      console.warn(`🎯 [Batch Executor] Campaign daily cap reached: ${campaign.sent_count}/${campaign.daily_cap}`);
+      await campaignRepository.pauseCampaign(campaignId, `Campaign daily cap reached: ${campaign.daily_cap} messages`);
       return {
         processed: 0,
         sent: 0,
         failed: 0,
         paused: true,
         completed: false,
-        pauseReason: `Campaign daily cap reached: ${campaign.dailyCap} messages`
+        pauseReason: `Campaign daily cap reached: ${campaign.daily_cap} messages`
       };
     }
 
     // 📊 CRITICAL: Metrics integrity check
-    const processedCount = campaign.sentCount + campaign.failedCount;
-    if (processedCount > campaign.totalRecipients) {
-      console.error(`❌ [Batch Executor] METRICS CORRUPTION: sentCount(${campaign.sentCount}) + failedCount(${campaign.failedCount}) = ${processedCount} > totalRecipients(${campaign.totalRecipients})`);
-      await pauseCampaign(campaignId, 'Metrics corruption detected - manual intervention required');
+    const processedCount = campaign.sent_count + campaign.failed_count;
+    if (processedCount > campaign.total_recipients) {
+      console.error(`❌ [Batch Executor] METRICS CORRUPTION: sentCount(${campaign.sent_count}) + failedCount(${campaign.failed_count}) = ${processedCount} > totalRecipients(${campaign.total_recipients})`);
+      await campaignRepository.pauseCampaign(campaignId, 'Metrics corruption detected - manual intervention required');
       return {
         processed: 0,
         sent: 0,
@@ -764,24 +334,24 @@ async function executeBatch(
         pauseReason: 'METRICS_CORRUPTION: Manual intervention required'
       };
     }
-  console.log('📊 [Batch Executor] Campaign loaded:', { id: campaign.id, status: campaign.status, template: campaign.templateName });
+  console.log('📊 [Batch Executor] Campaign loaded:', { id: campaign.campaign_id, status: campaign.campaign_status, template: campaign.template_name });
 
   // 2️⃣ Validate status == RUNNING
-  if (campaign.status !== 'RUNNING') {
-    console.log('⚠️ [Batch Executor] Campaign not RUNNING:', campaign.status);
+  if (campaign.campaign_status !== 'RUNNING') {
+    console.log('⚠️ [Batch Executor] Campaign not RUNNING:', campaign.campaign_status);
     return {
       processed: 0,
       sent: 0,
       failed: 0,
       paused: false,
       completed: false,
-      pauseReason: `Campaign status is ${campaign.status}, not RUNNING`
+      pauseReason: `Campaign status is ${campaign.campaign_status}, not RUNNING`
     };
   }
 
   // 3️⃣ Query PENDING recipients (limit 25)
   console.log('🔍 [Batch Executor] Querying pending recipients...');
-  const recipients = await getPendingRecipients(campaignId);
+  const recipients = await recipientRepository.getPendingRecipients(campaignId, BATCH_SIZE);
   console.log(`📊 [Batch Executor] Found ${recipients.length} pending recipients`);
   
   // 🛡️ CRITICAL: Limit batch size to remaining global slots
@@ -799,7 +369,7 @@ async function executeBatch(
   // 4️⃣ If no recipients → mark COMPLETED
   if (limitedRecipients.length === 0) {
     console.log('✅ [Batch Executor] No pending recipients, marking campaign as COMPLETED');
-    await completeCampaign(campaignId);
+    await campaignRepository.updateCampaignStatus(campaignId, 'COMPLETED');
     return {
       processed: 0,
       sent: 0,
@@ -821,7 +391,7 @@ async function executeBatch(
     try {
       // 🔒 CRITICAL: Claim recipient atomically (optimistic lock)
       // This prevents race conditions in parallel executions
-      const claimed = await claimRecipient(campaignId, recipient.phone);
+      const claimed = await recipientRepository.claimRecipient(campaignId, recipient.phone);
         
         if (!claimed) {
           // Another execution already claimed this recipient
@@ -836,8 +406,8 @@ async function executeBatch(
       const pauseCheck = await globalStateManager.isGloballyPaused();
       if (pauseCheck.paused) {
         console.warn('[Batch Executor] GLOBAL PAUSE DETECTED mid-batch - Stopping immediately');
-        await dynamoClient.send(new UpdateItemCommand({TableName: TABLES.RECIPIENTS,Key: {PK: { S: `CAMPAIGN#${campaignId}` },SK: { S: `RECIPIENT#${recipient.phone}` }},UpdateExpression: 'SET #status = :pending REMOVE processingAt',ExpressionAttributeNames: {'#status': 'status'},ExpressionAttributeValues: {':pending': { S: 'PENDING' }}}));
-        await pauseCampaign(campaignId, `Global pause: ${pauseCheck.reason || 'System paused'}`);
+        await recipientRepository.updateRecipientStatus(campaignId, recipient.phone, 'PENDING');
+        await campaignRepository.pauseCampaign(campaignId, `Global pause: ${pauseCheck.reason || 'System paused'}`);
         limitReached = true;
         break;
       }
@@ -848,25 +418,10 @@ async function executeBatch(
         console.warn('🚨 [Batch Executor] Reason:', killSwitchCheck.reason);
         
         // Reset recipient back to PENDING (was claimed as PROCESSING)
-        await dynamoClient.send(
-          new UpdateItemCommand({
-            TableName: TABLES.RECIPIENTS,
-            Key: {
-              PK: { S: `CAMPAIGN#${campaignId}` },
-              SK: { S: `RECIPIENT#${recipient.phone}` }
-            },
-            UpdateExpression: 'SET #status = :pending REMOVE processingAt',
-            ExpressionAttributeNames: {
-              '#status': 'status'
-            },
-            ExpressionAttributeValues: {
-              ':pending': { S: 'PENDING' }
-            }
-          })
-        );
+        await recipientRepository.updateRecipientStatus(campaignId, recipient.phone, 'PENDING');
         
         // Pause campaign
-        await pauseCampaign(
+        await campaignRepository.pauseCampaign(
           campaignId,
           `Emergency stop: ${killSwitchCheck.reason || 'Kill switch enabled'}`
         );
@@ -880,7 +435,12 @@ async function executeBatch(
       // MessageService already includes guard check, but we need to catch DailyLimitExceededError
       
       // ✨ Template rotation: select template dynamically
-      const templateConfig = parseTemplateConfig(campaign);
+      const templateConfig = parseTemplateConfig({
+        templateName: campaign.template_name,
+        templates: campaign.templates,
+        templateWeights: campaign.template_weights,
+        templateStrategy: campaign.template_strategy
+      });
       const selectedTemplate = selectTemplate(templateConfig) as string;
       console.log(`📋 [Batch Executor] Selected template: ${selectedTemplate}`);
       
@@ -913,25 +473,20 @@ async function executeBatch(
       });
 
       // Update recipient as SENT
-      await updateRecipientStatus(campaignId, recipient.phone, 'SENT', messageId);
+      await recipientRepository.updateRecipientStatus(campaignId, recipient.phone, 'SENT', { message_id: messageId });
       
       // Increment campaign sentCount
-      await incrementCampaignMetric(campaignId, 'sentCount');
+      await campaignRepository.incrementMetric(campaignId, 'sent_count');
       
       // 🌐 Increment global daily counter
       await globalLimitGuard.incrementCount();
       
       // Write log entry for observability
-      await writeLogEntry(
-        campaignId,
-        recipient.phone,
-        'SENT',
+      await campaignRepository.addCampaignLog(campaignId, recipient.phone, 'SENT', {
         messageId,
-        undefined,
-        undefined,
-        JSON.stringify(response),
-        recipient.attempts + 1
-      );
+        metaResponse: JSON.stringify(response),
+        attempts: recipient.attempts + 1
+      });
       
       sent++;
 
@@ -950,7 +505,7 @@ async function executeBatch(
         limitReached = true;
         
         // Pause campaign
-        await pauseCampaign(
+        await campaignRepository.pauseCampaign(
           campaignId,
           `Daily limit reached: ${error.currentCount}/${error.limit} conversations`
         );
@@ -965,93 +520,62 @@ async function executeBatch(
         // Determine if should retry
         if (error.isRetryable && recipient.attempts < 3) {
           // Don't mark as FAILED yet, will retry in next batch
-          await updateRecipientStatus(
+          await recipientRepository.updateRecipientStatus(
             campaignId,
             recipient.phone,
             'FAILED', // Temporarily mark failed
-            undefined,
-            `RETRYABLE_${error.code}`
+            { error_code: `RETRYABLE_${error.code}` }
           );
           
           // Write log entry for retry
-          await writeLogEntry(
-            campaignId,
-            recipient.phone,
-            'FAILED',
-            undefined,
-            `RETRYABLE_${error.code}`,
-            `${error.message} (Will retry)`,
-            error.toLogString(),
-            recipient.attempts + 1
-          );
+          await campaignRepository.addCampaignLog(campaignId, recipient.phone, 'FAILED', {
+            errorCode: `RETRYABLE_${error.code}`,
+            errorMessage: `${error.message} (Will retry)`,
+            metaResponse: error.toLogString(),
+            attempts: recipient.attempts + 1
+          });
           
           // Reset to PENDING for retry (separate operation)
-          await dynamoClient.send(
-            new UpdateItemCommand({
-              TableName: TABLES.RECIPIENTS,
-              Key: {
-                PK: { S: `CAMPAIGN#${campaignId}` },
-                SK: { S: `USER#${recipient.phone}` }
-              },
-              UpdateExpression: 'SET #status = :pending',
-              ExpressionAttributeNames: {
-                '#status': 'status'
-              },
-              ExpressionAttributeValues: {
-                ':pending': { S: 'PENDING' }
-              }
-            })
-          );
+          await recipientRepository.updateRecipientStatus(campaignId, recipient.phone, 'PENDING');
         } else {
           // Non-retryable or max attempts reached
-          await updateRecipientStatus(
+          await recipientRepository.updateRecipientStatus(
             campaignId,
             recipient.phone,
             'FAILED',
-            undefined,
-            `META_${error.code}`
+            { error_code: `META_${error.code}`, error_message: error.message }
           );
           
           // Write log entry for permanent failure
-          await writeLogEntry(
-            campaignId,
-            recipient.phone,
-            'FAILED',
-            undefined,
-            `META_${error.code}`,
-            error.message,
-            error.toLogString(),
-            recipient.attempts + 1
-          );
+          await campaignRepository.addCampaignLog(campaignId, recipient.phone, 'FAILED', {
+            errorCode: `META_${error.code}`,
+            errorMessage: error.message,
+            metaResponse: error.toLogString(),
+            attempts: recipient.attempts + 1
+          });
           
-          await incrementCampaignMetric(campaignId, 'failedCount');
+          await campaignRepository.incrementMetric(campaignId, 'failed_count');
           failed++;
         }
       } else {
         // Unknown error - mark as failed
         console.error(`[BatchExecutor] Unknown error for ${recipient.phone}:`, error);
         
-        await updateRecipientStatus(
+        await recipientRepository.updateRecipientStatus(
           campaignId,
           recipient.phone,
           'FAILED',
-          undefined,
-          'UNKNOWN_ERROR'
+          { error_code: 'UNKNOWN_ERROR', error_message: error instanceof Error ? error.message : 'Unknown error occurred' }
         );
         
         // Write log entry for unknown error
-        await writeLogEntry(
-          campaignId,
-          recipient.phone,
-          'FAILED',
-          undefined,
-          'UNKNOWN_ERROR',
-          error instanceof Error ? error.message : 'Unknown error occurred',
-          undefined,
-          recipient.attempts + 1
-        );
+        await campaignRepository.addCampaignLog(campaignId, recipient.phone, 'FAILED', {
+          errorCode: 'UNKNOWN_ERROR',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error occurred',
+          attempts: recipient.attempts + 1
+        });
         
-        await incrementCampaignMetric(campaignId, 'failedCount');
+        await campaignRepository.incrementMetric(campaignId, 'failed_count');
         failed++;
       }
     } // End catch (per-recipient error handling)
@@ -1060,20 +584,7 @@ async function executeBatch(
   console.log(`🏁 [Batch Executor] Batch complete: ${sent} sent, ${failed} failed, ${processed} processed`);
   
   // 🔓 CRITICAL: Release execution lock and update lastBatchAt
-  await dynamoClient.send(
-    new UpdateItemCommand({
-      TableName: TABLES.CAMPAIGNS,
-      Key: {
-        PK: { S: `CAMPAIGN#${campaignId}` },
-        SK: { S: 'METADATA' }
-      },
-      UpdateExpression: 'SET executionLock = :false, lastBatchAt = :now REMOVE lockedAt',
-      ExpressionAttributeValues: {
-        ':false': { BOOL: false },
-        ':now': { N: now.toString() }
-      }
-    })
-  );
+  await campaignRepository.releaseExecutionLock(campaignId, now);
   console.log('🔓 [Batch Executor] Execution lock released');
   
   // 🔥 WARMUP: Record sent messages to update daily count
@@ -1094,19 +605,7 @@ async function executeBatch(
     // 🔓 CRITICAL: Release lock even on error
     console.error('❌ [Batch Executor] Processing error:', processingError);
     try {
-      await dynamoClient.send(
-        new UpdateItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: `CAMPAIGN#${campaignId}` },
-            SK: { S: 'METADATA' }
-          },
-          UpdateExpression: 'SET executionLock = :false REMOVE lockedAt',
-          ExpressionAttributeValues: {
-            ':false': { BOOL: false }
-          }
-        })
-      );
+      await campaignRepository.releaseExecutionLockOnError(campaignId);
       console.log('🔓 [Batch Executor] Execution lock released (error path)');
     } catch (unlockError) {
       console.error('❌ [Batch Executor] Failed to release lock on error:', unlockError);
@@ -1131,16 +630,17 @@ export async function POST(
                req.headers.get('x-real-ip') || 
                'unknown';
     
-    const rateCheck = checkRateLimit(ip);
-    if (!rateCheck.allowed) {
+    // 1️⃣ Rate Limit Check (DynamoDB-backed — survives cold starts)
+    const rateCheck = await sessionRepository.checkRateLimit(ip, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MINUTES);
+    if (rateCheck.blocked) {
       console.warn(`⚠️ [Execute Batch API] Rate limit exceeded for IP: ${ip}`);
       return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded', 
+        {
+          error: 'Rate limit exceeded',
           message: `Too many requests. Try again in ${rateCheck.remainingTime}s.`,
-          retryAfter: rateCheck.remainingTime 
+          retryAfter: rateCheck.remainingTime
         },
-        { 
+        {
           status: 429,
           headers: {
             'Retry-After': rateCheck.remainingTime?.toString() || '60'
@@ -1148,6 +648,8 @@ export async function POST(
         }
       );
     }
+    // Count this call toward the rate limit window (DynamoDB TTL cleans up automatically)
+    await sessionRepository.recordFailedAttempt(ip, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MINUTES);
     
     // 2️⃣ Validate Admin Session
     console.log('🔐 [Execute Batch API] Validating admin session...');
@@ -1168,17 +670,26 @@ export async function POST(
       );
     }
 
-    // 3️⃣ Initialize MessageService
+    // 3️⃣ Validate required environment variables early (before acquiring any lock)
+    if (!process.env.WHATSAPP_PHONE_NUMBER_ID) {
+      console.error('❌ [Execute Batch API] WHATSAPP_PHONE_NUMBER_ID not configured');
+      return NextResponse.json(
+        { error: 'WhatsApp account not configured' },
+        { status: 500 }
+      );
+    }
+
+    // 4️⃣ Initialize MessageService
     console.log('📦 [Execute Batch API] Campaign ID:', campaignId);
     console.log('⚙️ [Execute Batch API] Initializing message service...');
     const messageService = getMessageService();
 
-    // 4️⃣ Execute batch
+    // 5️⃣ Execute batch
     console.log('⚡ [Execute Batch API] Executing batch...');
     const result = await executeBatch(campaignId, messageService);
     console.log('✅ [Execute Batch API] Batch execution completed:', result);
 
-    // 5️⃣ Return summary
+    // 6️⃣ Return summary
     return NextResponse.json({
       success: true,
       campaignId,

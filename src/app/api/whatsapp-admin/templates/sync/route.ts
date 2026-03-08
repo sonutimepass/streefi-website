@@ -6,13 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { getTemplateService } from '@/lib/whatsapp/meta/templateService';
+import { whatsappRepository } from '@/lib/repositories';
 import { randomUUID } from 'crypto';
-
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
 
 interface SyncResult {
   imported: number;
@@ -106,68 +103,46 @@ export async function POST(req: NextRequest) {
         // For now, we'll use Meta template ID as our templateId
         const templateId = metaTemplate.id || randomUUID();
 
-        // Create/update template in DynamoDB
-        const item = {
-          PK: { S: `TEMPLATE#${templateId}` },
-          SK: { S: 'METADATA' },
-          
-          templateId: { S: templateId },
-          name: { S: metaTemplate.name },
-          category: { S: metaTemplate.category },
-          language: { S: metaTemplate.language },
-          variables: { L: variables.map(v => ({ S: v })) },
-          
-          status: { S: 'active' }, // Mark synced templates as active
-          metaStatus: { S: metaStatus },
-          
-          syncedFromMeta: { BOOL: true },
-          lastSyncTime: { S: now },
-          metaTemplateId: { S: metaTemplate.id },
-          
-          createdAt: { S: now },
-          updatedAt: { S: now }
+        // Create template object
+        const template = {
+          templateId,
+          name: metaTemplate.name,
+          category: metaTemplate.category as 'MARKETING' | 'UTILITY' | 'AUTHENTICATION',
+          language: metaTemplate.language,
+          variables,
+          status: 'active' as const, // Mark synced templates as active
+          metaStatus,
+          syncedFromMeta: true,
+          lastSyncTime: now,
+          metaTemplateId: metaTemplate.id,
+          createdAt: now,
+          updatedAt: now
         };
 
         try {
-          // Try to create new template
-          await dynamoClient.send(
-            new PutItemCommand({
-              TableName: TABLE_NAME,
-              Item: item,
-              ConditionExpression: 'attribute_not_exists(PK)'
-            })
-          );
+          // Check if template already exists
+          const existingTemplate = await whatsappRepository.getTemplate(templateId);
           
-          result.imported++;
-          
-        } catch (error: any) {
-          // If template exists, update it
-          if (error.name === 'ConditionalCheckFailedException') {
-            await dynamoClient.send(
-              new UpdateItemCommand({
-                TableName: TABLE_NAME,
-                Key: {
-                  PK: { S: `TEMPLATE#${templateId}` },
-                  SK: { S: 'METADATA' }
-                },
-                UpdateExpression: 'SET metaStatus = :metaStatus, syncedFromMeta = :synced, lastSyncTime = :syncTime, updatedAt = :updated, #vars = :vars',
-                ExpressionAttributeNames: {
-                  '#vars': 'variables'
-                },
-                ExpressionAttributeValues: {
-                  ':metaStatus': { S: metaStatus },
-                  ':synced': { BOOL: true },
-                  ':syncTime': { S: now },
-                  ':updated': { S: now },
-                  ':vars': { L: variables.map(v => ({ S: v })) }
-                }
-              })
-            );
-            
+          if (existingTemplate) {
+            // Update existing template with sync data
+            await whatsappRepository.saveTemplate({
+              ...existingTemplate,
+              metaStatus,
+              variables,
+              syncedFromMeta: true,
+              lastSyncTime: now,
+              updatedAt: now
+            });
             result.updated++;
           } else {
-            throw error;
+            // Create new template
+            await whatsappRepository.saveTemplate(template);
+            result.imported++;
           }
+          
+        } catch (error: any) {
+          // If there's any error, log it
+          throw error;
         }
 
       } catch (error) {

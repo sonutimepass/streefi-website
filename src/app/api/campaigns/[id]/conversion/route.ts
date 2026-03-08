@@ -2,7 +2,7 @@
  * Conversion Tracking API
  * 
  * Records business outcomes (orders, purchases) from campaigns.
- * Called by vendor POS system or e-commerce platform.
+ * Called by authenticated admin users via the WhatsApp admin panel.
  * 
  * POST /api/campaigns/:id/conversion
  * Body: {
@@ -12,11 +12,13 @@
  * }
  * 
  * AUTHENTICATION:
- * Requires vendor API key in header: X-Vendor-Api-Key
+ * Requires valid whatsapp-session cookie (admin login).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
+import { validateAdminSession } from '@/lib/adminAuth';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 interface RouteParams {
   params: Promise<{
@@ -34,11 +36,11 @@ export async function POST(
   const { id: campaignId } = await params;
 
   try {
-    // TODO: Add vendor API key authentication
-    // const apiKey = request.headers.get('x-vendor-api-key');
-    // if (!apiKey || !await isValidVendorApiKey(apiKey)) {
-    //   return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
-    // }
+    // Require valid admin session
+    const auth = await validateAdminSession(request, 'whatsapp-session');
+    if (!auth.valid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await request.json();
 
@@ -48,6 +50,12 @@ export async function POST(
         { error: 'Missing required fields: phone, orderAmount' },
         { status: 400 }
       );
+    }
+
+    // Validate campaign exists before recording anything (BUG-007)
+    const campaign = await campaignRepository.getCampaign(campaignId);
+    if (!campaign) {
+      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
     }
 
     // Validate phone format

@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
-import { getGlobalStateManager } from '@/lib/whatsapp/globalStateManager';
+import { campaignRepository } from '@/lib/repositories';
 
 /**
  * GET - Check current global pause state
@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const stateManager = getGlobalStateManager();
-    const state = await stateManager.getGlobalState();
+    const state = await campaignRepository.getGlobalPauseState();
     
     return NextResponse.json({
       success: true,
@@ -68,13 +67,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stateManager = getGlobalStateManager();
     const adminEmail = validation.session?.email || 'admin';
     
-    await stateManager.setGlobalPause(
+    await campaignRepository.setGlobalPauseState(
       body.paused,
-      body.reason,
-      adminEmail
+      adminEmail,
+      body.reason
     );
     
     console.log(`✅ [GlobalPauseAPI] Global pause ${body.paused ? 'ENABLED' : 'DISABLED'} by ${adminEmail}`);

@@ -11,27 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient } from '@/lib/dynamoClient';
+import { whatsappRepository, type SystemSettings } from '@/lib/repositories';
 import { validateAdminSession } from '@/lib/adminAuth';
-
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
-
-interface SystemSettings {
-  maxMessagesPerSecond: number;       // Rate limit (e.g., 20)
-  defaultDailyCap: number;            // Default cap for new campaigns (e.g., 200)
-  metaTierLimit: number;              // Meta API tier limit (e.g., 250)
-  safetyBuffer: number;               // Safety buffer % (e.g., 80 = 80%)
-  updatedBy?: string;
-  updatedAt?: string;
-}
-
-const DEFAULT_SETTINGS: SystemSettings = {
-  maxMessagesPerSecond: 20,           // Meta allows ~20 msg/sec
-  defaultDailyCap: 200,               // 80% of 250 tier limit
-  metaTierLimit: 250,                 // Meta Tier 250
-  safetyBuffer: 80                    // 80% safety buffer
-};
 
 /**
  * GET - Get current system settings
@@ -44,30 +25,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get settings from DynamoDB
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: { S: 'SYSTEM' },
-          SK: { S: 'SETTINGS' }
-        }
-      })
-    );
-
-    if (!response.Item) {
-      // Return defaults if no settings exist
-      return NextResponse.json({ settings: DEFAULT_SETTINGS });
-    }
-
-    const settings: SystemSettings = {
-      maxMessagesPerSecond: parseInt(response.Item.maxMessagesPerSecond?.N || '20', 10),
-      defaultDailyCap: parseInt(response.Item.defaultDailyCap?.N || '200', 10),
-      metaTierLimit: parseInt(response.Item.metaTierLimit?.N || '250', 10),
-      safetyBuffer: parseInt(response.Item.safetyBuffer?.N || '80', 10),
-      updatedBy: response.Item.updatedBy?.S,
-      updatedAt: response.Item.updatedAt?.S
-    };
+    // Get settings from repository (returns defaults if not found)
+    const settings = await whatsappRepository.getSystemSettings();
 
     return NextResponse.json({ settings });
 
@@ -135,49 +94,10 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Get current settings
-    const currentResponse = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: { S: 'SYSTEM' },
-          SK: { S: 'SETTINGS' }
-        }
-      })
-    );
-
-    // Merge with updates
-    const current = currentResponse.Item ? {
-      maxMessagesPerSecond: parseInt(currentResponse.Item.maxMessagesPerSecond?.N || '20', 10),
-      defaultDailyCap: parseInt(currentResponse.Item.defaultDailyCap?.N || '200', 10),
-      metaTierLimit: parseInt(currentResponse.Item.metaTierLimit?.N || '250', 10),
-      safetyBuffer: parseInt(currentResponse.Item.safetyBuffer?.N || '80', 10)
-    } : DEFAULT_SETTINGS;
-
-    const updated: SystemSettings = {
-      maxMessagesPerSecond: body.maxMessagesPerSecond ?? current.maxMessagesPerSecond,
-      defaultDailyCap: body.defaultDailyCap ?? current.defaultDailyCap,
-      metaTierLimit: body.metaTierLimit ?? current.metaTierLimit,
-      safetyBuffer: body.safetyBuffer ?? current.safetyBuffer,
-      updatedBy: auth.session.email,
-      updatedAt: new Date().toISOString()
-    };
-
-    // Save to DynamoDB
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: TABLE_NAME,
-        Item: {
-          PK: { S: 'SYSTEM' },
-          SK: { S: 'SETTINGS' },
-          maxMessagesPerSecond: { N: updated.maxMessagesPerSecond.toString() },
-          defaultDailyCap: { N: updated.defaultDailyCap.toString() },
-          metaTierLimit: { N: updated.metaTierLimit.toString() },
-          safetyBuffer: { N: updated.safetyBuffer.toString() },
-          updatedBy: { S: updated.updatedBy! },
-          updatedAt: { S: updated.updatedAt! }
-        }
-      })
+    // Update settings via repository (handles merge and validation)
+    const updated = await whatsappRepository.updateSystemSettings(
+      body,
+      auth.session.email
     );
 
     console.log(`⚙️ Settings updated by ${auth.session.email}:`, updated);
@@ -200,31 +120,5 @@ export async function PUT(req: NextRequest) {
  * Helper function to get system settings (for use in other APIs)
  */
 export async function getSystemSettings(): Promise<SystemSettings> {
-  try {
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: { S: 'SYSTEM' },
-          SK: { S: 'SETTINGS' }
-        }
-      })
-    );
-
-    if (!response.Item) {
-      return DEFAULT_SETTINGS;
-    }
-
-    return {
-      maxMessagesPerSecond: parseInt(response.Item.maxMessagesPerSecond?.N || '20', 10),
-      defaultDailyCap: parseInt(response.Item.defaultDailyCap?.N || '200', 10),
-      metaTierLimit: parseInt(response.Item.metaTierLimit?.N || '250', 10),
-      safetyBuffer: parseInt(response.Item.safetyBuffer?.N || '80', 10),
-      updatedBy: response.Item.updatedBy?.S,
-      updatedAt: response.Item.updatedAt?.S
-    };
-  } catch (error) {
-    console.error('❌ Get settings error:', error);
-    return DEFAULT_SETTINGS;
-  }
+  return whatsappRepository.getSystemSettings();
 }

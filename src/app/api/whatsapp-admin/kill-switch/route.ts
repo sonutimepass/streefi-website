@@ -9,20 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient } from '@/lib/dynamoClient';
+import { whatsappRepository, type KillSwitchStatus } from '@/lib/repositories';
 import { validateAdminSession } from '@/lib/adminAuth';
-
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
-
-interface KillSwitchStatus {
-  enabled: boolean;
-  reason?: string;
-  enabledBy?: string;
-  enabledAt?: string;
-  disabledBy?: string;
-  disabledAt?: string;
-}
 
 /**
  * GET - Get current kill switch status
@@ -35,34 +23,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get kill switch status from DynamoDB
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: { S: 'SYSTEM' },
-          SK: { S: 'KILL_SWITCH' }
-        }
-      })
-    );
-
-    if (!response.Item) {
-      // No record = kill switch disabled (safe default)
-      return NextResponse.json({
-        killSwitch: {
-          enabled: false
-        }
-      });
-    }
-
-    const killSwitch: KillSwitchStatus = {
-      enabled: response.Item.enabled?.BOOL ?? false,
-      reason: response.Item.reason?.S,
-      enabledBy: response.Item.enabledBy?.S,
-      enabledAt: response.Item.enabledAt?.S,
-      disabledBy: response.Item.disabledBy?.S,
-      disabledAt: response.Item.disabledAt?.S
-    };
+    // Get kill switch status from repository
+    const killSwitch = await whatsappRepository.getKillSwitchStatus();
 
     return NextResponse.json({ killSwitch });
 
@@ -98,48 +60,20 @@ export async function POST(req: NextRequest) {
     }
 
     const enabled = action === 'enable';
-    const timestamp = new Date().toISOString();
     const adminEmail = auth.session.email;
 
-    // Build item
-    const item: any = {
-      PK: { S: 'SYSTEM' },
-      SK: { S: 'KILL_SWITCH' },
-      enabled: { BOOL: enabled },
-      updatedAt: { S: timestamp }
-    };
-
-    if (enabled) {
-      item.enabledBy = { S: adminEmail };
-      item.enabledAt = { S: timestamp };
-      if (reason) {
-        item.reason = { S: reason };
-      }
-    } else {
-      item.disabledBy = { S: adminEmail };
-      item.disabledAt = { S: timestamp };
-      // Clear reason when disabled
-      item.reason = { S: '' };
-    }
-
-    // Save to DynamoDB
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: TABLE_NAME,
-        Item: item
-      })
+    // Update kill switch via repository
+    const killSwitch = await whatsappRepository.updateKillSwitchStatus(
+      action,
+      adminEmail,
+      reason
     );
 
     console.log(`🛑 Kill switch ${action}d by ${adminEmail}`);
 
     return NextResponse.json({
       success: true,
-      killSwitch: {
-        enabled,
-        reason: enabled ? reason : undefined,
-        [`${action}dBy`]: adminEmail,
-        [`${action}dAt`]: timestamp
-      }
+      killSwitch
     });
 
   } catch (error) {
@@ -156,28 +90,9 @@ export async function POST(req: NextRequest) {
  * Returns true if sending is DISABLED
  */
 export async function isKillSwitchEnabled(): Promise<{ enabled: boolean; reason?: string }> {
-  try {
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: { S: 'SYSTEM' },
-          SK: { S: 'KILL_SWITCH' }
-        }
-      })
-    );
-
-    if (!response.Item) {
-      return { enabled: false };
-    }
-
-    return {
-      enabled: response.Item.enabled?.BOOL ?? false,
-      reason: response.Item.reason?.S
-    };
-  } catch (error) {
-    console.error('❌ Kill switch check error:', error);
-    // Fail-safe: If we can't check, assume it's enabled (stop sending)
-    return { enabled: true, reason: 'System error - fail-safe activated' };
-  }
+  const status = await whatsappRepository.getKillSwitchStatus();
+  return {
+    enabled: status.enabled,
+    reason: status.reason
+  };
 }

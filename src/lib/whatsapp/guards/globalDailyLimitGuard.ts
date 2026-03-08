@@ -28,12 +28,7 @@
  * CRITICAL: This guard must be checked BEFORE campaign-level caps
  */
 
-import { 
-  GetItemCommand, 
-  UpdateItemCommand,
-  PutItemCommand 
-} from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 export interface GlobalDailyLimitCheckResult {
   allowed: boolean;
@@ -95,24 +90,9 @@ export class GlobalDailyLimitGuard {
     const dateKey = this.getTodayKey();
     
     try {
-      const response = await dynamoClient.send(
-        new GetItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: 'GLOBAL_LIMIT' },
-            SK: { S: `DATE#${dateKey}` }
-          }
-        })
-      );
-
-      if (!response.Item) {
-        return 0;
-      }
-
-      return parseInt(response.Item.count?.N || '0', 10);
+      return await campaignRepository.getGlobalDailyCount(dateKey);
     } catch (error) {
       console.error('[GlobalDailyLimitGuard] Failed to get current count:', error);
-      // Fail safe: assume 0 to allow operation (logged for monitoring)
       return 0;
     }
   }
@@ -156,55 +136,7 @@ export class GlobalDailyLimitGuard {
     const dateKey = this.getTodayKey();
     const timestamp = Math.floor(Date.now() / 1000);
 
-    try {
-      // Try to increment existing counter
-      await dynamoClient.send(
-        new UpdateItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: 'GLOBAL_LIMIT' },
-            SK: { S: `DATE#${dateKey}` }
-          },
-          UpdateExpression: 'ADD #count :amount SET updatedAt = :timestamp',
-          ExpressionAttributeNames: {
-            '#count': 'count'
-          },
-          ExpressionAttributeValues: {
-            ':amount': { N: amount.toString() },
-            ':timestamp': { N: timestamp.toString() }
-          }
-        })
-      );
-    } catch (error: any) {
-      // If item doesn't exist, create it
-      if (error.name === 'ValidationException') {
-        try {
-          await dynamoClient.send(
-            new PutItemCommand({
-              TableName: TABLES.CAMPAIGNS,
-              Item: {
-                PK: { S: 'GLOBAL_LIMIT' },
-                SK: { S: `DATE#${dateKey}` },
-                count: { N: amount.toString() },
-                date: { S: dateKey },
-                createdAt: { N: timestamp.toString() },
-                updatedAt: { N: timestamp.toString() }
-              },
-              ConditionExpression: 'attribute_not_exists(PK)'
-            })
-          );
-        } catch (putError: any) {
-          // Race condition: another process created it first, retry increment
-          if (putError.name === 'ConditionalCheckFailedException') {
-            await this.incrementCount(amount);
-          } else {
-            throw putError;
-          }
-        }
-      } else {
-        throw error;
-      }
-    }
+    await campaignRepository.incrementGlobalDailyCount(dateKey, amount);
   }
 
   /**

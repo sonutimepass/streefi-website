@@ -38,8 +38,7 @@
  * ```
  */
 
-import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 
 export interface BlockRateCheckResult {
   blockRate: number;
@@ -80,24 +79,14 @@ export class BlockRateCircuitBreaker {
     failedCount: number;
   }> {
     try {
-      const response = await dynamoClient.send(
-        new GetItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: `CAMPAIGN#${campaignId}` },
-            SK: { S: 'METADATA' }
-          }
-        })
-      );
-
-      if (!response.Item) {
+      const campaign = await campaignRepository.getCampaign(campaignId);
+      if (!campaign) {
         return { blockedCount: 0, sentCount: 0, failedCount: 0 };
       }
-
       return {
-        blockedCount: parseInt(response.Item.blockedCount?.N || '0', 10),
-        sentCount: parseInt(response.Item.sentCount?.N || '0', 10),
-        failedCount: parseInt(response.Item.failedCount?.N || '0', 10)
+        blockedCount: campaign.blocked_count || 0,
+        sentCount: campaign.sent_count,
+        failedCount: campaign.failed_count
       };
     } catch (error) {
       console.error('[BlockRateCircuitBreaker] Failed to get campaign metrics:', error);
@@ -182,27 +171,7 @@ export class BlockRateCircuitBreaker {
    * Call this when webhook reports a block (error_code 131051)
    */
   async incrementBlockedCount(campaignId: string, amount: number = 1): Promise<void> {
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    try {
-      await dynamoClient.send(
-        new UpdateItemCommand({
-          TableName: TABLES.CAMPAIGNS,
-          Key: {
-            PK: { S: `CAMPAIGN#${campaignId}` },
-            SK: { S: 'METADATA' }
-          },
-          UpdateExpression: 'ADD blockedCount :amount SET updatedAt = :timestamp',
-          ExpressionAttributeValues: {
-            ':amount': { N: amount.toString() },
-            ':timestamp': { N: timestamp.toString() }
-          }
-        })
-      );
-    } catch (error) {
-      console.error('[BlockRateCircuitBreaker] Failed to increment blocked count:', error);
-      throw error;
-    }
+    await campaignRepository.incrementMetric(campaignId, 'blocked_count', amount);
   }
 
   /**

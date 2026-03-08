@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface KillSwitchStatus {
   enabled: boolean;
@@ -77,7 +78,7 @@ export default function EmergencyKillSwitch() {
     try {
       const response = await fetch('/api/whatsapp-admin/kill-switch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({ 
           action,
           reason: action === 'enable' ? reason : undefined

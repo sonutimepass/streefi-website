@@ -31,14 +31,7 @@
  * - DAILY_COUNTER#YYYY-MM-DD / METADATA → Atomic daily counter
  */
 
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
-import { 
-  PutItemCommand, 
-  QueryCommand, 
-  GetItemCommand,
-  UpdateItemCommand,
-  type AttributeValue
-} from '@aws-sdk/client-dynamodb';
+import { whatsappRepository } from '@/lib/repositories';
 
 // Safety cap: 80% of Meta's limit to avoid hitting hard limit
 // Configurable via environment variable for easy tier upgrades
@@ -81,13 +74,6 @@ export interface ConversationRecord {
  * Run this BEFORE calling metaClient.
  */
 export class DailyLimitGuard {
-  private tableName: string;
-
-  constructor() {
-    // Use existing whatsapp table with PK pattern
-    this.tableName = TABLES.WHATSAPP;
-  }
-
   /**
    * Get today's counter key (format: DAILY_COUNTER#YYYY-MM-DD)
    * 
@@ -183,37 +169,8 @@ export class DailyLimitGuard {
    */
   private async getActiveConversation(phone: string): Promise<ConversationRecord | null> {
     try {
-      const now = Date.now();
-      const windowStart = now - CONVERSATION_WINDOW_MS;
-
-      const command = new GetItemCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: { S: `CONVERSATION#${phone}` },
-          SK: { S: 'METADATA' },
-        },
-      });
-
-      const response = await dynamoClient.send(command);
-
-      if (response.Item) {
-        const item = response.Item;
-        const lastMessageAt = parseInt(item.lastMessageAt?.N || '0');
-        const status = item.status?.S || 'open';
-
-        // In-memory filter: check if conversation is within 24h window and open
-        if (lastMessageAt >= windowStart && status === 'open') {
-          return {
-            phone: item.phone?.S || '',
-            conversationStartedAt: parseInt(item.conversationStartedAt?.N || '0'),
-            lastMessageAt,
-            status: status as 'open' | 'closed',
-            messageCount: parseInt(item.messageCount?.N || '0'),
-          };
-        }
-      }
-
-      return null;
+      const windowStart = Date.now() - CONVERSATION_WINDOW_MS;
+      return await whatsappRepository.getActiveConversation(phone, windowStart);
     } catch (error) {
       console.error('[DailyLimitGuard] Error fetching active conversation:', {
         phone,
@@ -231,23 +188,9 @@ export class DailyLimitGuard {
    */
   private async getDailyCount(): Promise<number> {
     const counterKey = this.getDailyCounterKey();
-    
+
     try {
-      const command = new GetItemCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: { S: counterKey },
-          SK: { S: 'METADATA' },
-        },
-      });
-
-      const response = await dynamoClient.send(command);
-
-      if (response.Item && response.Item.count?.N) {
-        return parseInt(response.Item.count.N);
-      }
-
-      return 0; // Counter not created yet today
+      return await whatsappRepository.getDailyConversationCount(counterKey);
     } catch (error) {
       console.error('[DailyLimitGuard] Error reading daily count:', {
         counterKey,
@@ -275,31 +218,10 @@ export class DailyLimitGuard {
   private async incrementDailyCounterConditional(): Promise<number> {
     try {
       const counterKey = this.getDailyCounterKey();
-      const now = new Date().toISOString();
-
-      const command = new UpdateItemCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: { S: counterKey },
-          SK: { S: 'METADATA' },
-        },
-        UpdateExpression: 'ADD #count :inc SET #updatedAt = :now',
-        ConditionExpression: 'attribute_not_exists(PK) OR #count < :limit',
-        ExpressionAttributeNames: {
-          '#count': 'count',
-          '#updatedAt': 'updatedAt',
-        },
-        ExpressionAttributeValues: {
-          ':inc': { N: '1' },
-          ':limit': { N: DAILY_CONVERSATION_LIMIT.toString() },
-          ':now': { S: now },
-        },
-        ReturnValues: 'ALL_NEW',
-      });
-
-      const response = await dynamoClient.send(command);
-
-      const newCount = parseInt(response.Attributes?.count?.N || '0');
+      const newCount = await whatsappRepository.incrementDailyConversationCountConditional(
+        counterKey,
+        DAILY_CONVERSATION_LIMIT
+      );
 
       console.log('[DailyLimitGuard] Daily counter incremented:', {
         date: counterKey.replace('DAILY_COUNTER#', ''),
@@ -327,28 +249,9 @@ export class DailyLimitGuard {
    */
   private async createConversation(phone: string): Promise<void> {
     try {
-      const now = Date.now();
-      const timestamp = new Date().toISOString();
-
-      const command = new PutItemCommand({
-        TableName: this.tableName,
-        Item: {
-          PK: { S: `CONVERSATION#${phone}` },
-          SK: { S: 'METADATA' },
-          phone: { S: phone },
-          conversationStartedAt: { N: now.toString() },
-          lastMessageAt: { N: now.toString() },
-          status: { S: 'open' },
-          messageCount: { N: '1' },
-          createdAt: { S: timestamp },
-        },
-      });
-
-      await dynamoClient.send(command);
-
+      await whatsappRepository.createConversation(phone);
       console.log('[DailyLimitGuard] New conversation created:', {
         phone,
-        conversationStartedAt: timestamp,
         conversationId: `CONVERSATION#${phone}`,
       });
     } catch (error) {
@@ -369,27 +272,8 @@ export class DailyLimitGuard {
    */
   private async updateLastMessageTime(phone: string): Promise<void> {
     try {
-      const now = Date.now();
-
-      const command = new UpdateItemCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: { S: `CONVERSATION#${phone}` },
-          SK: { S: 'METADATA' },
-        },
-        UpdateExpression: 'SET lastMessageAt = :now ADD messageCount :inc',
-        ExpressionAttributeValues: {
-          ':now': { N: now.toString() },
-          ':inc': { N: '1' },
-        },
-      });
-
-      await dynamoClient.send(command);
-
-      console.log('[DailyLimitGuard] Conversation updated atomically:', {
-        phone,
-        lastMessageAt: new Date(now).toISOString(),
-      });
+      await whatsappRepository.updateConversationLastMessage(phone);
+      console.log('[DailyLimitGuard] Conversation updated atomically:', { phone });
     } catch (error) {
       console.error('[DailyLimitGuard] Error updating conversation:', {
         phone,
@@ -408,20 +292,11 @@ export class DailyLimitGuard {
       const conversation = await this.getActiveConversation(phone);
       
       if (conversation) {
-        const command = new PutItemCommand({
-          TableName: this.tableName,
-          Item: {
-            PK: { S: `CONVERSATION#${phone}` },
-            SK: { S: 'METADATA' },
-            phone: { S: phone },
-            conversationStartedAt: { N: conversation.conversationStartedAt.toString() },
-            lastMessageAt: { N: Date.now().toString() },
-            status: { S: 'closed' },
-            messageCount: { N: conversation.messageCount.toString() },
-          },
-        });
-
-        await dynamoClient.send(command);
+        await whatsappRepository.closeConversation(
+          phone,
+          conversation.conversationStartedAt,
+          conversation.messageCount
+        );
 
         console.log('[DailyLimitGuard] Conversation closed:', { phone });
       }

@@ -25,7 +25,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
-import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
+import { campaignRepository } from '@/lib/repositories';
 
 interface RouteParams {
   params: Promise<{
@@ -52,8 +52,7 @@ export async function GET(
   const { id: campaignId } = await params;
 
   try {
-    const metricsManager = getCampaignMetrics();
-    const analytics = await metricsManager.getAnalytics(campaignId);
+    const analytics = await campaignRepository.getCampaignAnalytics(campaignId);
 
     return NextResponse.json({
       success: true,

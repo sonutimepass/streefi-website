@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
-import { listTemplates } from '@/lib/whatsapp/templates/services';
+import { whatsappRepository } from '@/lib/repositories';
 
 /**
  * GET /api/whatsapp-admin/validate-setup
@@ -32,10 +32,7 @@ export async function GET(request: Request) {
       results.checks[0].status = '✅ PASS';
       results.checks[0].details = 'Session valid';
     } else {
-      results.checks[0].status = '❌ FAIL';
-      results.checks[0].details = 'No valid session - please login';
-      results.ready = false;
-      return NextResponse.json(results, { status: 200 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check 2: Environment Variables
@@ -103,7 +100,7 @@ export async function GET(request: Request) {
     });
 
     try {
-      const templates = await listTemplates();
+      const templates = await whatsappRepository.listTemplates();
       
       const activeApprovedTemplates = templates.filter(
         t => t.status === 'active' && t.metaStatus === 'APPROVED'
@@ -158,8 +155,6 @@ export async function GET(request: Request) {
     console.error('[Validate Setup] Unexpected error:', error);
     return NextResponse.json({
       error: 'Validation failed',
-      message: error.message,
-      results,
     }, { status: 500 });
   }
 }

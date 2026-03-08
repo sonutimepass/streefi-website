@@ -4,13 +4,14 @@ import { useEmailAdminContext } from '../../context/EmailAdminProvider';
 
 export default function AuthSection() {
   const { login, error, clearError, isLoading } = useEmailAdminContext();
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
     
-    const result = await login(passwordInput);
+    const result = await login(emailInput, passwordInput);
     
     if (!result.success) {
       // Error is already set in context
@@ -27,22 +28,35 @@ export default function AuthSection() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             📧 Email Admin
           </h1>
-          <p className="text-sm text-gray-600">Enter your admin password to continue</p>
+          <p className="text-sm text-gray-600">Sign in with your admin credentials</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Admin Password
+              Email
+            </label>
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="admin@example.com"
+              disabled={isLoading}
+              className="w-full px-4 py-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
+              autoFocus
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
             </label>
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Enter admin password"
+              placeholder="Enter your password"
               disabled={isLoading}
               className="w-full px-4 py-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
-              autoFocus
             />
             {error && (
               <p className="mt-2 text-sm text-red-600">
@@ -53,7 +67,7 @@ export default function AuthSection() {
 
           <button
             type="submit"
-            disabled={isLoading || !passwordInput.trim()}
+            disabled={isLoading || !emailInput.trim() || !passwordInput.trim()}
             className={`w-full py-3 text-sm sm:text-base font-semibold text-white rounded-md transition-colors duration-200 ${
               isLoading || !passwordInput.trim()
                 ? 'bg-gray-400 cursor-not-allowed'

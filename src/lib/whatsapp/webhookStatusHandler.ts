@@ -27,8 +27,7 @@
  */
 
 import { getBlockRateCircuitBreaker } from '@/lib/whatsapp/guards';
-import { QueryCommand, UpdateItemCommand, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
+import { campaignRepository } from '@/lib/repositories/campaignRepository';
 import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
 
 // Initialize metrics manager for analytics aggregation
@@ -103,26 +102,7 @@ async function isStatusAlreadyProcessed(
   statusType: string,
   errorCode?: number
 ): Promise<boolean> {
-  try {
-    const sk = errorCode 
-      ? `STATUS#${statusType}#${errorCode}`
-      : `STATUS#${statusType}`;
-    
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `MESSAGE_STATUS#${messageId}` },
-          SK: { S: sk }
-        }
-      })
-    );
-    
-    return !!response.Item;
-  } catch (error) {
-    console.error('[WebhookStatusHandler] Error checking idempotency:', error);
-    return false; // On error, process to avoid losing data
-  }
+  return campaignRepository.isStatusAlreadyProcessed(messageId, statusType, errorCode);
 }
 
 /**
@@ -134,30 +114,7 @@ async function markStatusProcessed(
   statusType: string,
   errorCode?: number
 ): Promise<void> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const ttl = timestamp + (30 * 24 * 60 * 60); // 30 days
-  
-  const sk = errorCode 
-    ? `STATUS#${statusType}#${errorCode}`
-    : `STATUS#${statusType}`;
-  
-  try {
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Item: {
-          PK: { S: `MESSAGE_STATUS#${messageId}` },
-          SK: { S: sk },
-          processedAt: { N: timestamp.toString() },
-          ...(errorCode && { errorCode: { N: errorCode.toString() } }),
-          ttl: { N: ttl.toString() }
-        }
-      })
-    );
-  } catch (error) {
-    console.error('[WebhookStatusHandler] Error marking status processed:', error);
-    // Don't throw - logging is best-effort
-  }
+  return campaignRepository.markStatusProcessed(messageId, statusType, errorCode);
 }
 
 /**
@@ -277,63 +234,12 @@ export async function handleMessageStatus(status: WebhookStatus): Promise<void> 
   }
 }
 
-/**
- * Calculate shard for message ID to distribute load across partitions
- * Prevents single-partition hotspot at scale
- */
-function getMessageShard(messageId: string): number {
-  // Simple hash: sum of char codes % 10
-  let hash = 0;
-  for (let i = 0; i < messageId.length; i++) {
-    hash += messageId.charCodeAt(i);
-  }
-  return hash % 10;
-}
-
-/**
- * Enhanced message logging with webhook tracking (SHARDED)
- * Store message ID → campaign ID mapping for webhook lookups
- * 
- * 🚨 SCALABILITY FIX: Uses sharded partition keys to prevent hotspot
- * Instead of: PK=MESSAGE#{messageId}
- * Uses: PK=MSG#{shard}, SK={messageId}
- * 
- * This distributes writes across 10 partitions instead of 1.
- */
 export async function logMessageForWebhookTracking(
   campaignId: string,
   messageId: string,
   recipientPhone: string
 ): Promise<void> {
-  try {
-    const shard = getMessageShard(messageId);
-    
-    // 🚨 SHARDED KEY: Distributes load across partitions
-    await dynamoClient.send(
-      new UpdateItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `MSG#${shard}` },
-          SK: { S: messageId }
-        },
-        UpdateExpression: 'SET campaignId = :campaignId, recipientPhone = :phone, createdAt = :timestamp, #ttl = :ttl',
-        ExpressionAttributeNames: {
-          '#ttl': 'ttl'
-        },
-        ExpressionAttributeValues: {
-          ':campaignId': { S: campaignId },
-          ':phone': { S: recipientPhone },
-          ':timestamp': { N: Math.floor(Date.now() / 1000).toString() },
-          ':ttl': { N: (Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60)).toString() } // 30 days TTL
-        }
-      })
-    );
-    
-    console.log(`🔗 [WebhookTracking] Stored message mapping (shard ${shard}): ${messageId} → campaign ${campaignId}`);
-  } catch (error) {
-    console.error('[WebhookTracking] Failed to store message mapping:', error);
-    // Don't throw - this is auxiliary tracking
-  }
+  await campaignRepository.logMessageForWebhookTracking(campaignId, messageId, recipientPhone);
 }
 
 /**
@@ -341,27 +247,5 @@ export async function logMessageForWebhookTracking(
  * Uses sharded key lookup
  */
 export async function getCampaignIdFromMessageId(messageId: string): Promise<string | null> {
-  try {
-    const shard = getMessageShard(messageId);
-    
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `MSG#${shard}` },
-          SK: { S: messageId }
-        }
-      })
-    );
-    
-    if (response.Item && response.Item.campaignId?.S) {
-      return response.Item.campaignId.S;
-    }
-    
-    console.warn(`⚠️ [WebhookTracking] No campaign found for message ${messageId} (shard ${shard})`);
-    return null;
-  } catch (error) {
-    console.error('[WebhookTracking] Error looking up campaign:', error);
-    return null;
-  }
+  return campaignRepository.getCampaignIdFromMessageId(messageId);
 }

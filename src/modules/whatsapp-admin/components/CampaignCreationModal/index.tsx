@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getCsrfHeader } from '@/lib/csrfClient';
 
 interface Template {
   templateId: string;
@@ -144,7 +145,7 @@ export default function CampaignCreationModal({ isOpen, onClose, onCreated }: Pr
       console.log('🚀 [Campaign Creation Modal] Sending API request...');
       const response = await fetch('/api/campaigns/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({
           campaignName: campaignName.trim(),
           templateName: selectedTemplate,

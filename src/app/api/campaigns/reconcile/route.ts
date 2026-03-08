@@ -22,13 +22,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  ScanCommand, 
-  UpdateItemCommand,
-  type AttributeValue
-} from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { recipientRepository } from '@/lib/repositories';
 
 const STUCK_THRESHOLD_SECONDS = 5 * 60; // 5 minutes
 const ERROR_CODE = 'DB_WRITE_TIMEOUT';
@@ -67,31 +62,17 @@ export async function POST(req: NextRequest) {
     const now = Math.floor(Date.now() / 1000);
     const stuckThreshold = now - STUCK_THRESHOLD_SECONDS;
 
-    // 2️⃣ Scan for PROCESSING recipients older than threshold
+    // 2️⃣ Get stuck recipients from repository
     console.log(`🔍 [Reconcile API] Scanning for recipients stuck longer than ${STUCK_THRESHOLD_SECONDS}s`);
     
-    const scanResponse = await dynamoClient.send(
-      new ScanCommand({
-        TableName: TABLES.RECIPIENTS,
-        FilterExpression: '#status = :processing AND processingAt < :threshold',
-        ExpressionAttributeNames: {
-          '#status': 'status'
-        },
-        ExpressionAttributeValues: {
-          ':processing': { S: 'PROCESSING' },
-          ':threshold': { N: stuckThreshold.toString() }
-        }
-      })
-    );
-
-    const stuckRecipients = scanResponse.Items || [];
+    const stuckRecipients = await recipientRepository.getStuckRecipients(STUCK_THRESHOLD_SECONDS);
     console.log(`📊 [Reconcile API] Found ${stuckRecipients.length} stuck recipients`);
 
     if (stuckRecipients.length === 0) {
       console.log('✅ [Reconcile API] No stuck recipients found');
       return NextResponse.json({
         success: true,
-        scanned: scanResponse.ScannedCount || 0,
+        scanned: 0,
         recovered: 0,
         recipients: []
       });
@@ -101,56 +82,28 @@ export async function POST(req: NextRequest) {
     const recoveredRecipients: ReconciliationResult['recipients'] = [];
     let recoveredCount = 0;
 
-    for (const item of stuckRecipients) {
-      const pk = item.PK?.S;
-      const sk = item.SK?.S;
-      const phone = item.phone?.S;
-      const processingAt = parseInt(item.processingAt?.N || '0', 10);
-
-      if (!pk || !sk || !phone) {
-        console.log('⚠️ [Reconcile API] Skipping malformed recipient:', { pk, sk, phone });
-        continue;
-      }
-
-      // Extract campaignId from PK (format: CAMPAIGN#${id})
-      const campaignId = pk.replace('CAMPAIGN#', '');
-      const stuckDuration = now - processingAt;
-
+    for (const recipient of stuckRecipients) {
       try {
-        console.log(`🔄 [Reconcile API] Recovering ${phone} from campaign ${campaignId} (stuck for ${stuckDuration}s)`);
+        console.log(`🔄 [Reconcile API] Recovering ${recipient.phone} from campaign ${recipient.campaignId} (stuck for ${recipient.stuckDuration}s)`);
         
-        await dynamoClient.send(
-          new UpdateItemCommand({
-            TableName: TABLES.RECIPIENTS,
-            Key: {
-              PK: { S: pk },
-              SK: { S: sk }
-            },
-            UpdateExpression: 'SET #status = :failed, failedAt = :timestamp, errorCode = :code, errorMessage = :message ADD attempts :inc',
-            ExpressionAttributeNames: {
-              '#status': 'status'
-            },
-            ExpressionAttributeValues: {
-              ':failed': { S: 'FAILED' },
-              ':timestamp': { N: now.toString() },
-              ':code': { S: ERROR_CODE },
-              ':message': { S: ERROR_MESSAGE },
-              ':inc': { N: '1' }
-            }
-          })
+        await recipientRepository.markRecipientAsFailed(
+          recipient.campaignId,
+          recipient.phone,
+          ERROR_CODE,
+          ERROR_MESSAGE
         );
 
         recoveredCount++;
         recoveredRecipients.push({
-          campaignId,
-          phone,
-          processingAt,
-          stuckDuration
+          campaignId: recipient.campaignId,
+          phone: recipient.phone,
+          processingAt: recipient.processing_at || 0,
+          stuckDuration: recipient.stuckDuration
         });
 
-        console.log(`✅ [Reconcile API] Recovered ${phone}`);
+        console.log(`✅ [Reconcile API] Recovered ${recipient.phone}`);
       } catch (err) {
-        console.error(`❌ [Reconcile API] Failed to recover ${phone}:`, err);
+        console.error(`❌ [Reconcile API] Failed to recover ${recipient.phone}:`, err);
       }
     }
 
@@ -158,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      scanned: scanResponse.ScannedCount || 0,
+      scanned: stuckRecipients.length,
       recovered: recoveredCount,
       recipients: recoveredRecipients
     });
@@ -166,10 +119,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('❌ [Reconcile API] Reconciliation failed:', error);
     return NextResponse.json(
-      { 
-        error: 'Reconciliation failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Reconciliation failed' },
       { status: 500 }
     );
   }
@@ -196,33 +146,15 @@ export async function GET(req: NextRequest) {
     const now = Math.floor(Date.now() / 1000);
     const stuckThreshold = now - STUCK_THRESHOLD_SECONDS;
 
-    // 2️⃣ Scan for PROCESSING recipients
-    const scanResponse = await dynamoClient.send(
-      new ScanCommand({
-        TableName: TABLES.RECIPIENTS,
-        FilterExpression: '#status = :processing AND processingAt < :threshold',
-        ExpressionAttributeNames: {
-          '#status': 'status'
-        },
-        ExpressionAttributeValues: {
-          ':processing': { S: 'PROCESSING' },
-          ':threshold': { N: stuckThreshold.toString() }
-        }
-      })
-    );
+    // 2️⃣ Get stuck recipients (dry-run)
+    const stuckRecipients = await recipientRepository.getStuckRecipients(STUCK_THRESHOLD_SECONDS);
 
-    const stuckRecipients = (scanResponse.Items || []).map(item => {
-      const pk = item.PK?.S || '';
-      const campaignId = pk.replace('CAMPAIGN#', '');
-      const processingAt = parseInt(item.processingAt?.N || '0', 10);
-      
-      return {
-        campaignId,
-        phone: item.phone?.S || '',
-        processingAt,
-        stuckDuration: now - processingAt
-      };
-    });
+    const recipientsInfo = stuckRecipients.map(recipient => ({
+      campaignId: recipient.campaignId,
+      phone: recipient.phone,
+      processingAt: recipient.processing_at || 0,
+      stuckDuration: recipient.stuckDuration
+    }));
 
     console.log(`📊 [Reconcile API] Found ${stuckRecipients.length} stuck recipients (dry-run)`);
 
@@ -230,16 +162,13 @@ export async function GET(req: NextRequest) {
       success: true,
       count: stuckRecipients.length,
       threshold: STUCK_THRESHOLD_SECONDS,
-      recipients: stuckRecipients
+      recipients: recipientsInfo
     });
 
   } catch (error) {
     console.error('❌ [Reconcile API] Check failed:', error);
     return NextResponse.json(
-      { 
-        error: 'Check failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Check failed' },
       { status: 500 }
     );
   }

@@ -9,9 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient, TABLES } from '@/lib/dynamoClient';
 import { validateAdminSession } from '@/lib/adminAuth';
+import { campaignRepository, recipientRepository } from '@/lib/repositories';
 
 interface CampaignDetails {
   id: string;
@@ -62,54 +61,44 @@ export async function GET(
       );
     }
 
-    // 2️⃣ Load campaign metadata
-    const response = await dynamoClient.send(
-      new GetItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: 'METADATA' }
-        }
-      })
-    );
+    // 2️⃣ Load campaign from repository
+    const campaign = await campaignRepository.getCampaign(campaignId);
 
-    if (!response.Item) {
+    if (!campaign) {
       return NextResponse.json(
         { error: 'Campaign not found' },
         { status: 404 }
       );
     }
 
-    const item = response.Item;
-
-    // 3️⃣ Parse campaign data
-    const totalRecipients = parseInt(item.totalRecipients?.N || '0', 10);
-    const sentCount = parseInt(item.sentCount?.N || '0', 10);
-    const failedCount = parseInt(item.failedCount?.N || '0', 10);
+    // 3️⃣ Parse campaign data and calculate metrics
+    const totalRecipients = campaign.total_recipients || 0;
+    const sentCount = campaign.sent_count || 0;
+    const failedCount = campaign.failed_count || 0;
     const pendingCount = totalRecipients - sentCount - failedCount;
     const progressPercentage = totalRecipients > 0 
       ? Math.round(((sentCount + failedCount) / totalRecipients) * 100)
       : 0;
 
     const details: CampaignDetails = {
-      id: campaignId,
-      name: item.name?.S || '',
-      templateName: item.templateName?.S || '',
-      channel: item.channel?.S || 'WHATSAPP',
-      status: (item.status?.S as CampaignDetails['status']) || 'DRAFT',
-      audienceType: item.audienceType?.S || '',
-      createdBy: item.createdBy?.S || '',
+      id: campaign.campaign_id,
+      name: campaign.campaign_name,
+      templateName: campaign.template_name,
+      channel: campaign.channel || 'WHATSAPP',
+      status: (campaign.campaign_status as CampaignDetails['status']) || 'DRAFT',
+      audienceType: campaign.audience_type || '',
+      createdBy: campaign.created_by || '',
       totalRecipients,
       sentCount,
       failedCount,
       pendingCount,
       progressPercentage,
-      createdAt: parseInt(item.createdAt?.N || '0', 10),
-      updatedAt: item.updatedAt?.N ? parseInt(item.updatedAt.N, 10) : undefined,
-      startedAt: item.startedAt?.N ? parseInt(item.startedAt.N, 10) : undefined,
-      pausedAt: item.pausedAt?.N ? parseInt(item.pausedAt.N, 10) : undefined,
-      pausedReason: item.pausedReason?.S,
-      completedAt: item.completedAt?.N ? parseInt(item.completedAt.N, 10) : undefined
+      createdAt: campaign.created_at || 0,
+      updatedAt: campaign.updated_at,
+      startedAt: campaign.started_at,
+      pausedAt: campaign.paused_at,
+      pausedReason: campaign.paused_reason,
+      completedAt: campaign.completed_at
     };
 
     // 4️⃣ Return campaign details
@@ -120,14 +109,79 @@ export async function GET(
 
   } catch (error) {
     console.error('[CampaignDetails] Error:', error);
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch campaign details',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to fetch campaign details' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * PUT /api/campaigns/[id]
+ *
+ * Update editable fields of a DRAFT campaign.
+ * Body (all optional): { name, templateName, dailyCap, redirectUrl }
+ */
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const validation = await validateAdminSession(req, 'whatsapp-session');
+  if (!validation.valid || !validation.session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id: campaignId } = await params;
+
+  let body: {
+    name?: unknown;
+    templateName?: unknown;
+    dailyCap?: unknown;
+    redirectUrl?: unknown;
+  };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  // Validate provided fields
+  if (body.name !== undefined && (typeof body.name !== 'string' || !body.name.trim())) {
+    return NextResponse.json({ error: 'name must be a non-empty string' }, { status: 400 });
+  }
+  if (body.templateName !== undefined && (typeof body.templateName !== 'string' || !body.templateName.trim())) {
+    return NextResponse.json({ error: 'templateName must be a non-empty string' }, { status: 400 });
+  }
+  if (body.dailyCap !== undefined) {
+    const cap = Number(body.dailyCap);
+    if (!Number.isInteger(cap) || cap < 1) {
+      return NextResponse.json({ error: 'dailyCap must be a positive integer' }, { status: 400 });
+    }
+  }
+  if (body.redirectUrl !== undefined && typeof body.redirectUrl !== 'string') {
+    return NextResponse.json({ error: 'redirectUrl must be a string' }, { status: 400 });
+  }
+
+  // Must update at least one field
+  if (body.name === undefined && body.templateName === undefined && body.dailyCap === undefined && body.redirectUrl === undefined) {
+    return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
+  }
+
+  try {
+    await campaignRepository.updateCampaignMetadata(campaignId, {
+      ...(body.name !== undefined && { campaign_name: (body.name as string).trim() }),
+      ...(body.templateName !== undefined && { template_name: (body.templateName as string).trim() }),
+      ...(body.dailyCap !== undefined && { daily_cap: Number(body.dailyCap) }),
+      ...(body.redirectUrl !== undefined && { redirect_url: body.redirectUrl as string }),
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes('not in DRAFT status')) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    console.error('[CampaignUpdateAPI] PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update campaign' }, { status: 500 });
   }
 }
 
@@ -162,97 +216,17 @@ export async function DELETE(
       );
     }
 
-    // 2️⃣ Import required AWS SDK commands
-    const { DeleteItemCommand, QueryCommand, BatchWriteItemCommand } = await import('@aws-sdk/client-dynamodb');
-
-    // 3️⃣ Query all items for this campaign (recipients + logs)
-    console.log('🔍 [Campaign Delete API] Querying campaign items...');
-    const queryResponse = await dynamoClient.send(
-      new QueryCommand({
-        TableName: TABLES.CAMPAIGNS,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: {
-          ':pk': { S: `CAMPAIGN#${campaignId}` }
-        }
-      })
-    );
-
-    const itemsToDelete = queryResponse.Items || [];
-    console.log(`📊 [Campaign Delete API] Found ${itemsToDelete.length} items to delete`);
-
-    // 4️⃣ Delete campaign metadata
+    // 2️⃣ Delete campaign metadata
     console.log('🗑️ [Campaign Delete API] Deleting campaign metadata...');
-    await dynamoClient.send(
-      new DeleteItemCommand({
-        TableName: TABLES.CAMPAIGNS,
-        Key: {
-          PK: { S: `CAMPAIGN#${campaignId}` },
-          SK: { S: 'METADATA' }
-        }
-      })
-    );
+    await campaignRepository.deleteCampaign(campaignId);
 
-    // 5️⃣ Delete recipients in batches (DynamoDB BatchWrite max 25 items)
-    console.log('🔍 [Campaign Delete API] Querying recipients...');
-    const recipientsResponse = await dynamoClient.send(
-      new QueryCommand({
-        TableName: TABLES.RECIPIENTS,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: {
-          ':pk': { S: `CAMPAIGN#${campaignId}` }
-        }
-      })
-    );
+    // 3️⃣ Delete all recipients
+    console.log('🗑️ [Campaign Delete API] Deleting recipients...');
+    await recipientRepository.deleteAllRecipients(campaignId);
 
-    const recipients = recipientsResponse.Items || [];
-    console.log(`📊 [Campaign Delete API] Found ${recipients.length} recipients to delete`);
-
-    // Delete recipients in batches of 25
-    for (let i = 0; i < recipients.length; i += 25) {
-      const batch = recipients.slice(i, i + 25);
-      if (batch.length > 0) {
-        console.log(`🗑️ [Campaign Delete API] Deleting recipient batch ${Math.floor(i / 25) + 1}...`);
-        await dynamoClient.send(
-          new BatchWriteItemCommand({
-            RequestItems: {
-              [TABLES.RECIPIENTS]: batch.map(item => ({
-                DeleteRequest: {
-                  Key: {
-                    PK: item.PK,
-                    SK: item.SK
-                  }
-                }
-              }))
-            }
-          })
-        );
-      }
-    }
-
-    // 6️⃣ Delete logs in batches
-    const logs = itemsToDelete.filter(item => item.SK?.S?.startsWith('LOG#'));
-    console.log(`📊 [Campaign Delete API] Found ${logs.length} logs to delete`);
-    
-    for (let i = 0; i < logs.length; i += 25) {
-      const batch = logs.slice(i, i + 25);
-      if (batch.length > 0) {
-        console.log(`🗑️ [Campaign Delete API] Deleting log batch ${Math.floor(i / 25) + 1}...`);
-        await dynamoClient.send(
-          new BatchWriteItemCommand({
-            RequestItems: {
-              [TABLES.CAMPAIGNS]: batch.map(item => ({
-                DeleteRequest: {
-                  Key: {
-                    PK: item.PK,
-                    SK: item.SK
-                  }
-                }
-              }))
-            }
-          })
-        );
-      }
-    }
+    // 4️⃣ Delete all logs
+    console.log('🗑️ [Campaign Delete API] Deleting logs...');
+    const logsDeleted = await campaignRepository.deleteAllLogs(campaignId);
 
     console.log('✅ [Campaign Delete API] Campaign deleted successfully');
 
@@ -262,19 +236,14 @@ export async function DELETE(
       campaignId,
       deletedItems: {
         metadata: 1,
-        recipients: recipients.length,
-        logs: logs.length
+        logs: logsDeleted
       }
     });
 
   } catch (error) {
     console.error('❌ [Campaign Delete API] Error:', error);
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to delete campaign',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to delete campaign' },
       { status: 500 }
     );
   }
