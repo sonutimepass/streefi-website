@@ -10,15 +10,17 @@
  * - Enforces rate limits across all campaigns
  * 
  * TRIGGER:
- * - CloudWatch cron (every 1 minute): /api/campaigns/dispatch
- * - Or: EventBridge schedule
+ * - AWS EventBridge cron (every 5 minutes): /api/internal/campaigns/dispatch
  * 
  * FLOW:
  * 1. Query campaigns with status=RUNNING
  * 2. Check daily limits (don't exceed)
  * 3. Prioritize campaigns (first-in-first-out or priority-based)
- * 4. Trigger execute-batch for each campaign
+ * 4. Trigger /api/internal/campaigns/execute-batch for each campaign
  * 5. Update dispatch queue state
+ * 
+ * ARCHITECTURE:
+ * EventBridge → dispatch → execute-batch(campaignId)
  * 
  * WHY THIS MATTERS:
  * Without dispatcher, campaigns rely on:
@@ -99,22 +101,22 @@ export class CampaignDispatcher {
 
   /**
    * Dispatch batch execution for a campaign
-   * Triggers the execute-batch endpoint
+   * Triggers the execute-batch endpoint (internal operation)
    */
   async dispatchCampaign(campaignId: string): Promise<boolean> {
     try {
       console.log(`🚀 [Dispatcher] Dispatching campaign ${campaignId}`);
 
-      // Call execute-batch endpoint
+      // Call internal execute-batch endpoint
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const response = await fetch(`${baseUrl}/api/campaigns/${campaignId}/execute-batch`, {
+      const response = await fetch(`${baseUrl}/api/internal/campaigns/execute-batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-dispatcher-key': process.env.DISPATCHER_SECRET_KEY || 'internal-dispatcher'
+          'x-internal-key': process.env.INTERNAL_OPERATIONS_KEY || ''
         },
         body: JSON.stringify({
-          batchSize: this.BATCH_SIZE
+          campaignId: campaignId
         })
       });
 
@@ -124,7 +126,7 @@ export class CampaignDispatcher {
       }
 
       const result = await response.json();
-      console.log(`✅ [Dispatcher] Campaign ${campaignId} dispatched: ${result.sent} messages sent`);
+      console.log(`✅ [Dispatcher] Campaign ${campaignId} dispatched: ${result.result?.sent || 0} messages sent`);
 
       // Record dispatch time for cooldown tracking
       await campaignRepository.updateLastDispatch(campaignId);

@@ -1,11 +1,22 @@
 # AWS Amplify - Campaign Dispatcher Cron Setup
 
+## 🔒 UPDATED FOR INTERNAL OPERATIONS SECURITY
+
+**Your dispatcher endpoint has moved:**
+
+- ❌ OLD: `/api/campaigns/dispatch`
+- ✅ NEW: `/api/internal/campaigns/dispatch`
+
+**New requirement**: Must include `x-internal-key` header with secret key.
+
+---
+
 ## 🎯 Overview
 
 Since you're using **AWS Amplify** (not Vercel), the campaign dispatcher needs to be triggered using **AWS EventBridge** (formerly CloudWatch Events).
 
-**Your dispatcher endpoint is ready:** `/api/campaigns/dispatch`  
-**What you need:** EventBridge rule to call it every 5 minutes
+**Your internal dispatcher endpoint:** `/api/internal/campaigns/dispatch`
+**What you need:** EventBridge rule to call it every 5 minutes with secret key header
 
 ---
 
@@ -22,12 +33,12 @@ This triggers your Next.js API route directly via HTTPS.
 $AMPLIFY_URL = "YOUR_AMPLIFY_URL_HERE"
 ```
 
-#### **Step 2: Generate Dispatcher Secret Key**
+#### **Step 2: Generate Internal Operations Secret Key**
 
 ```powershell
 # Generate random 32-char secret
 $SECRET_KEY = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object {[char]$_})
-Write-Host "DISPATCHER_SECRET_KEY=$SECRET_KEY" -ForegroundColor Green
+Write-Host "INTERNAL_OPERATIONS_KEY=$SECRET_KEY" -ForegroundColor Green
 ```
 
 #### **Step 3: Add to Amplify Environment Variables**
@@ -35,7 +46,7 @@ Write-Host "DISPATCHER_SECRET_KEY=$SECRET_KEY" -ForegroundColor Green
 1. Go to AWS Amplify Console
 2. Select your app → Environment variables
 3. Add:
-   - `DISPATCHER_SECRET_KEY` = (your generated key)
+   - `INTERNAL_OPERATIONS_KEY` = (your generated key)
    - `WHATSAPP_RATE_LIMIT_PER_SEC` = `10`
 4. Redeploy app
 
@@ -45,7 +56,7 @@ Write-Host "DISPATCHER_SECRET_KEY=$SECRET_KEY" -ForegroundColor Green
 2. **Name:** `streefi-campaign-dispatcher`
 3. **Event bus:** default
 4. **Rule type:** Schedule
-5. **Schedule pattern:** 
+5. **Schedule pattern:**
    - Type: **Cron-based schedule**
    - Cron expression: `*/5 * * * ? *` (every 5 minutes)
    - Timezone: UTC
@@ -56,14 +67,14 @@ Write-Host "DISPATCHER_SECRET_KEY=$SECRET_KEY" -ForegroundColor Green
 1. **Target type:** API destination
 2. **Create new API destination:**
    - **Name:** `streefi-api-dispatcher`
-   - **API endpoint:** `https://YOUR_AMPLIFY_URL/api/campaigns/dispatch`
+   - **API endpoint:** `https://YOUR_AMPLIFY_URL/api/internal/campaigns/dispatch`
    - **HTTP method:** POST
    - **Connection:**
      - Create new connection
      - Name: `streefi-connection`
      - Authorization: API Key
-     - API Key name: `x-dispatcher-key`
-     - API Key value: (your DISPATCHER_SECRET_KEY)
+     - API Key name: `x-internal-key`
+     - API Key value: (your INTERNAL_OPERATIONS_KEY)
 3. Click **Next** → **Create**
 
 **Done!** EventBridge will now trigger your dispatcher every 5 minutes.
@@ -75,14 +86,14 @@ Write-Host "DISPATCHER_SECRET_KEY=$SECRET_KEY" -ForegroundColor Green
 ```powershell
 # Variables (replace with your values)
 $AMPLIFY_URL = "https://main.d1a2b3c4d5e6f7.amplifyapp.com"
-$SECRET_KEY = "your_dispatcher_secret_key_here"
+$SECRET_KEY = "your_internal_operations_key_here"
 $REGION = "us-east-1"
 
 # 1. Create EventBridge connection (for auth)
 aws events create-connection `
   --name streefi-dispatcher-connection `
   --authorization-type API_KEY `
-  --auth-parameters "ApiKeyAuthParameters={ApiKeyName=x-dispatcher-key,ApiKeyValue=$SECRET_KEY}" `
+  --auth-parameters "ApiKeyAuthParameters={ApiKeyName=x-internal-key,ApiKeyValue=$SECRET_KEY}" `
   --region $REGION
 
 # Get connection ARN from output
@@ -92,7 +103,7 @@ $CONNECTION_ARN = "arn:aws:events:us-east-1:123456789012:connection/streefi-disp
 aws events create-api-destination `
   --name streefi-dispatcher-api `
   --connection-arn $CONNECTION_ARN `
-  --invocation-endpoint "$AMPLIFY_URL/api/campaigns/dispatch" `
+  --invocation-endpoint "$AMPLIFY_URL/api/internal/campaigns/dispatch" `
   --http-method POST `
   --invocation-rate-limit-per-second 1 `
   --region $REGION
@@ -281,6 +292,7 @@ Invoke-RestMethod `
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -319,6 +331,7 @@ Invoke-RestMethod -Uri "$AMPLIFY_URL/api/campaigns/dispatch"
 ```
 
 Returns:
+
 ```json
 {
   "pendingCampaigns": 3,
@@ -336,16 +349,19 @@ Returns:
 ### **EventBridge rule not triggering:**
 
 1. Check rule is ENABLED:
+
 ```powershell
 aws events describe-rule --name streefi-campaign-dispatcher --region us-east-1
 ```
 
 2. Check IAM role has permissions:
+
 ```powershell
 aws iam get-role-policy --role-name EventBridgeApiDestinationRole --policy-name InvokeApiDestinationPolicy
 ```
 
 3. Check CloudWatch Logs for errors:
+
 ```powershell
 aws logs tail /aws/events/rules/streefi-campaign-dispatcher --region us-east-1
 ```
@@ -361,6 +377,7 @@ aws logs tail /aws/events/rules/streefi-campaign-dispatcher --region us-east-1
 
 - Verify campaigns exist with `status = 'RUNNING'`
 - Check DynamoDB table has campaigns:
+
 ```powershell
 aws dynamodb scan --table-name streefi_campaigns --filter-expression "campaign_status = :status" --expression-attribute-values '{":status":{"S":"RUNNING"}}' --region us-east-1
 ```
@@ -370,11 +387,13 @@ aws dynamodb scan --table-name streefi_campaigns --filter-expression "campaign_s
 ## 💰 Cost
 
 ### **EventBridge Pricing:**
+
 - Invocations: $1.00 per million events
 - At 1 event/5 minutes: 8,640 events/month = **$0.01/month**
 - Well within free tier (100,000 events/month free)
 
 ### **API Gateway (included in Amplify):**
+
 - First 1M requests/month: Free
 - Dispatcher uses ~8,640 requests/month: **$0.00**
 
@@ -392,6 +411,7 @@ aws dynamodb scan --table-name streefi_campaigns --filter-expression "campaign_s
 4. ✅ Cost: ~$0.04/month
 
 **Next Steps:**
+
 1. Add environment variables to Amplify
 2. Create EventBridge rule (AWS Console or CLI)
 3. Test manually first

@@ -18,5 +18,6 @@ export { default as DashboardContent } from './DashboardContent';
 export { default as CampaignsPageContent } from './CampaignsPageContent';
 export { default as CampaignDetailPageContent } from './CampaignDetailPageContent';
 export { default as TemplatesPageContent } from './TemplatesPageContent';
+export { default as SendMessagePageContent } from './SendMessagePageContent';
 export { default as SettingsPageContent } from './SettingsPageContent';
 

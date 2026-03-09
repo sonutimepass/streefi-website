@@ -471,27 +471,17 @@ export default function CampaignDetailModal({
                   </button>
                 )}
 
-                {/* Execute Batch Button */}
-                {campaign.status === 'RUNNING' && campaign.pendingCount > 0 && (
-                  <button
-                    onClick={executeBatch}
-                    disabled={executing || loading}
-                    className="px-4 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {executing ? '⏳ Executing...' : '🚀 Execute Batch'}
-                  </button>
-                )}
+                {/* ❌ REMOVED: Execute Batch Button
+                    Reason: Moved to internal system operations (/api/internal)
+                    Execute-batch is now triggered ONLY by AWS EventBridge cron
+                    Manual triggering removed for production safety
+                */}
 
-                {/* Retry Failed Button */}
-                {campaign.failedCount > 0 && campaign.status !== 'COMPLETED' && (
-                  <button
-                    onClick={retryFailed}
-                    disabled={loading}
-                    className="px-4 py-2.5 bg-purple-600 text-white rounded-md font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    🔄 Retry Failed ({campaign.failedCount})
-                  </button>
-                )}
+                {/* ❌ REMOVED: Retry Failed Button
+                    Reason: Moved to internal system operations (/api/internal)
+                    Retry logic is now automated via cron jobs
+                    Manual triggering removed for production safety
+                */}
 
                 {/* Reload Button */}
                 <button
@@ -530,13 +520,14 @@ export default function CampaignDetailModal({
             <LogsPanel campaignId={campaign.id} />
 
             {/* Helper Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-xs text-blue-700 leading-relaxed">
-                <strong>💡 Phase 1A - Manual Execution</strong><br />
-                • Click "Execute Batch" to process 25 recipients at a time<br />
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-xs text-green-700 leading-relaxed">
+                <strong>🤖 Automated Campaign Execution</strong><br />
+                • Campaigns execute automatically via AWS EventBridge (every 5 minutes)<br />
+                • Start/Pause/Resume/Stop controls are available above<br />
                 • Campaign auto-pauses when daily limit is reached<br />
-                • Campaign auto-completes when no pending recipients remain<br />
-                • Safe to run repeatedly (idempotent & crash-safe)
+                • Campaign auto-completes when all recipients processed<br />
+                • View logs below for real-time status updates
               </p>
             </div>
           </div>

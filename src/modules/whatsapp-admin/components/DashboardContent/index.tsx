@@ -72,6 +72,21 @@ export default function DashboardContent() {
         {/* Quick Navigation Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <button
+            onClick={() => router.push('/whatsapp-admin/send')}
+            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all text-left group border border-gray-200 hover:border-gray-300"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Send Message</h3>
+            <p className="text-sm text-gray-600">Quick send without campaigns</p>
+          </button>
+
+          <button
             onClick={() => router.push('/whatsapp-admin/templates')}
             className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all text-left group border border-gray-200 hover:border-gray-300"
           >
@@ -116,18 +131,6 @@ export default function DashboardContent() {
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Settings</h3>
             <p className="text-sm text-gray-600">Global rate limits and controls</p>
           </button>
-
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-lg shadow-sm text-white">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-            </div>
-            <h3 className="text-lg font-semibold mb-1">System Status</h3>
-            <p className="text-sm text-gray-300">All systems operational</p>
-          </div>
         </div>
 
         {/* Quick Info */}
@@ -139,13 +142,13 @@ export default function DashboardContent() {
               </svg>
             </div>
             <div className="ml-3 flex-1">
-              <h3 className="text-sm font-medium text-blue-800">Production Ready</h3>
+              <h3 className="text-sm font-medium text-blue-800">Quick Start Guide</h3>
               <div className="mt-2 text-sm text-blue-700">
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Emergency kill switch enabled in header</li>
-                  <li>Global rate controls configured</li>
-                  <li>Campaign daily caps enforced</li>
-                  <li>All safety controls operational</li>
+                  <li><strong>Send Message:</strong> Quick individual or bulk sends without campaigns</li>
+                  <li><strong>Templates:</strong> Sync templates from Meta and test before campaigns</li>
+                  <li><strong>Campaigns:</strong> Large-scale scheduled sends with tracking and rate limits</li>
+                  <li><strong>Settings:</strong> Configure daily caps and system-wide controls</li>
                 </ul>
               </div>
             </div>

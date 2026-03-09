@@ -9,6 +9,7 @@ import { LoadingSection } from '@/modules/whatsapp-admin';
  * 
  * Route structure:
  * /whatsapp-admin/dashboard   - Dashboard overview
+ * /whatsapp-admin/send        - Quick message send (no campaign needed)
  * /whatsapp-admin/campaigns   - Campaign list
  * /whatsapp-admin/campaigns/[id] - Campaign detail
  * /whatsapp-admin/templates   - Template manager
