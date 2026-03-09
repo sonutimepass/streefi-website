@@ -202,7 +202,7 @@ async function executeBatch(
     // 🔥 WARMUP: Check account age-based daily limits
     console.log('🌱 [Batch Executor] Checking account warmup limits...');
     const warmupManager = getAccountWarmupManager();
-    const accountId = process.env.WHATSAPP_PHONE_NUMBER_ID!; // validated in POST handler before lock
+    const accountId = process.env.META_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID!; // validated in POST handler before lock
     const warmupCheck = await warmupManager.canSend(accountId, BATCH_SIZE);
     
     if (!warmupCheck.allowed) {
@@ -654,8 +654,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate required environment variables early (before acquiring any lock)
-    if (!process.env.WHATSAPP_PHONE_NUMBER_ID) {
-      console.error('❌ [Execute Batch API] WHATSAPP_PHONE_NUMBER_ID not configured');
+    if (!process.env.META_PHONE_NUMBER_ID && !process.env.WHATSAPP_PHONE_NUMBER_ID) {
+      console.error('❌ [Execute Batch API] META_PHONE_NUMBER_ID not configured');
       return NextResponse.json(
         { error: 'WhatsApp account not configured' },
         { status: 500 }

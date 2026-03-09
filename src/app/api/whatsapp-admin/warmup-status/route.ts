@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const accountId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const accountId = process.env.META_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID;
     
     if (!accountId) {
       return NextResponse.json({
-        error: 'WHATSAPP_PHONE_NUMBER_ID not configured'
+        error: 'META_PHONE_NUMBER_ID not configured'
       }, { status: 500 });
     }
 
