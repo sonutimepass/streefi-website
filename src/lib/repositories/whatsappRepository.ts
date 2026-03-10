@@ -2,7 +2,9 @@
  * WhatsApp Repository
  * 
  * Abstracts DynamoDB operations for WhatsApp-related data.
- * Table: streefi_whatsapp
+ * Table: streefi_whatsapp (TABLES.WHATSAPP)
+ * Purpose: WhatsApp templates, settings, system configuration
+ * Note: whatsapp_conversations (TABLES.WHATSAPP_CONVERSATIONS) reserved for customer conversation storage
  * Schema: Composite keys (PK + SK)
  * 
  * PK/SK Patterns:

@@ -49,13 +49,19 @@ WHATSAPP_ACCESS_TOKEN=your_whatsapp_access_token
 WHATSAPP_PHONE_ID=your_phone_number_id
 WHATSAPP_VERIFY_TOKEN=streefi_secure_token
 
+# ⚠️ SECURITY: These are server-side variables ONLY
+# NEVER use NEXT_PUBLIC_ prefix for WhatsApp credentials
+# See: docs/WHATSAPP-ENV-CONFIGURATION.md for details
+
 # AWS Configuration (should already be set)
 AWS_REGION=us-east-1
 
 # DynamoDB Tables (should already be set)
-CAMPAIGNS_TABLE_NAME=streefi_campaigns
-RECIPIENTS_TABLE_NAME=streefi_campaigns_recipients
 DYNAMODB_TABLE_NAME=streefi_whatsapp
+WHATSAPP_CONVERSATIONS_TABLE_NAME=whatsapp_conversations  # Reserved for customer conversations
+CAMPAIGNS_TABLE_NAME=streefi_campaigns
+RECIPIENTS_TABLE_NAME=streefi_campaign_recipients
+CONTACTS_TABLE_NAME=streefi_campaign_contacts
 ADMIN_TABLE_NAME=streefi_admins
 SESSION_TABLE_NAME=streefi_sessions
 ```
@@ -86,7 +92,7 @@ git commit -m "feat: Add Phase 1A dry run safety locks and validation
 
 - Add META_DRY_RUN safety checks to prevent accidental real sends
 - Add startup validation with clear logging
-- Fix table name mismatch (streefi_campaigns_recipients)
+- Fix DynamoDB table configurations (all 7 tables properly mapped)
 - Add auth bypass for dry run testing
 - Add /api/campaigns/health diagnostic endpoint
 - Improve error logging in campaign routes

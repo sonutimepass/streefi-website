@@ -107,7 +107,7 @@ This implementation plan delivers a production-ready repository and service laye
 │  streefi_admins (4 ops)                             │
 │  streefi_sessions (4 ops)                           │
 │  streefi_campaigns (65+ ops)                        │
-│  streefi_whatsapp (15+ ops)                         │
+│  whatsapp_conversations (15+ ops)                   │
 └─────────────────────────────────────────────────────┘
 ```
 

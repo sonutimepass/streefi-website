@@ -12,7 +12,7 @@
 1. **streefi_admins** - Admin user credentials
 2. **streefi_sessions** - Admin session tokens (TTL enabled)
 3. **streefi_campaigns** - Campaign metadata + recipients (PK/SK composite)
-4. **streefi_whatsapp** - WhatsApp templates, settings, counters (PK/SK composite)
+4. **whatsapp_conversations** - WhatsApp templates, settings, counters (PK/SK composite)
 
 ### Contact Storage Confirmation
 ✅ **No separate `streefi_campaign_contacts` table exists**
@@ -26,7 +26,8 @@
 ADMIN_TABLE_NAME=streefi_admins
 SESSION_TABLE_NAME=streefi_sessions
 CAMPAIGNS_TABLE_NAME=streefi_campaigns
-DYNAMODB_TABLE_NAME=streefi_whatsapp
+DYNAMODB_TABLE_NAME=whatsapp_conversations
+WHATSAPP_LEGACY_TABLE_NAME=streefi_whatsapp  # Legacy - reserved
 RECIPIENTS_TABLE_NAME=streefi_campaign_recipients  # Not used - historical reference
 ```
 
@@ -166,7 +167,7 @@ RECIPIENTS_TABLE_NAME=streefi_campaign_recipients  # Not used - historical refer
 
 ---
 
-## Table 4: streefi_whatsapp
+## Table 4: whatsapp_conversations (formerly streefi_whatsapp)
 
 **Environment Variable:** `DYNAMODB_TABLE_NAME`  
 **Schema:** Composite keys (PK + SK)  
@@ -266,7 +267,7 @@ BatchWrite:  ██ 4+ occurrences
 ### By Table
 ```
 streefi_campaigns:  ████████████████████████ 65+ operations (75%)
-streefi_whatsapp:   ████████ 15+ operations (17%)
+whatsapp_conversations: ████████ 15+ operations (17%)
 streefi_sessions:   ██ 5+ operations (6%)
 streefi_admins:     ██ 4+ operations (5%)
 ```

@@ -20,7 +20,7 @@ export function validateCampaignSystemStartup() {
     dailyLimit: parseInt(process.env.WHATSAPP_DAILY_LIMIT || '200'),
     hasAwsRegion: !!process.env.AWS_REGION,
     campaignsTable: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
-    recipientsTable: process.env.RECIPIENTS_TABLE_NAME || 'streefi_campaigns_recipients',
+    recipientsTable: process.env.RECIPIENTS_TABLE_NAME || 'streefi_campaign_recipients',
     environmentDryRunSetting: process.env.META_DRY_RUN, // Debug: log actual value
   };
 

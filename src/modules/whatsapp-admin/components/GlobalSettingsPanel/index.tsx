@@ -26,6 +26,11 @@ interface SystemSettings {
   updatedAt?: string;
 }
 
+interface MetaConfig {
+  phoneNumberId: string;
+  businessAccountId: string;
+}
+
 export default function GlobalSettingsPanel() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,9 +46,11 @@ export default function GlobalSettingsPanel() {
     lastCheck: string | null;
   }>({ count: 0, lastCheck: null });
 
-  // Meta environment variables (read-only)
-  const metaPhoneNumberId = process.env.NEXT_PUBLIC_META_PHONE_NUMBER_ID || 'Not configured';
-  const metaBusinessId = process.env.NEXT_PUBLIC_META_WABA_ID || 'Not configured';
+  // Meta configuration (fetched from server - never exposed via NEXT_PUBLIC_)
+  const [metaConfig, setMetaConfig] = useState<MetaConfig>({
+    phoneNumberId: 'Loading...',
+    businessAccountId: 'Loading...'
+  });
 
   // Form state
   const [formData, setFormData] = useState<SystemSettings>({
@@ -81,6 +88,11 @@ export default function GlobalSettingsPanel() {
       console.log('✅ [Settings Panel] Settings loaded successfully');
       setSettings(data.settings);
       setFormData(data.settings);
+      
+      // Set Meta configuration (fetched server-side for security)
+      if (data.metaConfig) {
+        setMetaConfig(data.metaConfig);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -528,7 +540,7 @@ export default function GlobalSettingsPanel() {
               Phone Number ID
             </label>
             <p className="text-sm font-mono text-gray-900 bg-white px-3 py-2 rounded border border-gray-200">
-              {metaPhoneNumberId}
+              {metaConfig.phoneNumberId}
             </p>
           </div>
 
@@ -537,7 +549,7 @@ export default function GlobalSettingsPanel() {
               WhatsApp Business Account ID
             </label>
             <p className="text-sm font-mono text-gray-900 bg-white px-3 py-2 rounded border border-gray-200">
-              {metaBusinessId}
+              {metaConfig.businessAccountId}
             </p>
           </div>
 

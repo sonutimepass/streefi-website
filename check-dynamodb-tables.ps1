@@ -13,21 +13,33 @@ Write-Host "=" * 80 -ForegroundColor Cyan
 # Tables to check
 $tables = @(
     @{
+        Name = "streefi_whatsapp"
+        PKName = "PK"
+        SKName = "SK"
+        Region = "ap-south-1"
+    },
+    @{
+        Name = "whatsapp_conversations"
+        PKName = "PK"
+        SKName = "SK"
+        Region = "ap-south-1"
+    },
+    @{
         Name = "streefi_campaigns"
         PKName = "PK"
         SKName = "SK"
         Region = "ap-south-1"
     },
     @{
-        Name = "streefi_campaigns_recipients"
+        Name = "streefi_campaign_recipients"
         PKName = "PK"
         SKName = "SK"
         Region = "ap-south-1"
     },
     @{
-        Name = "streefi_whatsapp"
-        PKName = "PK"
-        SKName = "SK"
+        Name = "streefi_campaign_contacts"
+        PKName = "campaignId"
+        SKName = "phoneNumber"
         Region = "ap-south-1"
     },
     @{

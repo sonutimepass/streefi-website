@@ -70,13 +70,17 @@ export interface Recipient {
 
 /**
  * Repository for recipient operations
+ * 
+ * Note: Recipients are stored in the CAMPAIGNS table using PK/SK pattern:
+ * - PK: CAMPAIGN#{campaignId}
+ * - SK: RECIPIENT#{phoneNumber}
  */
 export class RecipientRepository {
   private client: DynamoDBClient;
   private tableName: string;
   private readonly BATCH_WRITE_LIMIT = 25; // DynamoDB limit
 
-  constructor(client: DynamoDBClient = dynamoClient, tableName: string = TABLES.RECIPIENTS) {
+  constructor(client: DynamoDBClient = dynamoClient, tableName: string = TABLES.CAMPAIGNS) {
     this.client = client;
     this.tableName = tableName;
   }

@@ -434,7 +434,7 @@ export const TABLES = {
   ADMINS: process.env.ADMIN_TABLE_NAME || "streefi_admins",
   SESSIONS: process.env.SESSION_TABLE_NAME || "streefi_sessions",
   CAMPAIGNS: process.env.CAMPAIGNS_TABLE_NAME || "streefi_campaigns",
-  WHATSAPP: process.env.DYNAMODB_TABLE_NAME || "streefi_whatsapp",
+  WHATSAPP: process.env.DYNAMODB_TABLE_NAME || "whatsapp_conversations",
   CONVERSATIONS: process.env.CONVERSATIONS_TABLE_NAME || "streefi_conversations"  // NEW
 };
 ```

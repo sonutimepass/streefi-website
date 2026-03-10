@@ -5,7 +5,26 @@
 
 ---
 
-## 🚨 CRITICAL ISSUE: Inconsistent Environment Variable Names
+## � SECURITY FIRST: Environment Variable Rules
+
+### ✅ SAFE - Server-side variables (Current Setup)
+```bash
+WHATSAPP_ACCESS_TOKEN=xxx  # ✅ Server-side only
+WHATSAPP_PHONE_ID=xxx      # ✅ Server-side only
+```
+
+### ❌ DANGEROUS - Never use NEXT_PUBLIC_ prefix
+```bash
+NEXT_PUBLIC_WHATSAPP_TOKEN=xxx  # ❌ Exposed to client bundle!
+```
+
+**Why critical?** Variables with `NEXT_PUBLIC_` are embedded in the JavaScript bundle sent to users' browsers. Anyone can extract them.
+
+**📖 Full guide:** [docs/WHATSAPP-ENV-CONFIGURATION.md](docs/WHATSAPP-ENV-CONFIGURATION.md)
+
+---
+
+## �🚨 CRITICAL ISSUE: Inconsistent Environment Variable Names
 
 Your code uses **DIFFERENT names** for the same credentials across files:
 

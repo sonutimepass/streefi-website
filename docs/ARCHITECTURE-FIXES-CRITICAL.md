@@ -747,7 +747,8 @@ Update `.env.example`:
 ADMIN_TABLE_NAME=streefi_admins
 SESSION_TABLE_NAME=streefi_sessions
 CAMPAIGN_TABLE_NAME=streefi_campaigns
-WHATSAPP_TABLE_NAME=streefi_whatsapp
+DYNAMODB_TABLE_NAME=whatsapp_conversations
+WHATSAPP_LEGACY_TABLE_NAME=streefi_whatsapp  # Legacy
 CONVERSATIONS_TABLE_NAME=streefi_conversations
 ```
 

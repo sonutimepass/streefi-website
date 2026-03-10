@@ -165,7 +165,7 @@ Before sending to REAL users:
 ## 📋 Production Launch Checklist
 
 ### Infrastructure
-- [ ] DynamoDB table exists: `streefi_whatsapp`
+- [ ] DynamoDB table exists: `whatsapp_conversations`
 - [ ] DynamoDB TTL enabled on logs (if applicable)
 - [ ] AWS credentials configured (not hardcoded)
 - [ ] Environment variables set in production

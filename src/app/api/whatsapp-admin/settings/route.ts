@@ -28,7 +28,13 @@ export async function GET(req: NextRequest) {
     // Get settings from repository (returns defaults if not found)
     const settings = await whatsappRepository.getSystemSettings();
 
-    return NextResponse.json({ settings });
+    // Include Meta configuration (server-side only - never expose via NEXT_PUBLIC_)
+    const metaConfig = {
+      phoneNumberId: process.env.WHATSAPP_PHONE_ID || process.env.META_PHONE_NUMBER_ID || 'Not configured',
+      businessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || process.env.META_WABA_ID || 'Not configured'
+    };
+
+    return NextResponse.json({ settings, metaConfig });
 
   } catch (error) {
     console.error('❌ Settings GET error:', error);

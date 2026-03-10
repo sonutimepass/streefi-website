@@ -89,8 +89,8 @@ The Streefi WhatsApp Campaign Platform is a production-grade messaging system bu
 
 | Table Name                    | Status             | Notes                             |
 | ----------------------------- | ------------------ | --------------------------------- |
-| `streefi_campaign_contacts` | ❌ Not implemented | Docs mention for contact uploads  |
-| `whatsapp_conversations`    | ❌ Not implemented | Functionality in streefi_whatsapp |
+| `streefi_campaign_contacts` | 🟡 Reserved | For future contact upload feature  |
+| `streefi_whatsapp`          | 🟡 Reserved (Legacy) | Legacy table - functionality migrated to whatsapp_conversations |
 
 **Recommendation:** Update documentation to reflect actual 4-table architecture.
 
@@ -318,7 +318,7 @@ Fields:
 
 ---
 
-### 3.3 streefi_whatsapp
+### 3.3 whatsapp_conversations (formerly streefi_whatsapp)
 
 **Purpose:** WhatsApp-specific data including templates, conversations, and daily counters.
 
@@ -2823,7 +2823,7 @@ src/lib/whatsapp/webhookStatusHandler.ts # MODIFY (use analyticsService)
 | --------------------- | ---------------------------------- | ---------------------------------- |
 | `streefi_admins`    | Admin credentials                  | GetItem by email                   |
 | `streefi_sessions`  | Session management                 | GetItem by session_id, TTL enabled |
-| `streefi_whatsapp`  | Templates, conversations, counters | Query by PK prefix                 |
+| `whatsapp_conversations` | Templates, conversations, counters | Query by PK prefix                 |
 | `streefi_campaigns` | Campaigns, recipients, metrics     | Query by PK/SK composite           |
 
 ### Service Responsibilities

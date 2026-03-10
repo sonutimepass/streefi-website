@@ -29,11 +29,12 @@ Your WhatsApp admin system now uses **three separate DynamoDB tables** for clean
 
 ---
 
-### **2. streefi_whatsapp** (WhatsApp Templates)
+### **2. whatsapp_conversations** (WhatsApp Templates & Data)
 - **Partition Key:** `PK` (String)
 - **Sort Key:** `SK` (String)
-- **Purpose:** WhatsApp template storage
+- **Purpose:** WhatsApp template storage, settings, daily counters
 - **Environment Variable:** `DYNAMODB_TABLE_NAME`
+- **Note:** Replaces legacy `streefi_whatsapp` table
 
 **Schema:**
 ```json
@@ -108,10 +109,10 @@ Your WhatsApp admin system now uses **three separate DynamoDB tables** for clean
 ### **Template Management**
 
 **Services** ([services.ts](src/lib/whatsapp/templates/services.ts))
-- `createTemplate()` → Insert into `streefi_whatsapp`
-- `listTemplates()` → Scan `streefi_whatsapp` with filter
-- `updateTemplate()` → Update item in `streefi_whatsapp`
-- `deleteTemplate()` → Delete from `streefi_whatsapp`
+- `createTemplate()` → Insert into `whatsapp_conversations`
+- `listTemplates()` → Scan `whatsapp_conversations` with filter
+- `updateTemplate()` → Update item in `whatsapp_conversations`
+- `deleteTemplate()` → Delete from `whatsapp_conversations`
 
 **API Routes** ([route.ts](src/app/api/whatsapp-admin/templates/route.ts))
 - GET → List templates
@@ -126,7 +127,8 @@ Your WhatsApp admin system now uses **three separate DynamoDB tables** for clean
 ### **Local Development** (.env.local)
 ```bash
 # Table Configuration
-DYNAMODB_TABLE_NAME=streefi_whatsapp
+DYNAMODB_TABLE_NAME=whatsapp_conversations
+WHATSAPP_LEGACY_TABLE_NAME=streefi_whatsapp  # Legacy - reserved
 ADMIN_TABLE_NAME=streefi_admins
 SESSION_TABLE_NAME=streefi_sessions
 

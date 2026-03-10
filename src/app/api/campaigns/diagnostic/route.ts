@@ -11,7 +11,7 @@ const client = new DynamoDBClient({
 const TABLE_CONFIG = {
   CAMPAIGNS: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
   RECIPIENTS: process.env.RECIPIENTS_TABLE_NAME || 'streefi_campaign_recipients',
-  WHATSAPP: process.env.DYNAMODB_TABLE_NAME || 'whatsapp_conversations',
+  WHATSAPP: process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp',
   ADMINS: process.env.ADMIN_TABLE_NAME || 'streefi_admins',
   SESSIONS: process.env.SESSION_TABLE_NAME || 'streefi_sessions',
 } as const;
