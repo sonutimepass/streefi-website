@@ -54,11 +54,12 @@ export async function GET(request: NextRequest) {
     // Verify webhook from Meta
     const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
     if (!verifyToken) {
-      console.error('❌ WHATSAPP_VERIFY_TOKEN not configured');
-      return new NextResponse('Server configuration error', { status: 500 });
+      console.error('❌ WHATSAPP_VERIFY_TOKEN not configured in environment variables');
+      return new NextResponse('Forbidden', { status: 403 });
     }
 
-    if (mode === 'subscribe' && token !== null && timingSafeEqual(Buffer.from(token), Buffer.from(verifyToken))) {
+    // Simple string comparison for webhook verification
+    if (mode === 'subscribe' && token === verifyToken) {
       // Respond with 200 OK and challenge token from the request
       console.log('✅ Webhook verified successfully!');
       return new NextResponse(challenge, { 
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Invalid verification token
-    console.warn('⚠️ Webhook verification failed: Token mismatch');
+    console.warn('⚠️ Webhook verification failed - Token mismatch:', { mode, tokenReceived: token?.substring(0, 5) + '...', expectedStart: verifyToken.substring(0, 5) + '...' });
     return new NextResponse(
       '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
       { 
