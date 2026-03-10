@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWhatsAppAdminContext } from '../../context/WhatsAppAdminProvider';
+import { getCsrfHeader } from '@/lib/csrfClient';
 import EmergencyKillSwitch from '../EmergencyKillSwitch';
 import GlobalSendingStateIndicator from '../GlobalSendingStateIndicator';
 
@@ -45,7 +46,9 @@ export default function SendMessagePageContent() {
       setLoadingTemplates(true);
       setMessage(null); // Clear any previous messages
       
-      const res = await fetch('/api/whatsapp-admin/templates');
+      const res = await fetch('/api/whatsapp-admin/templates', {
+        credentials: 'include', // Required for session cookie
+      });
       
       // Handle specific HTTP status codes
       if (!res.ok) {
@@ -143,7 +146,8 @@ export default function SendMessagePageContent() {
 
       const res = await fetch('/api/whatsapp-admin/send-template', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Required for session cookie
+        headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
         body: JSON.stringify({
           templateName: selectedTemplate,
           recipient: cleanPhone,
@@ -270,7 +274,8 @@ export default function SendMessagePageContent() {
         try {
           const res = await fetch('/api/whatsapp-admin/send-template', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Required for session cookie
+            headers: { 'Content-Type': 'application/json', ...getCsrfHeader() },
             body: JSON.stringify({
               templateName: selectedTemplate,
               recipient: phone,
