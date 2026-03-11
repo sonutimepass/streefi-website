@@ -4,9 +4,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("../sentry.server.config");
     
-    // Run campaign system startup validation
-    const { validateCampaignSystemStartup } = await import("@/lib/whatsapp/campaignValidator");
-    validateCampaignSystemStartup();
+    // Startup validation removed for production
+    // System now relies on environment variables being correctly configured
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {

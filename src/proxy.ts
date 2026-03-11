@@ -24,7 +24,7 @@ const CAMPAIGNS_COOKIE_EXEMPT = [
   '/api/campaigns/dispatch',
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── WhatsApp Admin & Campaign routes ────────────────────────────────────

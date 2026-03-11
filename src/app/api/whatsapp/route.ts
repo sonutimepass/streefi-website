@@ -36,8 +36,18 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
+    // 🔍 DEBUG: Log all incoming verification parameters
+    console.log('\n========== WEBHOOK VERIFICATION ATTEMPT ==========');
+    console.log('📥 Request URL:', request.url);
+    console.log('📝 Parameters:', {
+      mode,
+      token: token ? `${token.substring(0, 10)}...` : 'null',
+      challenge: challenge ? 'present' : 'null'
+    });
+
     // Security check: Return 403 for any unauthorized GET requests (like Zomato)
     if (!mode || !token || !challenge) {
+      console.log('⚠️ Missing required parameters - returning 403');
       return new NextResponse(
         '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
         { 
@@ -51,17 +61,54 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 🔍 DEBUG: Check environment variable availability
+    console.log('\n🔐 Environment Variable Check:');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('NEXT_RUNTIME:', process.env.NEXT_RUNTIME);
+    
+    // List all WhatsApp-related env vars (safely)
+    const whatsappEnvVars = {
+      WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN ? '✅ SET' : '❌ NOT SET',
+      WHATSAPP_APP_SECRET: process.env.WHATSAPP_APP_SECRET ? '✅ SET' : '❌ NOT SET',
+      WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN ? '✅ SET' : '❌ NOT SET',
+      META_PHONE_NUMBER_ID: process.env.META_PHONE_NUMBER_ID ? '✅ SET' : '❌ NOT SET',
+      WHATSAPP_PHONE_ID: process.env.WHATSAPP_PHONE_ID ? '✅ SET' : '❌ NOT SET',
+    };
+    console.log('WhatsApp Environment Variables:', whatsappEnvVars);
+
     // Verify webhook from Meta
     const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
     if (!verifyToken) {
-      console.error('❌ WHATSAPP_VERIFY_TOKEN not configured in environment variables');
+      console.error('\n❌ CRITICAL: WHATSAPP_VERIFY_TOKEN not configured in environment variables');
+      console.error('💡 Solution:');
+      console.error('   1. Go to AWS Amplify Console');
+      console.error('   2. Navigate to: Environment variables');
+      console.error('   3. Add: WHATSAPP_VERIFY_TOKEN = <your_token>');
+      console.error('   4. Rebuild the application');
+      console.log('==================================================\n');
       return new NextResponse('Forbidden', { status: 403 });
     }
+
+    console.log('✅ WHATSAPP_VERIFY_TOKEN is configured');
+    console.log('🔑 Token preview:', `${verifyToken.substring(0, 10)}...`);
+
+    console.log('✅ WHATSAPP_VERIFY_TOKEN is configured');
+    console.log('🔑 Token preview:', `${verifyToken.substring(0, 10)}...`);
+
+    // 🔍 DEBUG: Compare tokens
+    console.log('\n🔍 Token Comparison:');
+    console.log('Mode:', mode);
+    console.log('Expected token (first 15 chars):', verifyToken.substring(0, 15) + '...');
+    console.log('Received token (first 15 chars):', token.substring(0, 15) + '...');
+    console.log('Tokens match:', token === verifyToken);
+    console.log('Token lengths - Expected:', verifyToken.length, 'Received:', token.length);
 
     // Simple string comparison for webhook verification
     if (mode === 'subscribe' && token === verifyToken) {
       // Respond with 200 OK and challenge token from the request
-      console.log('✅ Webhook verified successfully!');
+      console.log('\n✅ Webhook verified successfully!');
+      console.log('📤 Sending challenge response:', challenge);
+      console.log('==================================================\n');
       return new NextResponse(challenge, { 
         status: 200,
         headers: {
@@ -71,7 +118,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Invalid verification token
-    console.warn('⚠️ Webhook verification failed - Token mismatch:', { mode, tokenReceived: token?.substring(0, 5) + '...', expectedStart: verifyToken.substring(0, 5) + '...' });
+    console.warn('\n⚠️ Webhook verification failed - Token mismatch');
+    console.warn('Details:', { 
+      mode, 
+      modeMatches: mode === 'subscribe',
+      tokenMatches: token === verifyToken,
+      tokenReceivedPreview: token?.substring(0, 10) + '...', 
+      expectedTokenPreview: verifyToken.substring(0, 10) + '...' 
+    });
+    console.log('==================================================\n');
     return new NextResponse(
       '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
       { 
@@ -115,16 +170,26 @@ export async function POST(request: NextRequest) {
 
     // Check if this is a webhook event from Meta (incoming message)
     if (body.object === 'whatsapp_business_account') {
-      // 🔒 SECURITY: Verify Meta webhook signature before processing any payload
+      console.log('\n========== INCOMING WEBHOOK POST ==========');
+      
+      // 🔍 DEBUG: Check environment variables for POST
       const appSecret = process.env.WHATSAPP_APP_SECRET;
+      console.log('🔐 WHATSAPP_APP_SECRET:', appSecret ? '✅ SET' : '❌ NOT SET');
+      
+      // 🔒 SECURITY: Verify Meta webhook signature before processing any payload
       if (!appSecret) {
         console.error('❌ WHATSAPP_APP_SECRET not configured — cannot verify webhook signature');
+        console.error('💡 Add WHATSAPP_APP_SECRET to Amplify Environment variables');
+        console.log('===========================================\n');
         return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
       }
 
       const signature = request.headers.get('x-hub-signature-256');
+      console.log('🔐 Signature header:', signature ? 'present' : 'missing');
+      
       if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
         console.warn('⚠️ Webhook signature verification failed — possible spoofed event, rejecting');
+        console.log('===========================================\n');
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
@@ -228,8 +293,20 @@ export async function POST(request: NextRequest) {
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
     const phoneNumberId = process.env.META_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_ID;
 
+    // 🔍 DEBUG: Log credential availability
+    console.log('\n========== MESSAGE SENDING REQUEST ==========');
+    console.log('🔐 Credentials Check:');
+    console.log('WHATSAPP_ACCESS_TOKEN:', accessToken ? '✅ SET' : '❌ NOT SET');
+    console.log('META_PHONE_NUMBER_ID:', process.env.META_PHONE_NUMBER_ID ? '✅ SET' : '❌ NOT SET');
+    console.log('WHATSAPP_PHONE_ID:', process.env.WHATSAPP_PHONE_ID ? '✅ SET' : '❌ NOT SET');
+    console.log('Using phoneNumberId:', phoneNumberId || 'NOT CONFIGURED');
+
     if (!accessToken || !phoneNumberId) {
-      console.error('WhatsApp credentials not configured');
+      console.error('❌ WhatsApp credentials not configured');
+      console.error('💡 Required environment variables:');
+      console.error('   - WHATSAPP_ACCESS_TOKEN');
+      console.error('   - META_PHONE_NUMBER_ID or WHATSAPP_PHONE_ID');
+      console.log('============================================\n');
       return NextResponse.json(
         { 
           success: false, 

@@ -11,15 +11,46 @@ frontend:
         - rm -f .env.production
         - touch .env.production
 
-        # Add ONLY the server-side variables you explicitly need
+        # Authentication
         - env | grep -e EMAIL_ADMIN_PASSWORD_HASH >> .env.production || true
         - env | grep -e WA_ADMIN_PASSWORD_HASH >> .env.production || true
+
+        # Zoho Email Integration
         - env | grep -e ZOHO_CLIENT_ID >> .env.production || true
         - env | grep -e ZOHO_CLIENT_SECRET >> .env.production || true
         - env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
         - env | grep -e FROM_EMAIL >> .env.production || true
 
-        # If you use any public vars:
+        # AWS & DynamoDB Configuration
+        - env | grep -e AWS_REGION >> .env.production || true
+        - env | grep -e DYNAMODB_TABLE_NAME >> .env.production || true
+        - env | grep -e WHATSAPP_CONVERSATIONS_TABLE_NAME >> .env.production || true
+        - env | grep -e ADMIN_TABLE_NAME >> .env.production || true
+        - env | grep -e SESSION_TABLE_NAME >> .env.production || true
+        - env | grep -e CAMPAIGNS_TABLE_NAME >> .env.production || true
+        - env | grep -e RECIPIENTS_TABLE_NAME >> .env.production || true
+        - env | grep -e CONTACTS_TABLE_NAME >> .env.production || true
+
+        # WhatsApp/Meta API Credentials
+        - env | grep -e WHATSAPP_ACCESS_TOKEN >> .env.production || true
+        - env | grep -e META_PHONE_NUMBER_ID >> .env.production || true
+        - env | grep -e WHATSAPP_PHONE_ID >> .env.production || true
+        - env | grep -e WHATSAPP_VERIFY_TOKEN >> .env.production || true
+        - env | grep -e WHATSAPP_APP_SECRET >> .env.production || true
+        - env | grep -e META_WABA_ID >> .env.production || true
+        - env | grep -e META_DRY_RUN >> .env.production || true
+
+        # Security & Internal Operations
+        - env | grep -e INTERNAL_OPERATIONS_KEY >> .env.production || true
+        - env | grep -e TRACKING_TOKEN_SECRET >> .env.production || true
+
+        # Rate Limiting & Safeguards
+        - env | grep -e WHATSAPP_DAILY_LIMIT >> .env.production || true
+        - env | grep -e WHATSAPP_RATE_LIMIT_PER_SEC >> .env.production || true
+        - env | grep -e META_DAILY_LIMIT >> .env.production || true
+        - env | grep -e META_SAFETY_BUFFER >> .env.production || true
+
+        # Public Variables (client-side)
         - env | grep -e NEXT_PUBLIC_ >> .env.production || true
 
         # Build Next.js
