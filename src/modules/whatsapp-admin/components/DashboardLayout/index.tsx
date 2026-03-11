@@ -26,12 +26,19 @@ export default function DashboardLayout() {
               <p className="text-xs text-gray-600 hidden sm:block">Production Control Center</p>
             </div>
 
-            {/* Right: Status + Kill Switch + Logout */}
+            {/* Right: Status + Kill Switch + Inbox + Logout */}
             <div className="flex items-center space-x-2 sm:space-x-3">
               <GlobalSendingStateIndicator />
               <div className="relative">
                 <EmergencyKillSwitch />
               </div>
+              <a
+                href="/whatsapp-admin/inbox"
+                className="px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center gap-1"
+              >
+                <span>💬</span>
+                <span className="hidden sm:inline">Inbox</span>
+              </a>
               <button
                 onClick={logout}
                 className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"

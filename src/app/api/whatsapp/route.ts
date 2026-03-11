@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac, timingSafeEqual } from 'crypto';
 import { validateAdminSession } from '@/lib/adminAuth';
-import { handleMessageStatus, type WebhookStatus } from '@/lib/whatsapp/webhookStatusHandler';
 import { whatsappRepository } from '@/lib/repositories/whatsappRepository';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { verifyWebhookSignature } from '@/lib/whatsapp/signatureVerifier';
+import { routeWebhookEvent } from '@/lib/whatsapp/webhookRouter';
+import { truncateText } from '@/lib/whatsapp/metaTypes';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,82 +11,7 @@ export const dynamic = 'force-dynamic';
 const isLocalDevelopment = process.env.NODE_ENV === 'development' || 
                           process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
 
-// Initialize DynamoDB client
-// In AWS Lambda (Amplify), use IAM role credentials (no explicit credentials needed)
-// For local testing, use explicit credentials from env vars
-const dynamoClientConfig: any = {
-  region: process.env.AWS_REGION || 'us-east-1',
-};
-
-// Only add explicit credentials if they exist (local testing)
-// In production (Lambda), omit this to use IAM role automatically
-if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-  dynamoClientConfig.credentials = {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  };
-  console.log('✅ DynamoDB client initialized with explicit credentials');
-} else {
-  console.log('✅ DynamoDB client initialized with IAM role credentials');
-}
-
-const dynamoClient = new DynamoDBClient(dynamoClientConfig);
-const WHATSAPP_TABLE = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
-
-/**
- * Store webhook event to DynamoDB for debugging and audit trail
- */
-async function storeWebhookEvent(webhookType: string, payload: any, metadata?: any) {
-  try {
-    const timestamp = Date.now();
-    const webhookId = `WEBHOOK#${timestamp}#${Math.random().toString(36).substring(7)}`;
-    
-    console.log(`📝 Attempting to store ${webhookType} webhook to DynamoDB...`);
-    
-    await dynamoClient.send(
-      new PutItemCommand({
-        TableName: WHATSAPP_TABLE,
-        Item: {
-          PK: { S: webhookId },
-          SK: { S: webhookType },
-          webhook_type: { S: webhookType },
-          payload: { S: JSON.stringify(payload) },
-          metadata: metadata ? { S: JSON.stringify(metadata) } : { NULL: true },
-          timestamp: { N: timestamp.toString() },
-          created_at: { S: new Date().toISOString() },
-          ttl: { N: (Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60)).toString() }, // 90 days retention
-        },
-      })
-    );
-    
-    console.log(`✅ Successfully stored ${webhookType} webhook to DynamoDB (${WHATSAPP_TABLE})`);
-  } catch (error) {
-    console.error(`❌ Failed to store ${webhookType} webhook to DynamoDB:`, error);
-    if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
-    }
-    // Don't throw - webhook processing should continue even if storage fails
-  }
-}
-
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
-
-/**
- * Verify the X-Hub-Signature-256 header sent by Meta on every webhook POST.
- * Returns true only when the HMAC-SHA256 of the raw body matches the header.
- */
-function verifyWebhookSignature(rawBody: string, signature: string | null, appSecret: string): boolean {
-  if (!signature) return false;
-  const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody).digest('hex');
-  // Use timing-safe comparison to prevent side-channel attacks
-  try {
-    return signature.length === expected.length &&
-      timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
 
 /**
  * GET - WhatsApp Webhook Verification
@@ -217,370 +142,66 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - WhatsApp Webhook Handler
- * Receives incoming messages and events from Meta's WhatsApp Business API
- * Also handles sending WhatsApp messages (internal API)
+ * POST - WhatsApp Webhook Handler & Message Sending API
+ * 
+ * Handles two types of requests:
+ * 1. Webhook events from Meta (incoming messages, statuses, operational alerts)
+ * 2. Internal message sending API (admin/vendor sends message to customer)
  */
 export async function POST(request: NextRequest) {
   try {
-    // Read raw body first so we can verify the HMAC signature before parsing
+    // Read raw body for signature verification
     const rawBody = await request.text();
     let body: any;
+    
     try {
       body = JSON.parse(rawBody);
     } catch {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    // Check if this is a webhook event from Meta (incoming message)
+    // ═══════════════════════════════════════════════════════════
+    // WEBHOOK EVENT FROM META (incoming messages/events)
+    // ═══════════════════════════════════════════════════════════
     if (body.object === 'whatsapp_business_account') {
-      console.log('\n========== INCOMING WEBHOOK POST ==========');
-      console.log('🔍 Environment:', isLocalDevelopment ? 'LOCAL DEVELOPMENT' : 'PRODUCTION');
+      console.log('\n========== INCOMING WEBHOOK ==========');
+      console.log('🔍 Environment:', isLocalDevelopment ? 'LOCAL' : 'PRODUCTION');
       
-      // 🔍 DEBUG: Check environment variables for POST
-      const appSecret = process.env.WHATSAPP_APP_SECRET;
-      console.log('🔐 WHATSAPP_APP_SECRET:', appSecret ? '✅ SET' : '❌ NOT SET');
-      
-      // 🔓 LOCALHOST BYPASS: Skip signature verification in local development
-      if (isLocalDevelopment) {
-        console.warn('⚠️ LOCAL DEV MODE: Skipping signature verification');
-      } else {
-        // 🔒 SECURITY: Verify Meta webhook signature before processing any payload (PRODUCTION ONLY)
+      // 🔒 SECURITY: Verify Meta webhook signature (production only)
+      if (!isLocalDevelopment) {
+        const appSecret = process.env.WHATSAPP_APP_SECRET;
+        
         if (!appSecret) {
-          console.error('❌ WHATSAPP_APP_SECRET not configured — cannot verify webhook signature');
-          console.error('💡 Add WHATSAPP_APP_SECRET to Amplify Environment variables');
-          console.log('===========================================\n');
+          console.error('❌ WHATSAPP_APP_SECRET not configured');
           return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
         const signature = request.headers.get('x-hub-signature-256');
-        console.log('🔐 Signature header:', signature ? 'present' : 'missing');
         
         if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
-          console.warn('⚠️ Webhook signature verification failed — possible spoofed event, rejecting');
-          console.log('===========================================\n');
+          console.warn('⚠️ Webhook signature verification failed');
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         console.log('✅ Webhook signature verified');
+      } else {
+        console.warn('⚠️ LOCAL DEV: Skipping signature verification');
       }
-      console.log('📨 Incoming WhatsApp webhook:', JSON.stringify(body, null, 2));
 
-      // Process webhook entries
+      // Route webhook events to handlers
       if (body.entry && Array.isArray(body.entry)) {
         for (const entry of body.entry) {
           if (entry.changes && Array.isArray(entry.changes)) {
             for (const change of entry.changes) {
-              const webhookField = change.field;
-              const value = change.value;
-              
-              console.log(`\n🔔 Webhook Event: ${webhookField}`);
-              console.log('📦 Payload:', JSON.stringify(value, null, 2));
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK TYPE: messages (incoming messages from users)
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'messages' && value.messages && Array.isArray(value.messages)) {
-                // Store webhook event
-                await storeWebhookEvent('messages', value, { entry_id: entry.id });
-                
-                for (const message of value.messages) {
-                  console.log('📩 Message received:', {
-                    from: message.from,
-                    type: message.type,
-                    id: message.id,
-                    timestamp: message.timestamp,
-                  });
-
-                  // Derive text content or serialise media payload
-                  let content = '';
-                  if (message.type === 'text') {
-                    content = message.text?.body || '';
-                  } else if (message.type === 'button' || message.type === 'interactive') {
-                    content = JSON.stringify(message.interactive || message.button || {});
-                  } else {
-                    // image, document, audio, video, location, contacts, etc.
-                    content = JSON.stringify(message[message.type] || {});
-                  }
-
-                  // Persist inbound message to DynamoDB (best-effort)
-                  try {
-                    await whatsappRepository.saveInboundMessage({
-                      phone: message.from,
-                      messageId: message.id,
-                      type: message.type,
-                      timestamp: parseInt(message.timestamp, 10) || Math.floor(Date.now() / 1000),
-                      content,
-                    });
-                  } catch (saveErr) {
-                    console.error('❌ Failed to persist inbound message:', saveErr);
-                  }
-                }
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: message_status (delivery receipts)
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'messages' && value.statuses && Array.isArray(value.statuses)) {
-                // Store webhook event
-                await storeWebhookEvent('message_status', value, { entry_id: entry.id });
-                
-                for (const status of value.statuses) {
-                  console.log('📊 Message Status Update:', {
-                    id: status.id,
-                    status: status.status,
-                    timestamp: status.timestamp,
-                    recipient: status.recipient_id,
-                  });
-                  await handleMessageStatus(status as WebhookStatus);
-                }
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: account_alerts
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'account_alerts') {
-                console.log('⚠️ Account Alert:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('account_alerts', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: account_review_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'account_review_update') {
-                console.log('🔍 Account Review Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('account_review_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: account_settings_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'account_settings_update') {
-                console.log('⚙️ Account Settings Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('account_settings_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: account_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'account_update') {
-                console.log('🏢 Account Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('account_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: automatic_events
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'automatic_events') {
-                console.log('🤖 Automatic Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('automatic_events', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: business_capability_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'business_capability_update') {
-                console.log('💼 Business Capability Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('business_capability_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: business_status_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'business_status_update') {
-                console.log('📊 Business Status Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('business_status_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: calls
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'calls') {
-                console.log('📞 Call Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('calls', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: flows
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'flows') {
-                console.log('🔄 Flow Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('flows', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: group_lifecycle_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'group_lifecycle_update') {
-                console.log('👥 Group Lifecycle Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('group_lifecycle_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: group_participants_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'group_participants_update') {
-                console.log('👤 Group Participants Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('group_participants_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: group_settings_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'group_settings_update') {
-                console.log('⚙️ Group Settings Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('group_settings_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: group_status_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'group_status_update') {
-                console.log('📊 Group Status Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('group_status_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: history
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'history') {
-                console.log('📜 History Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('history', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: message_echoes
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'message_echoes') {
-                console.log('🔊 Message Echo:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('message_echoes', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: message_template_components_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'message_template_components_update') {
-                console.log('🧩 Template Components Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('message_template_components_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: message_template_quality_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'message_template_quality_update') {
-                console.log('⭐ Template Quality Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('message_template_quality_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: message_template_status_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'message_template_status_update') {
-                console.log('📋 Template Status Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('message_template_status_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: messaging_handovers
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'messaging_handovers') {
-                console.log('🤝 Messaging Handover:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('messaging_handovers', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: partner_solutions
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'partner_solutions') {
-                console.log('🤝 Partner Solution Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('partner_solutions', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: payment_configuration_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'payment_configuration_update') {
-                console.log('💳 Payment Config Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('payment_configuration_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: phone_number_name_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'phone_number_name_update') {
-                console.log('📱 Phone Number Name Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('phone_number_name_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: phone_number_quality_update
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'phone_number_quality_update') {
-                console.log('📱 Phone Quality Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('phone_number_quality_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: security
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'security') {
-                console.log('🔒 Security Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('security', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: smb_app_state_sync
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'smb_app_state_sync') {
-                console.log('🔄 SMB App State Sync:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('smb_app_state_sync', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: smb_message_echoes
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'smb_message_echoes') {
-                console.log('🔊 SMB Message Echo:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('smb_message_echoes', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: template_category_update  
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'template_category_update') {
-                console.log('📂 Template Category Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('template_category_update', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: template_correct_category_detection
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'template_correct_category_detection') {
-                console.log('🎯 Template Category Detection:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('template_correct_category_detection', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: tracking_events
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'tracking_events') {
-                console.log('📊 Tracking Event:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('tracking_events', value, { entry_id: entry.id });
-              }
-
-              // ═══════════════════════════════════════════════════════════
-              // WEBHOOK: user_preferences
-              // ═══════════════════════════════════════════════════════════
-              if (webhookField === 'user_preferences') {
-                console.log('👤 User Preference Update:', JSON.stringify(value, null, 2));
-                await storeWebhookEvent('user_preferences', value, { entry_id: entry.id });
-              }
+              await routeWebhookEvent(change.field, change.value, entry.id);
             }
           }
         }
       }
 
       // Always return 200 OK to acknowledge receipt
+      console.log('✅ Webhook processed');
+      console.log('======================================\n');
       return NextResponse.json({ success: true, received: true }, { status: 200 });
     }
 
@@ -698,6 +319,42 @@ export async function POST(request: NextRequest) {
         },
         { status: whatsappResponse.status }
       );
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CRITICAL: Store outbound message for conversation history
+    // ═══════════════════════════════════════════════════════════
+    if (responseData.messages?.[0]?.id) {
+      const messageContent = template 
+        ? `[Template: ${template.name}]` 
+        : message;
+
+      try {
+        // Write 1: Store outbound message
+        await whatsappRepository.storeMessage({
+          phone: formattedPhone,
+          direction: 'outbound',
+          messageId: responseData.messages[0].id,
+          messageType: template ? 'template' : 'text',
+          content: messageContent,
+          timestamp: Math.floor(Date.now() / 1000),
+          status: 'sent'
+        });
+
+        // Write 2: Update conversation metadata
+        await whatsappRepository.updateConversationMeta({
+          phone: formattedPhone,
+          lastMessage: truncateText(messageContent, 100),
+          lastMessageTimestamp: Math.floor(Date.now() / 1000),
+          lastDirection: 'outbound',
+          incrementUnread: false // Vendor replies don't increment unread
+        });
+
+        console.log('✅ Stored outbound message:', responseData.messages[0].id);
+      } catch (storeError) {
+        console.error('❌ Failed to store outbound message:', storeError);
+        // Continue - message was sent successfully
+      }
     }
 
     // Success response

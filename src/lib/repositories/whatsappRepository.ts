@@ -26,7 +26,8 @@ import {
   PutItemCommand,
   UpdateItemCommand,
   DeleteItemCommand,
-  ScanCommand
+  ScanCommand,
+  QueryCommand
 } from "@aws-sdk/client-dynamodb";
 import { dynamoClient, TABLES } from "../dynamoClient";
 
@@ -868,6 +869,532 @@ export class WhatsAppRepository {
       lastSyncTime: item.lastSyncTime?.S,
       metaTemplateId: item.metaTemplateId?.S
     };
+  }
+
+  // ==================== PRODUCTION CONVERSATION SCHEMA (CONV# + META) ====================
+
+  /**
+   * Store message using production CONV# schema
+   * 
+   * Schema:
+   * PK = CONV#{phone}
+   * SK = MSG#{timestamp}#{direction}
+   * 
+   * Supports both inbound and outbound messages.
+   * Partitioned by phone number for optimal DynamoDB scaling.
+   */
+  async storeMessage(params: {
+    phone: string;
+    direction: 'inbound' | 'outbound';
+    messageId: string;
+    messageType: string;
+    content: string;
+    timestamp: number;
+    status: string;
+    vendorId?: string;
+  }): Promise<void> {
+    const { phone, direction, messageId, messageType, content, timestamp, status, vendorId } = params;
+    
+    const sk = `MSG#${timestamp}#${direction.toUpperCase().substring(0, 3)}`;
+    
+    const item: any = {
+      PK: { S: `CONV#${phone}` },
+      SK: { S: sk },
+      TYPE: { S: 'MESSAGE' },
+      phone: { S: phone },
+      direction: { S: direction },
+      messageId: { S: messageId },
+      messageType: { S: messageType },
+      content: { S: content },
+      timestamp: { N: timestamp.toString() },
+      status: { S: status },
+      createdAt: { S: new Date().toISOString() }
+    };
+
+    if (vendorId) {
+      item.vendorId = { S: vendorId };
+    }
+
+    try {
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: item,
+          // Idempotent: skip if message already exists
+          ConditionExpression: 'attribute_not_exists(SK)'
+        })
+      );
+    } catch (error: any) {
+      // Ignore ConditionalCheckFailedException (duplicate message)
+      if (error.name !== 'ConditionalCheckFailedException') {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Update or create conversation metadata (META item)
+   * 
+   * Schema:
+   * PK = CONV#{phone}
+   * SK = META
+   * TYPE = CONVERSATION
+   * 
+   * Powers dashboard conversation list via GSI.
+   */
+  async updateConversationMeta(params: {
+    phone: string;
+    name?: string;
+    lastMessage?: string;
+    lastMessageTimestamp?: number;
+    lastDirection?: 'inbound' | 'outbound';
+    incrementUnread?: boolean;
+    vendorId?: string;
+  }): Promise<void> {
+    const { 
+      phone, 
+      name, 
+      lastMessage, 
+      lastMessageTimestamp, 
+      lastDirection, 
+      incrementUnread,
+      vendorId 
+    } = params;
+
+    const now = Date.now();
+    const updateExpressions: string[] = ['updatedAt = :updatedAt'];
+    const expressionAttributeValues: any = {
+      ':updatedAt': { N: now.toString() }
+    };
+    const expressionAttributeNames: any = {};
+
+    if (name) {
+      updateExpressions.push('#name = :name');
+      expressionAttributeNames['#name'] = 'name';
+      expressionAttributeValues[':name'] = { S: name };
+    }
+
+    if (lastMessage) {
+      updateExpressions.push('lastMessage = :lastMessage');
+      expressionAttributeValues[':lastMessage'] = { S: lastMessage };
+    }
+
+    if (lastMessageTimestamp) {
+      updateExpressions.push('lastMessageTimestamp = :lastMessageTimestamp');
+      expressionAttributeValues[':lastMessageTimestamp'] = { N: lastMessageTimestamp.toString() };
+    }
+
+    if (lastDirection) {
+      updateExpressions.push('lastDirection = :lastDirection');
+      expressionAttributeValues[':lastDirection'] = { S: lastDirection };
+    }
+
+    if (vendorId) {
+      updateExpressions.push('vendorId = :vendorId');
+      expressionAttributeValues[':vendorId'] = { S: vendorId };
+    }
+
+    // Increment unread count for inbound messages
+    if (incrementUnread) {
+      updateExpressions.push('unreadCount = if_not_exists(unreadCount, :zero) + :one');
+      expressionAttributeValues[':zero'] = { N: '0' };
+      expressionAttributeValues[':one'] = { N: '1' };
+    }
+
+    // Set TYPE and phone on first creation
+    updateExpressions.push('TYPE = if_not_exists(TYPE, :type)');
+    updateExpressions.push('phone = if_not_exists(phone, :phone)');
+    expressionAttributeValues[':type'] = { S: 'CONVERSATION' };
+    expressionAttributeValues[':phone'] = { S: phone };
+
+    const updateExpression = 'SET ' + updateExpressions.join(', ');
+
+    try {
+      await this.client.send(
+        new UpdateItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `CONV#${phone}` },
+            SK: { S: 'META' }
+          },
+          UpdateExpression: updateExpression,
+          ExpressionAttributeValues: expressionAttributeValues,
+          ...(Object.keys(expressionAttributeNames).length > 0 && {
+            ExpressionAttributeNames: expressionAttributeNames
+          })
+        })
+      );
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error updating conversation meta:', error);
+      // Don't throw - non-critical for webhook processing
+    }
+  }
+
+  /**
+   * Update message delivery status
+   * 
+   * Updates existing message item with new status.
+   * Status flow: sent → delivered → read
+   */
+  async updateMessageStatus(params: {
+    messageId: string;
+    status: string;
+    timestamp: number;
+  }): Promise<void> {
+    const { messageId, status, timestamp } = params;
+
+    // Note: We need to find the message first since we don't know the PK/SK
+    // For now, we'll use the existing handleMessageStatus logic
+    // TODO: Consider storing messageId → (PK, SK) mapping for faster lookups
+
+    try {
+      // Scan for message with this messageId (not optimal, but works)
+      // In production, consider maintaining a GSI on messageId
+      const scanResult = await this.client.send(
+        new ScanCommand({
+          TableName: this.tableName,
+          FilterExpression: 'messageId = :messageId',
+          ExpressionAttributeValues: {
+            ':messageId': { S: messageId }
+          },
+          Limit: 1
+        })
+      );
+
+      if (scanResult.Items && scanResult.Items.length > 0) {
+        const item = scanResult.Items[0];
+        const pk = item.PK?.S;
+        const sk = item.SK?.S;
+
+        if (pk && sk) {
+          const updateExpression = 'SET #status = :status, statusUpdatedAt = :timestamp';
+          const expressionAttributeNames = {
+            '#status': 'status'
+          };
+          const expressionAttributeValues = {
+            ':status': { S: status },
+            ':timestamp': { N: timestamp.toString() }
+          };
+
+          // Add specific timestamp field based on status
+          if (status === 'delivered') {
+            await this.client.send(
+              new UpdateItemCommand({
+                TableName: this.tableName,
+                Key: { PK: { S: pk }, SK: { S: sk } },
+                UpdateExpression: updateExpression + ', deliveredAt = :timestamp',
+                ExpressionAttributeNames: expressionAttributeNames,
+                ExpressionAttributeValues: expressionAttributeValues
+              })
+            );
+          } else if (status === 'read') {
+            await this.client.send(
+              new UpdateItemCommand({
+                TableName: this.tableName,
+                Key: { PK: { S: pk }, SK: { S: sk } },
+                UpdateExpression: updateExpression + ', readAt = :timestamp',
+                ExpressionAttributeNames: expressionAttributeNames,
+                ExpressionAttributeValues: expressionAttributeValues
+              })
+            );
+          } else {
+            await this.client.send(
+              new UpdateItemCommand({
+                TableName: this.tableName,
+                Key: { PK: { S: pk }, SK: { S: sk } },
+                UpdateExpression: updateExpression,
+                ExpressionAttributeNames: expressionAttributeNames,
+                ExpressionAttributeValues: expressionAttributeValues
+              })
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error updating message status:', error);
+      // Don't throw - non-critical for webhook processing
+    }
+  }
+
+  /**
+   * Reset unread count (when vendor opens chat)
+   */
+  async markConversationAsRead(phone: string): Promise<void> {
+    try {
+      await this.client.send(
+        new UpdateItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `CONV#${phone}` },
+            SK: { S: 'META' }
+          },
+          UpdateExpression: 'SET unreadCount = :zero',
+          ExpressionAttributeValues: {
+            ':zero': { N: '0' }
+          }
+        })
+      );
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error marking conversation as read:', error);
+    }
+  }
+
+  // ==================== CONVERSATION QUERIES (Dashboard) ====================
+
+  /**
+   * List all conversations (for dashboard)
+   * 
+   * Uses GSI: TYPE-updatedAt-index
+   * Queries: TYPE=CONVERSATION, sorted by updatedAt DESC
+   * 
+   * Requires GSI to be created:
+   * - Partition Key: TYPE (String)
+   * - Sort Key: updatedAt (Number)
+   */
+  async listConversations(params?: {
+    limit?: number;
+    lastEvaluatedKey?: Record<string, any>;
+    vendorId?: string;
+  }): Promise<{
+    conversations: Array<{
+      phone: string;
+      name?: string;
+      lastMessage?: string;
+      lastMessageTimestamp?: number;
+      lastDirection?: 'inbound' | 'outbound';
+      unreadCount?: number;
+      updatedAt: number;
+      vendorId?: string;
+    }>;
+    lastEvaluatedKey?: Record<string, any>;
+  }> {
+    try {
+      const queryParams: any = {
+        TableName: this.tableName,
+        IndexName: 'TYPE-updatedAt-index',
+        KeyConditionExpression: '#type = :type',
+        ExpressionAttributeNames: {
+          '#type': 'TYPE'
+        },
+        ExpressionAttributeValues: {
+          ':type': { S: 'CONVERSATION' }
+        },
+        ScanIndexForward: false, // DESC order (most recent first)
+        Limit: params?.limit || 50
+      };
+
+      // Add vendor filter if specified (for multi-vendor support)
+      if (params?.vendorId) {
+        queryParams.FilterExpression = 'vendorId = :vendorId';
+        queryParams.ExpressionAttributeValues[':vendorId'] = { S: params.vendorId };
+      }
+
+      // Pagination support
+      if (params?.lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = params.lastEvaluatedKey;
+      }
+
+      const response = await this.client.send(new QueryCommand(queryParams));
+
+      const conversations = (response.Items || []).map(item => ({
+        phone: item.phone?.S || '',
+        name: item.name?.S,
+        lastMessage: item.lastMessage?.S,
+        lastMessageTimestamp: item.lastMessageTimestamp?.N 
+          ? parseInt(item.lastMessageTimestamp.N, 10) 
+          : undefined,
+        lastDirection: item.lastDirection?.S as 'inbound' | 'outbound' | undefined,
+        unreadCount: item.unreadCount?.N ? parseInt(item.unreadCount.N, 10) : 0,
+        updatedAt: item.updatedAt?.N ? parseInt(item.updatedAt.N, 10) : 0,
+        vendorId: item.vendorId?.S
+      }));
+
+      return {
+        conversations,
+        lastEvaluatedKey: response.LastEvaluatedKey
+      };
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error listing conversations:', error);
+      throw new Error('Failed to list conversations');
+    }
+  }
+
+  /**
+   * Get conversation metadata (META item)
+   */
+  async getConversation(phone: string): Promise<{
+    phone: string;
+    name?: string;
+    lastMessage?: string;
+    lastMessageTimestamp?: number;
+    lastDirection?: 'inbound' | 'outbound';
+    unreadCount: number;
+    updatedAt: number;
+    vendorId?: string;
+  } | null> {
+    try {
+      const response = await this.client.send(
+        new GetItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `CONV#${phone}` },
+            SK: { S: 'META' }
+          }
+        })
+      );
+
+      if (!response.Item) {
+        return null;
+      }
+
+      const item = response.Item;
+      return {
+        phone: item.phone?.S || phone,
+        name: item.name?.S,
+        lastMessage: item.lastMessage?.S,
+        lastMessageTimestamp: item.lastMessageTimestamp?.N 
+          ? parseInt(item.lastMessageTimestamp.N, 10) 
+          : undefined,
+        lastDirection: item.lastDirection?.S as 'inbound' | 'outbound' | undefined,
+        unreadCount: item.unreadCount?.N ? parseInt(item.unreadCount.N, 10) : 0,
+        updatedAt: item.updatedAt?.N ? parseInt(item.updatedAt.N, 10) : 0,
+        vendorId: item.vendorId?.S
+      };
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error getting conversation:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get conversation messages (message history)
+   * 
+   * Queries: PK=CONV#{phone}, SK begins_with MSG#
+   * Returns messages sorted by timestamp (newest first)
+   */
+  async getConversationMessages(params: {
+    phone: string;
+    limit?: number;
+    lastEvaluatedKey?: Record<string, any>;
+  }): Promise<{
+    messages: Array<{
+      messageId: string;
+      direction: 'inbound' | 'outbound';
+      content: string;
+      messageType: string;
+      timestamp: number;
+      status: string;
+      createdAt: string;
+      deliveredAt?: number;
+      readAt?: number;
+    }>;
+    lastEvaluatedKey?: Record<string, any>;
+  }> {
+    const { phone, limit = 50, lastEvaluatedKey } = params;
+
+    try {
+      const queryParams: any = {
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: {
+          ':pk': { S: `CONV#${phone}` },
+          ':skPrefix': { S: 'MSG#' }
+        },
+        ScanIndexForward: false, // DESC order (newest first)
+        Limit: limit
+      };
+
+      if (lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = lastEvaluatedKey;
+      }
+
+      const response = await this.client.send(new QueryCommand(queryParams));
+
+      const messages = (response.Items || []).map(item => ({
+        messageId: item.messageId?.S || '',
+        direction: (item.direction?.S || 'inbound') as 'inbound' | 'outbound',
+        content: item.content?.S || '',
+        messageType: item.messageType?.S || 'text',
+        timestamp: item.timestamp?.N ? parseInt(item.timestamp.N, 10) : 0,
+        status: item.status?.S || 'unknown',
+        createdAt: item.createdAt?.S || '',
+        deliveredAt: item.deliveredAt?.N ? parseInt(item.deliveredAt.N, 10) : undefined,
+        readAt: item.readAt?.N ? parseInt(item.readAt.N, 10) : undefined
+      }));
+
+      return {
+        messages,
+        lastEvaluatedKey: response.LastEvaluatedKey
+      };
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error getting conversation messages:', error);
+      throw new Error('Failed to get conversation messages');
+    }
+  }
+
+  /**
+   * Store outbound message (sent from dashboard)
+   * 
+   * When vendor sends a message via dashboard, we store it immediately
+   * with status='sent'. The webhook will later update to delivered/read.
+   * 
+   * This enables full conversation history in the dashboard.
+   */
+  async storeOutboundMessage(params: {
+    phone: string;
+    messageId: string;
+    content: string;
+    timestamp: number;
+    status: string;
+  }): Promise<void> {
+    const { phone, messageId, content, timestamp, status } = params;
+
+    try {
+      // Store message item
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: {
+            PK: { S: `CONV#${phone}` },
+            SK: { S: `MSG#${timestamp}#OUT` },
+            messageId: { S: messageId },
+            direction: { S: 'outbound' },
+            content: { S: content },
+            messageType: { S: 'text' },
+            timestamp: { N: timestamp.toString() },
+            status: { S: status },
+            createdAt: { S: new Date(timestamp).toISOString() }
+          }
+        })
+      );
+
+      // Update conversation META
+      await this.client.send(
+        new UpdateItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `CONV#${phone}` },
+            SK: { S: 'META' }
+          },
+          UpdateExpression: 'SET lastMessage = :msg, lastMessageTimestamp = :ts, lastDirection = :dir, updatedAt = :updated, #type = :type',
+          ExpressionAttributeNames: {
+            '#type': 'TYPE'
+          },
+          ExpressionAttributeValues: {
+            ':msg': { S: content.substring(0, 100) },
+            ':ts': { N: timestamp.toString() },
+            ':dir': { S: 'outbound' },
+            ':updated': { N: timestamp.toString() },
+            ':type': { S: 'CONVERSATION' }
+          }
+        })
+      );
+
+      console.log('[WhatsAppRepository] Outbound message stored:', messageId);
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error storing outbound message:', error);
+      // Non-critical - don't block message sending
+    }
   }
 }
 
