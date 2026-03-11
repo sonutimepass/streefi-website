@@ -91,3 +91,47 @@ export async function GET(
     );
   }
 }
+
+/**
+ * Delete conversation
+ * 
+ * DELETE /api/conversations/[phone]
+ * 
+ * Deletes entire conversation including all messages.
+ * This is a destructive operation!
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ phone: string }> }
+) {
+  try {
+    const { phone } = await params;
+
+    // Validate phone number format
+    if (!phone || !/^\d{10,15}$/.test(phone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+
+    // Delete conversation
+    await whatsappRepository.deleteConversation(phone);
+
+    return NextResponse.json(
+      { 
+        success: true,
+        message: 'Conversation deleted successfully',
+        phone 
+      },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('[API] Error deleting conversation:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete conversation' },
+      { status: 500 }
+    );
+  }
+}

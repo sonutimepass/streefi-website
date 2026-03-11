@@ -27,7 +27,8 @@ import {
   UpdateItemCommand,
   DeleteItemCommand,
   ScanCommand,
-  QueryCommand
+  QueryCommand,
+  BatchWriteItemCommand
 } from "@aws-sdk/client-dynamodb";
 import { dynamoClient, TABLES } from "../dynamoClient";
 
@@ -680,7 +681,7 @@ export class WhatsAppRepository {
         new GetItemCommand({
           TableName: this.tableName,
           Key: {
-            PK: { S: `CONVERSATION#${phone}` },
+            PK: { S: `CONV#${phone}` },
             SK: { S: 'METADATA' }
           }
         })
@@ -742,7 +743,7 @@ export class WhatsAppRepository {
         ExpressionAttributeValues: {
           ':inc': { N: '1' },
           ':limit': { N: limit.toString() },
-          ':now': { S: new Date().toISOString() }
+          ':now': { N: Date.now().toString() }
         },
         ReturnValues: 'ALL_NEW'
       })
@@ -756,7 +757,7 @@ export class WhatsAppRepository {
       new PutItemCommand({
         TableName: this.tableName,
         Item: {
-          PK: { S: `CONVERSATION#${phone}` },
+          PK: { S: `CONV#${phone}` },
           SK: { S: 'METADATA' },
           phone: { S: phone },
           conversationStartedAt: { N: now.toString() },
@@ -778,7 +779,7 @@ export class WhatsAppRepository {
       new PutItemCommand({
         TableName: this.tableName,
         Item: {
-          PK: { S: `CONVERSATION#${phone}` },
+          PK: { S: `CONV#${phone}` },
           SK: { S: 'METADATA' },
           phone: { S: phone },
           conversationStartedAt: { N: conversationStartedAt.toString() },
@@ -796,7 +797,7 @@ export class WhatsAppRepository {
         new UpdateItemCommand({
           TableName: this.tableName,
           Key: {
-            PK: { S: `CONVERSATION#${phone}` },
+            PK: { S: `CONV#${phone}` },
             SK: { S: 'METADATA' }
           },
           UpdateExpression: 'SET lastMessageAt = :now ADD messageCount :inc',
@@ -816,7 +817,7 @@ export class WhatsAppRepository {
 
   /**
    * Persist an inbound message received via Meta webhook.
-   * PK = CONVERSATION#{phone}, SK = MSG#{timestamp}#{messageId}
+   * PK = CONV#{phone}, SK = MSG#{timestamp}#{messageId}
    * Also updates conversation tracking (last message + count).
    */
   async saveInboundMessage(params: {
@@ -833,7 +834,7 @@ export class WhatsAppRepository {
       new PutItemCommand({
         TableName: this.tableName,
         Item: {
-          PK: { S: `CONVERSATION#${phone}` },
+          PK: { S: `CONV#${phone}` },
           SK: { S: sk },
           phone: { S: phone },
           messageId: { S: messageId },
@@ -1001,9 +1002,10 @@ export class WhatsAppRepository {
       expressionAttributeValues[':one'] = { N: '1' };
     }
 
-    // Set TYPE and phone on first creation
-    updateExpressions.push('TYPE = if_not_exists(TYPE, :type)');
+    // Set TYPE and phone on first creation (TYPE is a reserved keyword, use alias)
+    updateExpressions.push('#type = if_not_exists(#type, :type)');
     updateExpressions.push('phone = if_not_exists(phone, :phone)');
+    expressionAttributeNames['#type'] = 'TYPE';
     expressionAttributeValues[':type'] = { S: 'CONVERSATION' };
     expressionAttributeValues[':phone'] = { S: phone };
 
@@ -1394,6 +1396,66 @@ export class WhatsAppRepository {
     } catch (error) {
       console.error('[WhatsAppRepository] Error storing outbound message:', error);
       // Non-critical - don't block message sending
+    }
+  }
+
+  /**
+   * Delete entire conversation (META + all messages)
+   * 
+   * Queries all items with PK=CONV#{phone} and deletes them in batches.
+   * This is a destructive operation - use with caution!
+   */
+  async deleteConversation(phone: string): Promise<void> {
+    try {
+      console.log('[WhatsAppRepository] Deleting conversation:', phone);
+
+      // Query all items for this conversation
+      const queryResponse = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk',
+          ExpressionAttributeValues: {
+            ':pk': { S: `CONV#${phone}` }
+          }
+        })
+      );
+
+      const items = queryResponse.Items || [];
+
+      if (items.length === 0) {
+        console.log('[WhatsAppRepository] No items found for conversation:', phone);
+        return;
+      }
+
+      console.log(`[WhatsAppRepository] Found ${items.length} items to delete`);
+
+      // Delete in batches (DynamoDB BatchWriteItem limit = 25)
+      const batchSize = 25;
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+
+        await this.client.send(
+          new BatchWriteItemCommand({
+            RequestItems: {
+              [this.tableName]: batch.map(item => ({
+                DeleteRequest: {
+                  Key: {
+                    PK: item.PK,
+                    SK: item.SK
+                  }
+                }
+              }))
+            }
+          })
+        );
+
+        console.log(`[WhatsAppRepository] Deleted batch ${Math.floor(i / batchSize) + 1}`);
+      }
+
+      console.log('[WhatsAppRepository] Conversation deleted successfully:', phone);
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error deleting conversation:', error);
+      throw new Error('Failed to delete conversation');
     }
   }
 }

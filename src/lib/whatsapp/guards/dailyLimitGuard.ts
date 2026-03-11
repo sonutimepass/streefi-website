@@ -27,7 +27,7 @@
  * ❌ Route handling (belongs to API routes)
  * 
  * DATA STRUCTURE:
- * - CONVERSATION#{phone} / METADATA → Individual conversation tracking
+ * - CONV#{phone} / METADATA → Individual conversation tracking
  * - DAILY_COUNTER#YYYY-MM-DD / METADATA → Atomic daily counter
  */
 
@@ -252,12 +252,12 @@ export class DailyLimitGuard {
       await whatsappRepository.createConversation(phone);
       console.log('[DailyLimitGuard] New conversation created:', {
         phone,
-        conversationId: `CONVERSATION#${phone}`,
+        conversationId: `CONV#${phone}`,
       });
     } catch (error) {
       console.error('[DailyLimitGuard] Error creating conversation:', {
         phone,
-        conversationId: `CONVERSATION#${phone}`,
+        conversationId: `CONV#${phone}`,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -303,7 +303,7 @@ export class DailyLimitGuard {
     } catch (error) {
       console.error('[DailyLimitGuard] Error closing conversation:', {
         phone,
-        conversationId: `CONVERSATION#${phone}`,
+        conversationId: `CONV#${phone}`,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

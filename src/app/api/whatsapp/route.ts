@@ -149,14 +149,25 @@ export async function GET(request: NextRequest) {
  * 2. Internal message sending API (admin/vendor sends message to customer)
  */
 export async function POST(request: NextRequest) {
+  // 🔍 VERBOSE LOGGING: Log every POST request
+  console.log('\n========== WEBHOOK POST RECEIVED ==========');
+  console.log('⏰ Time:', new Date().toISOString());
+  console.log('🌍 URL:', request.url);
+  console.log('📋 Headers:', Object.fromEntries(request.headers));
+
   try {
     // Read raw body for signature verification
     const rawBody = await request.text();
+    console.log('📦 Raw Body Length:', rawBody.length, 'bytes');
+    
     let body: any;
     
     try {
       body = JSON.parse(rawBody);
-    } catch {
+      console.log('📄 Parsed Body:', JSON.stringify(body, null, 2));
+    } catch (parseError) {
+      console.error('❌ JSON Parse Error:', parseError);
+      console.log('===========================================\n');
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
@@ -164,8 +175,10 @@ export async function POST(request: NextRequest) {
     // WEBHOOK EVENT FROM META (incoming messages/events)
     // ═══════════════════════════════════════════════════════════
     if (body.object === 'whatsapp_business_account') {
-      console.log('\n========== INCOMING WEBHOOK ==========');
+      console.log('\n🎯 DETECTED: WhatsApp Webhook Event');
+      console.log('📱 Object Type:', body.object);
       console.log('🔍 Environment:', isLocalDevelopment ? 'LOCAL' : 'PRODUCTION');
+      console.log('📊 Entry Count:', body.entry?.length || 0);
       
       // 🔒 SECURITY: Verify Meta webhook signature (production only)
       if (!isLocalDevelopment) {
@@ -173,13 +186,16 @@ export async function POST(request: NextRequest) {
         
         if (!appSecret) {
           console.error('❌ WHATSAPP_APP_SECRET not configured');
+          console.log('===========================================\n');
           return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
         }
 
         const signature = request.headers.get('x-hub-signature-256');
+        console.log('🔐 Signature Header:', signature ? 'Present' : 'Missing');
         
         if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
           console.warn('⚠️ Webhook signature verification failed');
+          console.log('===========================================\n');
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
@@ -190,20 +206,37 @@ export async function POST(request: NextRequest) {
 
       // Route webhook events to handlers
       if (body.entry && Array.isArray(body.entry)) {
+        console.log('📮 Processing', body.entry.length, 'entries...');
+        
         for (const entry of body.entry) {
+          console.log('  📦 Entry ID:', entry.id);
+          
           if (entry.changes && Array.isArray(entry.changes)) {
+            console.log('  📝 Changes:', entry.changes.length);
+            
             for (const change of entry.changes) {
+              console.log('    🔄 Field:', change.field);
+              console.log('    📄 Value:', JSON.stringify(change.value, null, 2));
+              
               await routeWebhookEvent(change.field, change.value, entry.id);
             }
           }
         }
+      } else {
+        console.warn('⚠️ No entries found in webhook payload');
       }
 
       // Always return 200 OK to acknowledge receipt
-      console.log('✅ Webhook processed');
-      console.log('======================================\n');
+      console.log('✅ Webhook processed successfully');
+      console.log('===========================================\n');
       return NextResponse.json({ success: true, received: true }, { status: 200 });
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // INTERNAL MESSAGE SENDING API (not a webhook from Meta)
+    // ═══════════════════════════════════════════════════════════
+    console.log('🔐 Not a webhook - checking authentication...');
+    console.log('===========================================\n');
 
     // 🔒 SECURITY: For non-webhook requests (message sending), validate admin session
     const auth = await validateAdminSession(request, 'whatsapp-session');
@@ -267,24 +300,36 @@ export async function POST(request: NextRequest) {
     if (template) {
       // Template message
       messagePayload.type = 'template';
-      messagePayload.template = {
-        name: template.name,
-        language: {
-          code: template.language || 'en',
-        },
-      };
+      
+      // Support both simplified and full Meta API format
+      if (template.components) {
+        // Full Meta API format - use as-is
+        messagePayload.template = {
+          name: template.name,
+          language: template.language || { code: 'en' },
+          components: template.components,
+        };
+      } else {
+        // Simplified format - convert to Meta API format
+        messagePayload.template = {
+          name: template.name,
+          language: typeof template.language === 'string' 
+            ? { code: template.language } 
+            : (template.language || { code: 'en' }),
+        };
 
-      // Add template parameters if provided
-      if (template.parameters && template.parameters.length > 0) {
-        messagePayload.template.components = [
-          {
-            type: 'body',
-            parameters: template.parameters.map((param: string) => ({
-              type: 'text',
-              text: param,
-            })),
-          },
-        ];
+        // Add template parameters if provided (simplified format)
+        if (template.parameters && template.parameters.length > 0) {
+          messagePayload.template.components = [
+            {
+              type: 'body',
+              parameters: template.parameters.map((param: string) => ({
+                type: 'text',
+                text: param,
+              })),
+            },
+          ];
+        }
       }
     } else {
       // Regular text message

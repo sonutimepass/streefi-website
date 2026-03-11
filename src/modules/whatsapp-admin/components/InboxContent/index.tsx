@@ -35,6 +35,8 @@ export default function InboxContent() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -149,6 +151,38 @@ export default function InboxContent() {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Delete conversation
+  const deleteConversation = async () => {
+    if (!selectedPhone) return;
+
+    try {
+      setIsDeleting(true);
+      setError(null);
+
+      const response = await fetch(`/api/conversations/${selectedPhone}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete conversation');
+      }
+
+      // Remove from local state
+      setConversations(prev => prev.filter(conv => conv.phone !== selectedPhone));
+      setSelectedPhone(null);
+      setMessages([]);
+      setShowDeleteModal(false);
+      
+    } catch (err) {
+      console.error('Error deleting conversation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete conversation');
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -321,6 +355,13 @@ export default function InboxContent() {
                       </h3>
                       <p className="text-xs text-gray-600">{selectedPhone}</p>
                     </div>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md border border-red-200 transition-colors"
+                      title="Delete conversation"
+                    >
+                      🗑️ Delete
+                    </button>
                   </div>
                 </div>
 
@@ -404,6 +445,50 @@ export default function InboxContent() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start mb-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+              </div>
+              <div className="ml-4 flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Delete Conversation
+                </h3>
+                <p className="text-sm text-gray-600 mb-1">
+                  Are you sure you want to delete this conversation with{' '}
+                  <strong>{selectedConvo?.name || `+${selectedPhone}`}</strong>?
+                </p>
+                <p className="text-sm text-red-600 font-medium">
+                  This action cannot be undone. All messages will be permanently deleted.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteConversation}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Conversation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
