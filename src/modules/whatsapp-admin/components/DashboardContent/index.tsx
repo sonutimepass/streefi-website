@@ -70,7 +70,22 @@ export default function DashboardContent() {
         </div>
 
         {/* Quick Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+          <button
+            onClick={() => router.push('/whatsapp-admin/account-health')}
+            className="bg-gradient-to-br from-red-50 to-orange-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-all text-left group border-2 border-orange-200 hover:border-orange-300"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Account Health</h3>
+            <p className="text-sm text-gray-600">Quality score & alerts</p>
+          </button>
+
           <button
             onClick={() => router.push('/whatsapp-admin/send')}
             className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all text-left group border border-gray-200 hover:border-gray-300"

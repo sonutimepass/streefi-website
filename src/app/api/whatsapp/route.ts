@@ -201,61 +201,303 @@ export async function POST(request: NextRequest) {
         for (const entry of body.entry) {
           if (entry.changes && Array.isArray(entry.changes)) {
             for (const change of entry.changes) {
-              if (change.value) {
-                const value = change.value;
+              const webhookField = change.field;
+              const value = change.value;
+              
+              console.log(`\n🔔 Webhook Event: ${webhookField}`);
+              console.log('📦 Payload:', JSON.stringify(value, null, 2));
 
-                // Handle incoming messages
-                if (value.messages && Array.isArray(value.messages)) {
-                  for (const message of value.messages) {
-                    console.log('📩 Message received:', {
-                      from: message.from,
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK TYPE: messages (incoming messages from users)
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'messages' && value.messages && Array.isArray(value.messages)) {
+                for (const message of value.messages) {
+                  console.log('📩 Message received:', {
+                    from: message.from,
+                    type: message.type,
+                    id: message.id,
+                    timestamp: message.timestamp,
+                  });
+
+                  // Derive text content or serialise media payload
+                  let content = '';
+                  if (message.type === 'text') {
+                    content = message.text?.body || '';
+                  } else if (message.type === 'button' || message.type === 'interactive') {
+                    content = JSON.stringify(message.interactive || message.button || {});
+                  } else {
+                    // image, document, audio, video, location, contacts, etc.
+                    content = JSON.stringify(message[message.type] || {});
+                  }
+
+                  // Persist inbound message to DynamoDB (best-effort)
+                  try {
+                    await whatsappRepository.saveInboundMessage({
+                      phone: message.from,
+                      messageId: message.id,
                       type: message.type,
-                      id: message.id,
-                      timestamp: message.timestamp,
+                      timestamp: parseInt(message.timestamp, 10) || Math.floor(Date.now() / 1000),
+                      content,
                     });
-
-                    // Derive text content or serialise media payload
-                    let content = '';
-                    if (message.type === 'text') {
-                      content = message.text?.body || '';
-                    } else if (message.type === 'button' || message.type === 'interactive') {
-                      content = JSON.stringify(message.interactive || message.button || {});
-                    } else {
-                      // image, document, audio, video, location, contacts, etc.
-                      content = JSON.stringify(message[message.type] || {});
-                    }
-
-                    // Persist inbound message to DynamoDB (best-effort)
-                    try {
-                      await whatsappRepository.saveInboundMessage({
-                        phone: message.from,
-                        messageId: message.id,
-                        type: message.type,
-                        timestamp: parseInt(message.timestamp, 10) || Math.floor(Date.now() / 1000),
-                        content,
-                      });
-                    } catch (saveErr) {
-                      console.error('❌ Failed to persist inbound message:', saveErr);
-                    }
+                  } catch (saveErr) {
+                    console.error('❌ Failed to persist inbound message:', saveErr);
                   }
                 }
+              }
 
-                // Handle message status updates
-                if (value.statuses && Array.isArray(value.statuses)) {
-                  for (const status of value.statuses) {
-                    console.log('📊 Message status update:', {
-                      id: status.id,
-                      status: status.status,
-                      timestamp: status.timestamp,
-                      recipient: status.recipient_id,
-                    });
-                    
-                    // 🛡️ CRITICAL: Process status for block-rate tracking
-                    await handleMessageStatus(status as WebhookStatus);
-                    
-                    // Status values: sent, delivered, read, failed
-                  }
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: message_status (delivery receipts)
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'messages' && value.statuses && Array.isArray(value.statuses)) {
+                for (const status of value.statuses) {
+                  console.log('📊 Message Status Update:', {
+                    id: status.id,
+                    status: status.status,
+                    timestamp: status.timestamp,
+                    recipient: status.recipient_id,
+                  });
+                  await handleMessageStatus(status as WebhookStatus);
                 }
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: account_alerts
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'account_alerts') {
+                console.log('⚠️ Account Alert:', JSON.stringify(value, null, 2));
+                // TODO: Store in DynamoDB, alert admin if critical
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: account_review_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'account_review_update') {
+                console.log('🔍 Account Review Update:', JSON.stringify(value, null, 2));
+                // TODO: Store review status, notify admin
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: account_settings_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'account_settings_update') {
+                console.log('⚙️ Account Settings Update:', JSON.stringify(value, null, 2));
+                // TODO: Sync account settings to database
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: account_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'account_update') {
+                console.log('🏢 Account Update:', JSON.stringify(value, null, 2));
+                // TODO: Handle bans/suspensions
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: automatic_events
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'automatic_events') {
+                console.log('🤖 Automatic Event:', JSON.stringify(value, null, 2));
+                // TODO: Log automated system events
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: business_capability_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'business_capability_update') {
+                console.log('💼 Business Capability Update:', JSON.stringify(value, null, 2));
+                // TODO: Track business feature changes
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: business_status_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'business_status_update') {
+                console.log('📊 Business Status Update:', JSON.stringify(value, null, 2));
+                // TODO: Monitor business verification status
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: calls
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'calls') {
+                console.log('📞 Call Event:', JSON.stringify(value, null, 2));
+                // TODO: Log WhatsApp voice/video calls
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: flows
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'flows') {
+                console.log('🔄 Flow Event:', JSON.stringify(value, null, 2));
+                // TODO: Handle WhatsApp Flow responses
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: group_lifecycle_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'group_lifecycle_update') {
+                console.log('👥 Group Lifecycle Update:', JSON.stringify(value, null, 2));
+                // TODO: Track group creation/deletion
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: group_participants_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'group_participants_update') {
+                console.log('👤 Group Participants Update:', JSON.stringify(value, null, 2));
+                // TODO: Track user joins/leaves
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: group_settings_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'group_settings_update') {
+                console.log('⚙️ Group Settings Update:', JSON.stringify(value, null, 2));
+                // TODO: Sync group settings changes
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: group_status_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'group_status_update') {
+                console.log('📊 Group Status Update:', JSON.stringify(value, null, 2));
+                // TODO: Monitor group status changes
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: history
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'history') {
+                console.log('📜 History Event:', JSON.stringify(value, null, 2));
+                // TODO: Handle conversation history sync
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: message_echoes
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'message_echoes') {
+                console.log('🔊 Message Echo:', JSON.stringify(value, null, 2));
+                // TODO: Log messages sent from other clients
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: message_template_components_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'message_template_components_update') {
+                console.log('🧩 Template Components Update:', JSON.stringify(value, null, 2));
+                // TODO: Sync template component changes
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: message_template_quality_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'message_template_quality_update') {
+                console.log('⭐ Template Quality Update:', JSON.stringify(value, null, 2));
+                // TODO: Track template quality score
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: message_template_status_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'message_template_status_update') {
+                console.log('📋 Template Status Update:', JSON.stringify(value, null, 2));
+                // TODO: Update template approval status
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: messaging_handovers
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'messaging_handovers') {
+                console.log('🤝 Messaging Handover:', JSON.stringify(value, null, 2));
+                // TODO: Handle conversation handoffs
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: partner_solutions
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'partner_solutions') {
+                console.log('🤝 Partner Solution Event:', JSON.stringify(value, null, 2));
+                // TODO: Handle partner integration events
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: payment_configuration_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'payment_configuration_update') {
+                console.log('💳 Payment Config Update:', JSON.stringify(value, null, 2));
+                // TODO: Sync payment settings
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: phone_number_name_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'phone_number_name_update') {
+                console.log('📱 Phone Number Name Update:', JSON.stringify(value, null, 2));
+                // TODO: Update display name
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: phone_number_quality_update
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'phone_number_quality_update') {
+                console.log('📱 Phone Quality Update:', JSON.stringify(value, null, 2));
+                // TODO: Alert on quality drops
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: security
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'security') {
+                console.log('🔒 Security Event:', JSON.stringify(value, null, 2));
+                // TODO: Handle security alerts
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: smb_app_state_sync
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'smb_app_state_sync') {
+                console.log('🔄 SMB App State Sync:', JSON.stringify(value, null, 2));
+                // TODO: Sync SMB app state
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: smb_message_echoes
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'smb_message_echoes') {
+                console.log('🔊 SMB Message Echo:', JSON.stringify(value, null, 2));
+                // TODO: Log SMB message echoes
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: template_category_update  
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'template_category_update') {
+                console.log('📂 Template Category Update:', JSON.stringify(value, null, 2));
+                // TODO: Update template categories
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: template_correct_category_detection
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'template_correct_category_detection') {
+                console.log('🎯 Template Category Detection:', JSON.stringify(value, null, 2));
+                // TODO: Handle category corrections
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: tracking_events
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'tracking_events') {
+                console.log('📊 Tracking Event:', JSON.stringify(value, null, 2));
+                // TODO: Log tracking data
+              }
+
+              // ═══════════════════════════════════════════════════════════
+              // WEBHOOK: user_preferences
+              // ═══════════════════════════════════════════════════════════
+              if (webhookField === 'user_preferences') {
+                console.log('👤 User Preference Update:', JSON.stringify(value, null, 2));
+                // TODO: Sync user preferences
               }
             }
           }

@@ -15,6 +15,7 @@ export { default as GlobalSendingStateIndicator } from './GlobalSendingStateIndi
 
 // Page Content Components (Route-based)
 export { default as DashboardContent } from './DashboardContent';
+export { default as AccountHealthContent } from './AccountHealthContent';
 export { default as CampaignsPageContent } from './CampaignsPageContent';
 export { default as CampaignDetailPageContent } from './CampaignDetailPageContent';
 export { default as TemplatesPageContent } from './TemplatesPageContent';
