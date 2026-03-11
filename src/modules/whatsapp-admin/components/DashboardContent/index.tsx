@@ -70,7 +70,7 @@ export default function DashboardContent() {
         </div>
 
         {/* Quick Navigation Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           <button
             onClick={() => router.push('/whatsapp-admin/account-health')}
             className="bg-gradient-to-br from-red-50 to-orange-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-all text-left group border-2 border-orange-200 hover:border-orange-300"
@@ -145,6 +145,21 @@ export default function DashboardContent() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Settings</h3>
             <p className="text-sm text-gray-600">Global rate limits and controls</p>
+          </button>
+
+          <button
+            onClick={() => router.push('/whatsapp-admin/webhook-debug')}
+            className="bg-gradient-to-br from-cyan-50 to-blue-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-all text-left group border-2 border-cyan-200 hover:border-cyan-300"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center group-hover:bg-cyan-200 transition-colors">
+                <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Webhook Debug</h3>
+            <p className="text-sm text-gray-600">View all webhook events</p>
           </button>
         </div>
 

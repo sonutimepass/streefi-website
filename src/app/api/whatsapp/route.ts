@@ -3,8 +3,51 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { validateAdminSession } from '@/lib/adminAuth';
 import { handleMessageStatus, type WebhookStatus } from '@/lib/whatsapp/webhookStatusHandler';
 import { whatsappRepository } from '@/lib/repositories/whatsappRepository';
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 
 export const dynamic = 'force-dynamic';
+
+// Initialize DynamoDB client
+const dynamoClient = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const WHATSAPP_TABLE = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
+
+/**
+ * Store webhook event to DynamoDB for debugging and audit trail
+ */
+async function storeWebhookEvent(webhookType: string, payload: any, metadata?: any) {
+  try {
+    const timestamp = Date.now();
+    const webhookId = `WEBHOOK#${timestamp}#${Math.random().toString(36).substring(7)}`;
+    
+    await dynamoClient.send(
+      new PutItemCommand({
+        TableName: WHATSAPP_TABLE,
+        Item: {
+          PK: { S: webhookId },
+          SK: { S: webhookType },
+          webhook_type: { S: webhookType },
+          payload: { S: JSON.stringify(payload) },
+          metadata: metadata ? { S: JSON.stringify(metadata) } : { NULL: true },
+          timestamp: { N: timestamp.toString() },
+          created_at: { S: new Date().toISOString() },
+          ttl: { N: (Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60)).toString() }, // 90 days retention
+        },
+      })
+    );
+    
+    console.log(`✅ Stored ${webhookType} webhook to DynamoDB`);
+  } catch (error) {
+    console.error(`❌ Failed to store ${webhookType} webhook:`, error);
+    // Don't throw - webhook processing should continue even if storage fails
+  }
+}
 
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
 
@@ -211,6 +254,9 @@ export async function POST(request: NextRequest) {
               // WEBHOOK TYPE: messages (incoming messages from users)
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'messages' && value.messages && Array.isArray(value.messages)) {
+                // Store webhook event
+                await storeWebhookEvent('messages', value, { entry_id: entry.id });
+                
                 for (const message of value.messages) {
                   console.log('📩 Message received:', {
                     from: message.from,
@@ -249,6 +295,9 @@ export async function POST(request: NextRequest) {
               // WEBHOOK: message_status (delivery receipts)
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'messages' && value.statuses && Array.isArray(value.statuses)) {
+                // Store webhook event
+                await storeWebhookEvent('message_status', value, { entry_id: entry.id });
+                
                 for (const status of value.statuses) {
                   console.log('📊 Message Status Update:', {
                     id: status.id,
@@ -265,7 +314,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'account_alerts') {
                 console.log('⚠️ Account Alert:', JSON.stringify(value, null, 2));
-                // TODO: Store in DynamoDB, alert admin if critical
+                await storeWebhookEvent('account_alerts', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -273,7 +322,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'account_review_update') {
                 console.log('🔍 Account Review Update:', JSON.stringify(value, null, 2));
-                // TODO: Store review status, notify admin
+                await storeWebhookEvent('account_review_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -281,7 +330,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'account_settings_update') {
                 console.log('⚙️ Account Settings Update:', JSON.stringify(value, null, 2));
-                // TODO: Sync account settings to database
+                await storeWebhookEvent('account_settings_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -289,7 +338,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'account_update') {
                 console.log('🏢 Account Update:', JSON.stringify(value, null, 2));
-                // TODO: Handle bans/suspensions
+                await storeWebhookEvent('account_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -297,7 +346,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'automatic_events') {
                 console.log('🤖 Automatic Event:', JSON.stringify(value, null, 2));
-                // TODO: Log automated system events
+                await storeWebhookEvent('automatic_events', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -305,7 +354,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'business_capability_update') {
                 console.log('💼 Business Capability Update:', JSON.stringify(value, null, 2));
-                // TODO: Track business feature changes
+                await storeWebhookEvent('business_capability_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -313,7 +362,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'business_status_update') {
                 console.log('📊 Business Status Update:', JSON.stringify(value, null, 2));
-                // TODO: Monitor business verification status
+                await storeWebhookEvent('business_status_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -321,7 +370,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'calls') {
                 console.log('📞 Call Event:', JSON.stringify(value, null, 2));
-                // TODO: Log WhatsApp voice/video calls
+                await storeWebhookEvent('calls', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -329,7 +378,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'flows') {
                 console.log('🔄 Flow Event:', JSON.stringify(value, null, 2));
-                // TODO: Handle WhatsApp Flow responses
+                await storeWebhookEvent('flows', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -337,7 +386,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'group_lifecycle_update') {
                 console.log('👥 Group Lifecycle Update:', JSON.stringify(value, null, 2));
-                // TODO: Track group creation/deletion
+                await storeWebhookEvent('group_lifecycle_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -345,7 +394,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'group_participants_update') {
                 console.log('👤 Group Participants Update:', JSON.stringify(value, null, 2));
-                // TODO: Track user joins/leaves
+                await storeWebhookEvent('group_participants_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -353,7 +402,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'group_settings_update') {
                 console.log('⚙️ Group Settings Update:', JSON.stringify(value, null, 2));
-                // TODO: Sync group settings changes
+                await storeWebhookEvent('group_settings_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -361,7 +410,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'group_status_update') {
                 console.log('📊 Group Status Update:', JSON.stringify(value, null, 2));
-                // TODO: Monitor group status changes
+                await storeWebhookEvent('group_status_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -369,7 +418,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'history') {
                 console.log('📜 History Event:', JSON.stringify(value, null, 2));
-                // TODO: Handle conversation history sync
+                await storeWebhookEvent('history', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -377,7 +426,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'message_echoes') {
                 console.log('🔊 Message Echo:', JSON.stringify(value, null, 2));
-                // TODO: Log messages sent from other clients
+                await storeWebhookEvent('message_echoes', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -385,7 +434,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'message_template_components_update') {
                 console.log('🧩 Template Components Update:', JSON.stringify(value, null, 2));
-                // TODO: Sync template component changes
+                await storeWebhookEvent('message_template_components_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -393,7 +442,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'message_template_quality_update') {
                 console.log('⭐ Template Quality Update:', JSON.stringify(value, null, 2));
-                // TODO: Track template quality score
+                await storeWebhookEvent('message_template_quality_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -401,7 +450,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'message_template_status_update') {
                 console.log('📋 Template Status Update:', JSON.stringify(value, null, 2));
-                // TODO: Update template approval status
+                await storeWebhookEvent('message_template_status_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -409,7 +458,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'messaging_handovers') {
                 console.log('🤝 Messaging Handover:', JSON.stringify(value, null, 2));
-                // TODO: Handle conversation handoffs
+                await storeWebhookEvent('messaging_handovers', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -417,7 +466,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'partner_solutions') {
                 console.log('🤝 Partner Solution Event:', JSON.stringify(value, null, 2));
-                // TODO: Handle partner integration events
+                await storeWebhookEvent('partner_solutions', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -425,7 +474,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'payment_configuration_update') {
                 console.log('💳 Payment Config Update:', JSON.stringify(value, null, 2));
-                // TODO: Sync payment settings
+                await storeWebhookEvent('payment_configuration_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -433,7 +482,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'phone_number_name_update') {
                 console.log('📱 Phone Number Name Update:', JSON.stringify(value, null, 2));
-                // TODO: Update display name
+                await storeWebhookEvent('phone_number_name_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -441,7 +490,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'phone_number_quality_update') {
                 console.log('📱 Phone Quality Update:', JSON.stringify(value, null, 2));
-                // TODO: Alert on quality drops
+                await storeWebhookEvent('phone_number_quality_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -449,7 +498,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'security') {
                 console.log('🔒 Security Event:', JSON.stringify(value, null, 2));
-                // TODO: Handle security alerts
+                await storeWebhookEvent('security', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -457,7 +506,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'smb_app_state_sync') {
                 console.log('🔄 SMB App State Sync:', JSON.stringify(value, null, 2));
-                // TODO: Sync SMB app state
+                await storeWebhookEvent('smb_app_state_sync', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -465,7 +514,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'smb_message_echoes') {
                 console.log('🔊 SMB Message Echo:', JSON.stringify(value, null, 2));
-                // TODO: Log SMB message echoes
+                await storeWebhookEvent('smb_message_echoes', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -473,7 +522,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'template_category_update') {
                 console.log('📂 Template Category Update:', JSON.stringify(value, null, 2));
-                // TODO: Update template categories
+                await storeWebhookEvent('template_category_update', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -481,7 +530,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'template_correct_category_detection') {
                 console.log('🎯 Template Category Detection:', JSON.stringify(value, null, 2));
-                // TODO: Handle category corrections
+                await storeWebhookEvent('template_correct_category_detection', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -489,7 +538,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'tracking_events') {
                 console.log('📊 Tracking Event:', JSON.stringify(value, null, 2));
-                // TODO: Log tracking data
+                await storeWebhookEvent('tracking_events', value, { entry_id: entry.id });
               }
 
               // ═══════════════════════════════════════════════════════════
@@ -497,7 +546,7 @@ export async function POST(request: NextRequest) {
               // ═══════════════════════════════════════════════════════════
               if (webhookField === 'user_preferences') {
                 console.log('👤 User Preference Update:', JSON.stringify(value, null, 2));
-                // TODO: Sync user preferences
+                await storeWebhookEvent('user_preferences', value, { entry_id: entry.id });
               }
             }
           }
