@@ -7,15 +7,30 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize DynamoDB client
-const dynamoClient = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+// Check if running locally
+const isLocalDevelopment = process.env.NODE_ENV === 'development' || 
+                          process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
 
+// Initialize DynamoDB client
+// In AWS Lambda (Amplify), use IAM role credentials (no explicit credentials needed)
+// For local testing, use explicit credentials from env vars
+const dynamoClientConfig: any = {
+  region: process.env.AWS_REGION || 'us-east-1',
+};
+
+// Only add explicit credentials if they exist (local testing)
+// In production (Lambda), omit this to use IAM role automatically
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  dynamoClientConfig.credentials = {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  };
+  console.log('✅ DynamoDB client initialized with explicit credentials');
+} else {
+  console.log('✅ DynamoDB client initialized with IAM role credentials');
+}
+
+const dynamoClient = new DynamoDBClient(dynamoClientConfig);
 const WHATSAPP_TABLE = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
 
 /**
@@ -25,6 +40,8 @@ async function storeWebhookEvent(webhookType: string, payload: any, metadata?: a
   try {
     const timestamp = Date.now();
     const webhookId = `WEBHOOK#${timestamp}#${Math.random().toString(36).substring(7)}`;
+    
+    console.log(`📝 Attempting to store ${webhookType} webhook to DynamoDB...`);
     
     await dynamoClient.send(
       new PutItemCommand({
@@ -42,9 +59,13 @@ async function storeWebhookEvent(webhookType: string, payload: any, metadata?: a
       })
     );
     
-    console.log(`✅ Stored ${webhookType} webhook to DynamoDB`);
+    console.log(`✅ Successfully stored ${webhookType} webhook to DynamoDB (${WHATSAPP_TABLE})`);
   } catch (error) {
-    console.error(`❌ Failed to store ${webhookType} webhook:`, error);
+    console.error(`❌ Failed to store ${webhookType} webhook to DynamoDB:`, error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     // Don't throw - webhook processing should continue even if storage fails
   }
 }
@@ -214,29 +235,35 @@ export async function POST(request: NextRequest) {
     // Check if this is a webhook event from Meta (incoming message)
     if (body.object === 'whatsapp_business_account') {
       console.log('\n========== INCOMING WEBHOOK POST ==========');
+      console.log('🔍 Environment:', isLocalDevelopment ? 'LOCAL DEVELOPMENT' : 'PRODUCTION');
       
       // 🔍 DEBUG: Check environment variables for POST
       const appSecret = process.env.WHATSAPP_APP_SECRET;
       console.log('🔐 WHATSAPP_APP_SECRET:', appSecret ? '✅ SET' : '❌ NOT SET');
       
-      // 🔒 SECURITY: Verify Meta webhook signature before processing any payload
-      if (!appSecret) {
-        console.error('❌ WHATSAPP_APP_SECRET not configured — cannot verify webhook signature');
-        console.error('💡 Add WHATSAPP_APP_SECRET to Amplify Environment variables');
-        console.log('===========================================\n');
-        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-      }
+      // 🔓 LOCALHOST BYPASS: Skip signature verification in local development
+      if (isLocalDevelopment) {
+        console.warn('⚠️ LOCAL DEV MODE: Skipping signature verification');
+      } else {
+        // 🔒 SECURITY: Verify Meta webhook signature before processing any payload (PRODUCTION ONLY)
+        if (!appSecret) {
+          console.error('❌ WHATSAPP_APP_SECRET not configured — cannot verify webhook signature');
+          console.error('💡 Add WHATSAPP_APP_SECRET to Amplify Environment variables');
+          console.log('===========================================\n');
+          return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
 
-      const signature = request.headers.get('x-hub-signature-256');
-      console.log('🔐 Signature header:', signature ? 'present' : 'missing');
-      
-      if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
-        console.warn('⚠️ Webhook signature verification failed — possible spoofed event, rejecting');
-        console.log('===========================================\n');
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+        const signature = request.headers.get('x-hub-signature-256');
+        console.log('🔐 Signature header:', signature ? 'present' : 'missing');
+        
+        if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
+          console.warn('⚠️ Webhook signature verification failed — possible spoofed event, rejecting');
+          console.log('===========================================\n');
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
-      console.log('✅ Webhook signature verified');
+        console.log('✅ Webhook signature verified');
+      }
       console.log('📨 Incoming WhatsApp webhook:', JSON.stringify(body, null, 2));
 
       // Process webhook entries
