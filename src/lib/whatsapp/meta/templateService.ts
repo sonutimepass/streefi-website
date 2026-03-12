@@ -22,6 +22,8 @@ export interface WhatsAppTemplate {
   status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'DISABLED';
   category: 'AUTHENTICATION' | 'MARKETING' | 'UTILITY';
   id: string;
+  parameter_format?: 'POSITIONAL' | 'NAMED';
+  library_template_name?: string;
   components?: TemplateComponent[];
   rejected_reason?: string;
 }
@@ -33,6 +35,7 @@ export interface TemplateComponent {
   buttons?: TemplateButton[];
   example?: {
     header_text?: string[];
+    header_handle?: string[];
     body_text?: string[][];
   };
 }

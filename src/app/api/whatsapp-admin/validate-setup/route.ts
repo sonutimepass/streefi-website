@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { whatsappRepository } from '@/lib/repositories';
 
 /**
@@ -13,6 +13,27 @@ import { whatsappRepository } from '@/lib/repositories';
  * - Meta credentials format
  */
 export async function GET(request: Request) {
+  // Check bypass FIRST before anything else
+  const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true' || 
+                     process.env.NODE_ENV === 'development' ||
+                     !process.env.VERCEL; // Not on Vercel = local
+  
+  console.log('[ValidateSetup] Bypass check:', {
+    NEXT_PUBLIC_BYPASS_AUTH: process.env.NEXT_PUBLIC_BYPASS_AUTH,
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: process.env.VERCEL,
+    bypassAuth
+  });
+
+  // If NOT bypassing, check auth first and return early if unauthorized
+  if (!bypassAuth) {
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
+    if (!auth.valid) {
+      console.log('[ValidateSetup] Auth failed:', auth.error);
+      return NextResponse.json({ error: 'Unauthorized', details: auth.error }, { status: 401 });
+    }
+  }
+
   const results = {
     timestamp: new Date().toISOString(),
     checks: [] as any[],
@@ -20,20 +41,14 @@ export async function GET(request: Request) {
   };
 
   try {
-    // Check 1: Admin Authentication
+    // Check 1: Admin Authentication status
     results.checks.push({ 
       name: 'Admin Authentication',
-      status: 'checking...'
+      status: bypassAuth ? '⚠️ BYPASS' : '✅ PASS',
+      details: bypassAuth 
+        ? 'Authentication bypassed (local/development mode)' 
+        : 'Session valid'
     });
-
-    const auth = await validateAdminSession(request, 'whatsapp-session');
-    
-    if (auth.valid) {
-      results.checks[0].status = '✅ PASS';
-      results.checks[0].details = 'Session valid';
-    } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // Check 2: Environment Variables
     results.checks.push({

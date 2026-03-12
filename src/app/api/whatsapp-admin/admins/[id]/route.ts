@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { adminRepository } from '@/lib/repositories/adminRepository';
 import { hashPassword } from '@/lib/crypto';
 import type { AdminRole } from '@/lib/repositories/adminRepository';
@@ -27,7 +27,7 @@ interface RouteParams {
  * Body: { role?: AdminRole, password?: string }
  */
 export async function PUT(req: NextRequest, { params }: RouteParams) {
-  const auth = await validateAdminSession(req, 'whatsapp-session');
+  const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
   if (!auth.valid || !auth.session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -96,7 +96,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
  * DELETE — remove an admin account (super_admin only, cannot self-delete)
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
-  const auth = await validateAdminSession(req, 'whatsapp-session');
+  const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
   if (!auth.valid || !auth.session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

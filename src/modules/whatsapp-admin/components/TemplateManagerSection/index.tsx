@@ -75,11 +75,23 @@ export default function TemplateManagerSection() {
       });
 
       const data = await res.json();
-      console.log('📥 [Template Manager] Sync response:', data);
+      console.log('📥 [Template Manager] Full response:', {
+        status: res.status,
+        ok: res.ok,
+        data: data
+      });
 
       if (!res.ok) {
-        console.error('❌ [Template Manager] Sync failed:', data.error);
-        throw new Error(data.error || 'Sync failed');
+        console.error('❌ [Template Manager] Sync failed!');
+        console.error('Response Status:', res.status);
+        console.error('Response Data:', JSON.stringify(data, null, 2));
+        
+        // Show debug info if available
+        if (data.debug) {
+          console.error('🔍 Debug Info:', data.debug);
+        }
+        
+        throw new Error(data.error || data.details || 'Sync failed');
       }
 
       console.log(`✅ [Template Manager] Sync successful - Imported: ${data.result.imported}, Updated: ${data.result.updated}`);

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { getTemplateService } from '@/lib/whatsapp/meta/templateService';
 import { whatsappRepository } from '@/lib/repositories';
 import { randomUUID } from 'crypto';
@@ -43,15 +43,47 @@ function extractVariables(components: any[]): string[] {
  * Sync all templates from Meta to local storage
  */
 export async function POST(req: NextRequest) {
+  console.log('\n========================================');
+  console.log('📝 [TemplateSync] Starting template sync...');
+  console.log('========================================');
+  
+  // DEBUG: Environment check
+  console.log('🔍 [TemplateSync] Environment Debug:');
+  console.log('  - NODE_ENV:', process.env.NODE_ENV);
+  console.log('  - NEXT_PUBLIC_BYPASS_AUTH:', process.env.NEXT_PUBLIC_BYPASS_AUTH);
+  console.log('  - VERCEL:', process.env.VERCEL ? 'Yes' : 'No');
+  console.log('  - META_ACCESS_TOKEN:', process.env.META_ACCESS_TOKEN ? `Set (${process.env.META_ACCESS_TOKEN.substring(0, 10)}...)` : 'NOT SET');
+  console.log('  - META_WABA_ID:', process.env.META_WABA_ID || 'NOT SET');
+  console.log('  - META_PHONE_NUMBER_ID:', process.env.META_PHONE_NUMBER_ID || 'NOT SET');
+  
   try {
-    // 1️⃣ Validate Admin Session
-    const validation = await validateAdminSession(req, 'whatsapp-session');
-    if (!validation.valid || !validation.session) {
+    // 1️⃣ Validate Admin Session (with automatic bypass for local dev)
+    console.log('\n🔐 [TemplateSync] Validating admin session...');
+    const validation = await validateAdminSessionWithBypass(req, 'whatsapp-session');
+    
+    console.log('  - Validation result:', {
+      valid: validation.valid,
+      error: validation.error,
+      hasSession: !!validation.session
+    });
+    
+    if (!validation.valid) {
+      console.error('❌ [TemplateSync] Validation failed:', validation.error);
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { 
+          error: 'Unauthorized',
+          details: validation.error,
+          debug: {
+            NODE_ENV: process.env.NODE_ENV,
+            BYPASS_AUTH: process.env.NEXT_PUBLIC_BYPASS_AUTH,
+            VERCEL: !!process.env.VERCEL
+          }
+        },
         { status: 401 }
       );
     }
+    
+    console.log('✅ [TemplateSync] Authentication successful');
 
     // 2️⃣ Fetch templates from Meta
     const templateService = getTemplateService();

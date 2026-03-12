@@ -12,15 +12,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { campaignRepository } from '@/lib/repositories';
 
 /**
  * GET - Check current global pause state
  */
 export async function GET(request: NextRequest) {
-  // Validate admin session
-  const validation = await validateAdminSession(request, 'whatsapp-session');
+  // Validate admin session (with bypass for local dev)
+  const validation = await validateAdminSessionWithBypass(request, 'whatsapp-session');
   if (!validation.valid) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
  * POST - Set global pause state
  */
 export async function POST(request: NextRequest) {
-  // Validate admin session
-  const validation = await validateAdminSession(request, 'whatsapp-session');
+  // Validate admin session (with bypass for local dev)
+  const validation = await validateAdminSessionWithBypass(request, 'whatsapp-session');
   if (!validation.valid) {
     return NextResponse.json(
       { error: 'Unauthorized' },

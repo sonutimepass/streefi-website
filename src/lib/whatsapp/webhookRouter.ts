@@ -9,8 +9,8 @@
  * - message_template_status_update: Template approval/rejection
  * - message_template_quality_update: Template quality changes
  * - template_category_update: Template category changes
- * - phone_number_quality_update: Phone quality scores
- * - phone_number_name_update: Business profile name updates
+ * - phone_number_quality_update: Phone tier and messaging limit updates
+ * - phone_number_name_update: Business profile name verification
  * - account_alerts: Critical account alerts
  * - business_capability_update: Tier and capability changes
  * - user_preferences: Customer opt-in/opt-out

@@ -14,7 +14,7 @@ import { validateAdminSession } from '@/lib/adminAuth';
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await validateAdminSession(request, 'whatsapp-session');
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
     if (!auth.valid) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

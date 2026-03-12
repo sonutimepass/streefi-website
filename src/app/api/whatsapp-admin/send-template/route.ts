@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     // Step 1: Validate admin session (bypass in development)
     console.log("Step 1: Validating admin session...");
     if (process.env.NODE_ENV !== 'development') {
-      const auth = await validateAdminSession(request, 'whatsapp-session');
+      const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
       
       if (!auth.valid) {
         console.log("Auth failed - returning 401");

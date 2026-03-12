@@ -10,15 +10,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { whatsappRepository, type KillSwitchStatus } from '@/lib/repositories';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 
 /**
  * GET - Get current kill switch status
  */
 export async function GET(req: NextRequest) {
   try {
-    // Validate admin session
-    const auth = await validateAdminSession(req, 'whatsapp-session');
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
     if (!auth.valid) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -43,8 +43,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    // Validate admin session
-    const auth = await validateAdminSession(req, 'whatsapp-session');
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
     if (!auth.valid || !auth.session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

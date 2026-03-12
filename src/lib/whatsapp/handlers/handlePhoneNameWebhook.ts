@@ -1,21 +1,19 @@
 /**
  * Phone Number Name Update Webhook Handler
  * 
- * Handles phone number display name updates:
- * - Display name changes
- * - Business profile updates
- * - Verification status changes
+ * Handles phone number display name verification updates:
+ * - Display name approval
+ * - Display name rejection
+ * - Business profile verification status
  * 
  * Informational event for business profile management.
  */
 
 interface PhoneNameWebhookValue {
-  phone_number?: string;
   display_phone_number?: string;
-  display_name?: string;
-  verified_name?: string;
-  event?: 'NAME_UPDATED' | 'NAME_APPROVED' | 'NAME_REJECTED';
-  reason?: string;
+  decision?: 'APPROVED' | 'REJECTED' | 'PENDING';
+  requested_verified_name?: string;
+  rejection_reason?: string | null;
 }
 
 /**
@@ -33,32 +31,30 @@ export async function handlePhoneNameWebhook(value: PhoneNameWebhookValue): Prom
 
     const {
       display_phone_number,
-      display_name,
-      verified_name,
-      event,
-      reason
+      decision,
+      requested_verified_name,
+      rejection_reason
     } = value;
 
-    // Log name update
-    console.log(`🏷️ Phone Name Update: ${display_phone_number || 'N/A'}`);
-    if (display_name) {
-      console.log(`   Display Name: ${display_name}`);
+    // Log name verification update
+    console.log(`🏷️ Phone Name Verification: ${display_phone_number || 'N/A'}`);
+    if (requested_verified_name) {
+      console.log(`   Requested Name: ${requested_verified_name}`);
     }
-    if (verified_name) {
-      console.log(`   Verified Name: ${verified_name}`);
-    }
-    if (event) {
-      console.log(`   Event: ${event}`);
-    }
-    if (reason) {
-      console.log(`   Reason: ${reason}`);
+    if (decision) {
+      console.log(`   Decision: ${decision}`);
     }
 
-    // Log verification events
-    if (event === 'NAME_APPROVED') {
-      console.log(`✅ Business name approved: ${verified_name}`);
-    } else if (event === 'NAME_REJECTED') {
-      console.warn(`⚠️ Business name rejected: ${reason || 'No reason provided'}`);
+    // Log decision outcome
+    if (decision === 'APPROVED') {
+      console.log(`✅ Business name approved: ${requested_verified_name}`);
+    } else if (decision === 'REJECTED') {
+      console.warn(`❌ Business name rejected`);
+      if (rejection_reason) {
+        console.warn(`   Reason: ${rejection_reason}`);
+      }
+    } else if (decision === 'PENDING') {
+      console.log(`⏳ Business name verification pending: ${requested_verified_name}`);
     }
 
     // TODO: Update business profile information in database

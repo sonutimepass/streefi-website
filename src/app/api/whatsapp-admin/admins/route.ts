@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { adminRepository } from '@/lib/repositories/adminRepository';
 import { createAdmin } from '@/lib/adminService';
 import type { AdminRole } from '@/lib/repositories/adminRepository';
@@ -23,7 +23,7 @@ async function getCallerRole(email: string): Promise<AdminRole | null> {
  * GET — list all admins (password hashes excluded)
  */
 export async function GET(req: NextRequest) {
-  const auth = await validateAdminSession(req, 'whatsapp-session');
+  const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
   if (!auth.valid || !auth.session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
  * Body: { email: string, password: string, role?: AdminRole }
  */
 export async function POST(req: NextRequest) {
-  const auth = await validateAdminSession(req, 'whatsapp-session');
+  const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
   if (!auth.valid || !auth.session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

@@ -24,7 +24,7 @@ interface SendTestRequest {
 export async function POST(req: NextRequest) {
   try {
     // 1️⃣ Validate Admin Session
-    const validation = await validateAdminSession(req, 'whatsapp-session');
+    const validation = await validateAdminSessionWithBypass(req, 'whatsapp-session');
     if (!validation.valid || !validation.session) {
       return NextResponse.json(
         { error: 'Unauthorized' },

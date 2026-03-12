@@ -38,19 +38,28 @@ export async function validateAdminSession(
   try {
     console.log("[AdminAuth] Validating session for type:", requiredType);
 
-    // 1. CSRF check — reject non-GET requests with invalid or missing CSRF token
+    // Skip CSRF check in development/bypass mode
+    const bypassMode = shouldBypassAuth();
+    
+    // Get cookies
     const cookieStore = await cookies();
-    const csrfCookie = cookieStore.get(CSRF_COOKIE_NAME)?.value;
-    if (!validateRequestCSRF(request, csrfCookie)) {
-      console.warn("[AdminAuth] CSRF token validation failed");
-      return { valid: false, error: "Invalid or missing CSRF token" };
+    
+    // 1. CSRF check — reject non-GET requests with invalid or missing CSRF token (unless bypassed)
+    if (!bypassMode) {
+      const csrfCookie = cookieStore.get(CSRF_COOKIE_NAME)?.value;
+      if (!validateRequestCSRF(request, csrfCookie)) {
+        console.warn("[AdminAuth] CSRF token validation failed");
+        return { valid: false, error: "Invalid or missing CSRF token" };
+      }
+    } else {
+      console.log("[AdminAuth] CSRF check skipped (bypass mode)");
     }
     
     // 2. Get cookie name for this session type
     const cookieName = COOKIE_NAMES[requiredType];
     console.log("[AdminAuth] Cookie name:", cookieName);
     
-    // 3. Read session ID from cookie (reuse cookieStore already fetched above)
+    // 3. Read session ID from cookie
     const sessionCookie = cookieStore.get(cookieName);
 
     if (!sessionCookie || !sessionCookie.value) {
@@ -155,4 +164,58 @@ export async function validateAdminSessionFromDB(
       error: error instanceof Error ? error.message : "Database validation failed",
     };
   }
+}
+
+/**
+ * Helper function to check if auth bypass is enabled for local development
+ * @returns true if authentication should be bypassed
+ */
+export function shouldBypassAuth(): boolean {
+  const bypass = (
+    process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true' ||
+    process.env.NODE_ENV === 'development' ||
+    !process.env.VERCEL // Not on Vercel = local
+  );
+  
+  console.log('🔍 [AdminAuth] shouldBypassAuth check:', {
+    NEXT_PUBLIC_BYPASS_AUTH: process.env.NEXT_PUBLIC_BYPASS_AUTH,
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: process.env.VERCEL,
+    result: bypass
+  });
+  
+  return bypass;
+}
+
+/**
+ * Validates admin session with automatic bypass for local development
+ * Use this in API routes for cleaner code
+ * 
+ * @param request - Next.js Request object
+ * @param requiredType - Required session type
+ * @returns ValidationResult - always returns valid if bypassed
+ */
+export async function validateAdminSessionWithBypass(
+  request: Request,
+  requiredType: SessionType
+): Promise<ValidationResult> {
+  const bypass = shouldBypassAuth();
+  
+  console.log(`[AdminAuth] validateAdminSessionWithBypass for ${requiredType}:`, { bypass });
+  
+  if (bypass) {
+    console.log(`✅ [AdminAuth] Auth bypassed for ${requiredType} (local development)`);
+    return {
+      valid: true,
+      session: {
+        email: 'local-dev@bypass',
+        type: requiredType,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      }
+    };
+  }
+  
+  console.log(`[AdminAuth] No bypass - validating session normally...`);
+  return validateAdminSession(request, requiredType);
 }

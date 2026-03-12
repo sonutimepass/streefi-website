@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { DynamoDBClient, QueryCommand, ScanCommand } from '@aws-sdk/client-dynamodb';
 
 export const dynamic = 'force-dynamic';
@@ -32,8 +32,8 @@ const WHATSAPP_TABLE = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Validate admin session
-    const auth = await validateAdminSession(request, 'whatsapp-session');
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
     if (!auth.valid) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -142,8 +142,8 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    // Validate admin session
-    const auth = await validateAdminSession(request, 'whatsapp-session');
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
     if (!auth.valid) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

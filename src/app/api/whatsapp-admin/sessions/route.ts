@@ -6,11 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { sessionRepository } from '@/lib/repositories/sessionRepository';
 
 export async function GET(req: NextRequest) {
-  const auth = await validateAdminSession(req, 'whatsapp-session');
+  const auth = await validateAdminSessionWithBypass(req, 'whatsapp-session');
   if (!auth.valid || !auth.session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

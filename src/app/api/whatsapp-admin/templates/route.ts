@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { whatsappRepository } from '@/lib/repositories';
 import { randomUUID } from 'crypto';
 
@@ -12,18 +12,14 @@ export async function GET(request: Request) {
       ADMIN_TABLE_NAME: process.env.ADMIN_TABLE_NAME,
     });
 
-    // Validate admin session (bypass in development)
-    if (process.env.NODE_ENV !== 'development') {
-      console.log("Validating session...");
-      const auth = await validateAdminSession(request, 'whatsapp-session');
-      console.log("Session valid:", auth.valid);
-      
-      if (!auth.valid) {
-        console.log("Auth failed - returning 401");
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    } else {
-      console.log("⚠️ Development mode - skipping authentication");
+    // Validate admin session (with automatic bypass for local dev)
+    console.log("Validating session...");
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
+    console.log("Session valid:", auth.valid);
+    
+    if (!auth.valid) {
+      console.log("Auth failed - returning 401");
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log("Fetching templates from DynamoDB...");
@@ -51,23 +47,8 @@ export async function POST(request: Request) {
       AWS_REGION: process.env.AWS_REGION,
     });
 
-    // Validate admin session (bypass in development)
-    if (process.env.NODE_ENV !== 'development') {
-      console.log("Step 1: Validating session...");
-      const auth = await validateAdminSession(request, 'whatsapp-session');
-      console.log("Session validation result:", {
-        valid: auth.valid,
-        error: auth.error,
-        hasSession: !!auth.session,
-      });
-      
-      if (!auth.valid) {
-        console.log("Auth failed - returning 401");
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    } else {
-      console.log("⚠️ Development mode - skipping authentication");
-    }
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
 
     console.log("Step 2: Parsing request body...");
     const body = await request.json();
@@ -131,8 +112,8 @@ export async function PUT(request: Request) {
   try {
     console.log("=== TEMPLATE UPDATE START ===");
 
-    // Validate admin session
-    const auth = await validateAdminSession(request, 'whatsapp-session');
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
     console.log("Session valid:", auth.valid);
     
     if (!auth.valid) {
@@ -206,8 +187,8 @@ export async function DELETE(request: Request) {
   try {
     console.log("=== TEMPLATE DELETE START ===");
 
-    // Validate admin session
-    const auth = await validateAdminSession(request, 'whatsapp-session');
+    // Validate admin session (with bypass for local dev)
+    const auth = await validateAdminSessionWithBypass(request, 'whatsapp-session');
     console.log("Session valid:", auth.valid);
     
     if (!auth.valid) {

@@ -128,7 +128,7 @@ interface MetaAPIResponse<T = any> {
 }
 
 export class MetaAPIClient {
-  private readonly baseUrl = 'https://graph.facebook.com/v18.0';
+  private readonly baseUrl = 'https://graph.facebook.com/v25.0';
   private readonly accessToken: string;
   private readonly phoneNumberId: string;
   private readonly maxRetries = 2; // Simple retry: 2 attempts for transient failures
