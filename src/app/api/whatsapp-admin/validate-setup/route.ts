@@ -61,6 +61,7 @@ export async function GET(request: Request) {
       META_PHONE_NUMBER_ID: !!process.env.META_PHONE_NUMBER_ID,
       DYNAMODB_TABLE_NAME: !!process.env.DYNAMODB_TABLE_NAME,
       AWS_REGION: !!process.env.AWS_REGION,
+      // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are not needed in production (uses IAM role)
     };
 
     const missingVars = Object.entries(envVars)

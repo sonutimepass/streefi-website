@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       NODE_ENV: process.env.NODE_ENV,
       NEXT_RUNTIME: process.env.NEXT_RUNTIME,
       AWS_EXECUTION_ENV: process.env.AWS_EXECUTION_ENV,
-      AWS_REGION: process.env.AWS_REGION || 'not set',
+      AWS_REGION: process.env.AWS_REGION || 'not set (will default to ap-south-1)',',
     },
     whatsapp: {
       WHATSAPP_VERIFY_TOKEN: checkEnv('WHATSAPP_VERIFY_TOKEN'),

@@ -50,21 +50,15 @@ export async function GET(request: Request) {
   try {
     // Test 1: AWS Configuration Check
     try {
-      const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
-      const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
       const executionEnv = process.env.AWS_EXECUTION_ENV || "local";
-      
-      // In Amplify production, credentials should be false (using IAM Role)
-      const isUsingIAMRole = !hasAccessKey && !hasSecretKey && executionEnv !== "local";
+      const isProduction = executionEnv === "AWS_Lambda";
       
       const config = {
         region: process.env.AWS_REGION || client.config.region || "not-set",
-        hasAccessKeyId: hasAccessKey,
-        hasSecretAccessKey: hasSecretKey,
-        hasSessionToken: !!process.env.AWS_SESSION_TOKEN,
         tableName: TABLE_NAME,
         credentialSource: executionEnv,
-        authMethod: isUsingIAMRole ? "IAM Role (Secure ✅)" : hasAccessKey ? "Access Keys (Remove for production ⚠️)" : "Not configured",
+        authMethod: isProduction ? "IAM Role (Secure ✅)" : "Local testing or IAM role",
+        note: "AWS explicit credentials (access key/secret) are NOT needed. Production uses Amplify IAM role automatically."
       };
       results.tests.push({ 
         name: "AWS Configuration Check", 

@@ -26,9 +26,9 @@ export async function GET() {
     },
     aws: {
       AWS_REGION: process.env.AWS_REGION || 'NOT SET',
-      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET',
-      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET',
       DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME || 'NOT SET',
+      // In production: Uses IAM role attached to Amplify service (no explicit credentials needed)
+      // In local dev: Optional AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY can be set
     },
     whatsapp: {
       WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN 
