@@ -11,6 +11,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import TemplateEditorModal from '../TemplateEditorModal';
 import { getCsrfHeader } from '@/lib/csrfClient';
 
@@ -41,6 +42,7 @@ interface MetaTemplate {
 }
 
 export default function TemplateManagerSection() {
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -60,7 +62,12 @@ export default function TemplateManagerSection() {
 
   async function fetchTemplates() {
     try {
-      const res = await fetch('/api/whatsapp-admin/templates');
+      const res = await fetch('/api/whatsapp-admin/templates', { credentials: 'include' });
+      if (res.status === 401) {
+        showMessage('error', 'Session expired. Redirecting to login...');
+        setTimeout(() => router.push('/whatsapp-admin'), 1500);
+        return;
+      }
       const data = await res.json();
       setTemplates(data.templates || []);
     } catch (error) {
@@ -75,8 +82,13 @@ export default function TemplateManagerSection() {
     setFetchingMeta(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/whatsapp-admin/templates/sync');
+      const res = await fetch('/api/whatsapp-admin/templates/sync', { credentials: 'include' });
       const data = await res.json();
+      if (res.status === 401) {
+        showMessage('error', 'Session expired. Redirecting to login...');
+        setTimeout(() => router.push('/whatsapp-admin'), 1500);
+        return;
+      }
       if (!res.ok) throw new Error(data.error || data.details || 'Failed to fetch from Meta');
       setMetaTemplates(data.templates || []);
       setShowMetaPreview(true);
