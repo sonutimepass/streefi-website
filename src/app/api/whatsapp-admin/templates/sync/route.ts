@@ -38,6 +38,55 @@ function extractVariables(components: any[]): string[] {
 }
 
 /**
+ * GET /api/whatsapp-admin/templates/sync
+ *
+ * Fetch templates live from Meta Graph API WITHOUT writing to DynamoDB.
+ * Use this to preview what templates exist in Meta before deciding to sync.
+ */
+export async function GET(req: NextRequest) {
+  console.log('\n========================================');
+  console.log('📋 [TemplateSync] Fetching live templates from Meta Graph API...');
+  console.log('========================================');
+
+  try {
+    const validation = await validateAdminSessionWithBypass(req, 'whatsapp-session');
+    if (!validation.valid) {
+      return NextResponse.json({ error: 'Unauthorized', details: validation.error }, { status: 401 });
+    }
+
+    const templateService = getTemplateService();
+    const metaTemplates = await templateService.getTemplates();
+
+    // Map to a clean response shape matching the Graph API structure
+    const templates = (metaTemplates || []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      status: t.status,
+      category: t.category,
+      language: t.language,
+      parameter_format: t.parameter_format,
+      components: t.components,
+      variables: extractVariables(t.components || []),
+      rejected_reason: t.rejected_reason,
+    }));
+
+    console.log(`✅ [TemplateSync] Fetched ${templates.length} templates from Meta`);
+
+    return NextResponse.json({
+      source: 'meta',
+      count: templates.length,
+      templates,
+    });
+  } catch (error) {
+    console.error('[TemplateSync] Error fetching from Meta:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch templates from Meta', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * POST /api/whatsapp-admin/templates/sync
  * 
  * Sync all templates from Meta to local storage

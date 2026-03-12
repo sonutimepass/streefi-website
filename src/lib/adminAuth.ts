@@ -167,20 +167,15 @@ export async function validateAdminSessionFromDB(
 }
 
 /**
- * Helper function to check if auth bypass is enabled for local development
+ * Helper function to check if auth bypass is enabled
+ * ONLY bypasses when explicitly enabled via NEXT_PUBLIC_BYPASS_AUTH=true
  * @returns true if authentication should be bypassed
  */
 export function shouldBypassAuth(): boolean {
-  const bypass = (
-    process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true' ||
-    process.env.NODE_ENV === 'development' ||
-    !process.env.VERCEL // Not on Vercel = local
-  );
+  const bypass = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
   
   console.log('🔍 [AdminAuth] shouldBypassAuth check:', {
     NEXT_PUBLIC_BYPASS_AUTH: process.env.NEXT_PUBLIC_BYPASS_AUTH,
-    NODE_ENV: process.env.NODE_ENV,
-    VERCEL: process.env.VERCEL,
     result: bypass
   });
   

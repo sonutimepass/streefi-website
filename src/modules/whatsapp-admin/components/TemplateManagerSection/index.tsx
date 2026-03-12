@@ -29,10 +29,24 @@ interface Template {
   metaTemplateId?: string;
 }
 
+interface MetaTemplate {
+  id: string;
+  name: string;
+  status: string;
+  category: string;
+  language: string;
+  parameter_format?: string;
+  variables: string[];
+  components?: any[];
+}
+
 export default function TemplateManagerSection() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [fetchingMeta, setFetchingMeta] = useState(false);
+  const [metaTemplates, setMetaTemplates] = useState<MetaTemplate[]>([]);
+  const [showMetaPreview, setShowMetaPreview] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [testingTemplate, setTestingTemplate] = useState<string | null>(null);
@@ -54,6 +68,23 @@ export default function TemplateManagerSection() {
       showMessage('error', 'Failed to load templates');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleFetchFromMeta() {
+    setFetchingMeta(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/whatsapp-admin/templates/sync');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Failed to fetch from Meta');
+      setMetaTemplates(data.templates || []);
+      setShowMetaPreview(true);
+    } catch (error) {
+      console.error('Failed to fetch from Meta', error);
+      showMessage('error', error instanceof Error ? error.message : 'Failed to fetch from Meta');
+    } finally {
+      setFetchingMeta(false);
     }
   }
 
@@ -245,11 +276,18 @@ export default function TemplateManagerSection() {
 
         <div className="flex flex-col sm:flex-row gap-2">
           <button
+            className="px-4 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50"
+            onClick={handleFetchFromMeta}
+            disabled={fetchingMeta || loading}
+          >
+            {fetchingMeta ? '⏳ Fetching...' : '📡 Fetch from Meta'}
+          </button>
+          <button
             className="px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
             onClick={handleSyncFromMeta}
             disabled={syncing || loading}
           >
-            {syncing ? '🔄 Syncing...' : '🔄 Sync From Meta'}
+            {syncing ? '🔄 Syncing...' : '🔄 Sync to DB'}
           </button>
           <button
             className="px-4 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
@@ -458,6 +496,79 @@ export default function TemplateManagerSection() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Meta Preview Modal */}
+      {showMetaPreview && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowMetaPreview(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-3xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Live Templates from Meta Graph API</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{metaTemplates.length} templates found — not yet saved to DB</p>
+                </div>
+                <button onClick={() => setShowMetaPreview(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+              </div>
+
+              <div className="overflow-y-auto max-h-96 border border-gray-200 rounded-md">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="p-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                      <th className="p-3 text-left text-xs font-semibold text-gray-600">Category</th>
+                      <th className="p-3 text-left text-xs font-semibold text-gray-600">Language</th>
+                      <th className="p-3 text-left text-xs font-semibold text-gray-600">Status</th>
+                      <th className="p-3 text-left text-xs font-semibold text-gray-600">Variables</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metaTemplates.map((t) => (
+                      <tr key={t.id} className="border-t hover:bg-gray-50">
+                        <td className="p-3 font-medium text-gray-900">{t.name}</td>
+                        <td className="p-3 text-xs text-gray-600">{t.category}</td>
+                        <td className="p-3 text-xs text-gray-600">{t.language}</td>
+                        <td className="p-3">
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                            t.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                            t.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                            t.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>{t.status}</span>
+                        </td>
+                        <td className="p-3 text-xs text-gray-600">
+                          {t.variables.length > 0 ? (
+                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{t.variables.length} vars</span>
+                          ) : <span className="text-gray-400">None</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={async () => {
+                    setShowMetaPreview(false);
+                    await handleSyncFromMeta();
+                  }}
+                  disabled={syncing}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                >
+                  {syncing ? '🔄 Syncing...' : '🔄 Sync All to DB'}
+                </button>
+                <button
+                  onClick={() => setShowMetaPreview(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Test Message Modal */}
