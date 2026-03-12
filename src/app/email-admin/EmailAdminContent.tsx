@@ -1,6 +1,4 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   AuthSection, 
   DashboardLayout, 
@@ -9,7 +7,7 @@ import {
   useEmailAdminContext
 } from '@/modules/email-admin';
 
-function EmailAdminContent() {
+function EmailAdminContentInner() {
   const { isAuthenticated, isLoading } = useEmailAdminContext();
 
   if (isLoading) return <LoadingSection />;
@@ -19,20 +17,12 @@ function EmailAdminContent() {
   return <DashboardLayout />;
 }
 
-export default function EmailAdminPage() {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return <LoadingSection />;
-  }
-
+const EmailAdminContent = () => {
   return (
     <EmailAdminProvider>
-      <EmailAdminContent />
+      <EmailAdminContentInner />
     </EmailAdminProvider>
   );
-}
+};
+
+export default EmailAdminContent;

@@ -118,7 +118,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-IN" data-scroll-behavior="smooth">
-      <head>
+      <body className={`${ubuntu.variable} font-sans bg-[#fffdf9]`}>
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-5ZFVTDQV"
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
+
         {/* Google Tag Manager */}
         <Script id="google-tag-manager" strategy="beforeInteractive">
           {`
@@ -140,12 +150,6 @@ export default function RootLayout({
             })(window, document, "clarity", "script", "uh6jomdw1m");
           `}
         </Script>
-
-        {/* Preconnect to external domains */}
-        <link rel="preconnect" href="https://www.googletagmanager.com" />
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        <link rel="preconnect" href="https://www.clarity.ms" />
-        <link rel="dns-prefetch" href="https://www.clarity.ms" />
 
         {/* Structured Data */}
         <Script
@@ -233,17 +237,6 @@ export default function RootLayout({
             })
           }}
         />
-      </head>
-      <body className={`${ubuntu.variable} font-sans bg-[#fffdf9]`}>
-        {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-5ZFVTDQV"
-            height="0"
-            width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
 
         {children}
         <ConditionalFloatingButton />
