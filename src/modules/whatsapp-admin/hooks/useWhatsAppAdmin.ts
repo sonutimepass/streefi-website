@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 
 export type StatusType = 'success' | 'error' | '';
 export type MessageType = 'text' | 'template';
@@ -291,21 +290,27 @@ export const useWhatsAppAdmin = () => {
     setStatusType('success');
   };
 
-  // Handle file upload (CSV/Excel)
+  // Handle file upload (CSV)
   const handleFileUpload = async (file: File) => {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data);
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<any>(firstSheet);
+    const text = await file.text();
+    const lines = text.split('\n');
 
-    const phones = rows
-      .map((row: any) => {
-        const key = Object.keys(row).find(k =>
-          k.toLowerCase().includes('phone')
-        );
-        return key ? String(row[key]).replace(/\D/g, '') : '';
+    // Detect header row and phone column
+    const headerLine = lines[0] || '';
+    const headers = headerLine.split(',').map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+    const phoneColIdx = headers.findIndex(h =>
+      h.includes('phone') || h.includes('mobile') || h.includes('number')
+    );
+
+    const dataLines = phoneColIdx >= 0 ? lines.slice(1) : lines;
+    const phones: string[] = dataLines
+      .filter(line => line.trim())
+      .map(line => {
+        const parts = line.split(',');
+        const raw = phoneColIdx >= 0 ? (parts[phoneColIdx] || '') : parts[0] || '';
+        return raw.trim().replace(/["'\s]/g, '').replace(/\D/g, '');
       })
-      .filter((p: string) => p.length >= 10);
+      .filter(p => p.length >= 10);
 
     setImportedPhones(phones);
     setBulkPhones(phones.join('\n'));

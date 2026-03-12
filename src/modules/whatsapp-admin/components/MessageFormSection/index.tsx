@@ -122,10 +122,10 @@ export default function MessageFormSection() {
                   e.currentTarget.style.color = '#0ea5e9';
                 }}
               >
-                📁 Choose CSV/Excel File
+                📁 Choose CSV File
                 <input
                   type="file"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv"
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) handleFileUpload(file);

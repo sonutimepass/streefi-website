@@ -37,22 +37,59 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   icons: {
-    icon: [
-      { url: "/assets/streefi-logo.ico", type: "image/x-icon" },
-      { url: "/assets/streefi-logo-72.svg", sizes: "72x72", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-96.svg", sizes: "96x96", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-128.svg", sizes: "128x128", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-144.svg", sizes: "144x144", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-152.svg", sizes: "152x152", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-192.svg", sizes: "192x192", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-384.svg", sizes: "384x384", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-512.svg", sizes: "512x512", type: "image/svg+xml" },
-    ],
-    apple: [
-      { url: "/assets/streefi-logo-152.svg", sizes: "152x152", type: "image/svg+xml" },
-      { url: "/assets/streefi-logo-192.svg", sizes: "180x180", type: "image/svg+xml" },
-    ],
+    icon: "/assets/streefi-logo.ico",
+    apple: "/assets/streefi-logo-192.svg",
     shortcut: "/assets/streefi-logo.ico",
+    other: [
+      {
+        rel: "icon",
+        sizes: "72x72",
+        url: "/assets/streefi-logo-72.svg",
+        type: "image/svg+xml"
+      },
+      {
+        rel: "icon", 
+        sizes: "96x96",
+        url: "/assets/streefi-logo-96.svg",
+        type: "image/svg+xml"
+      },
+      {
+        rel: "icon",
+        sizes: "128x128", 
+        url: "/assets/streefi-logo-128.svg",
+        type: "image/svg+xml"
+      },
+      {
+        rel: "icon",
+        sizes: "144x144",
+        url: "/assets/streefi-logo-144.svg", 
+        type: "image/svg+xml"
+      },
+      {
+        rel: "icon",
+        sizes: "152x152",
+        url: "/assets/streefi-logo-152.svg",
+        type: "image/svg+xml" 
+      },
+      {
+        rel: "icon",
+        sizes: "192x192", 
+        url: "/assets/streefi-logo-192.svg",
+        type: "image/svg+xml"
+      },
+      {
+        rel: "icon",
+        sizes: "384x384",
+        url: "/assets/streefi-logo-384.svg",
+        type: "image/svg+xml"
+      },
+      {
+        rel: "icon", 
+        sizes: "512x512",
+        url: "/assets/streefi-logo-512.svg",
+        type: "image/svg+xml"
+      }
+    ]
   },
   openGraph: {
     siteName: "Streefi - Street Food Discovery",
@@ -61,15 +98,13 @@ export const metadata: Metadata = {
     url: "https://streefi.in/",
     type: "website",
     locale: "en_IN",
-    images: [
-      {
-        url: "/assets/streefi-logo.png",
-        width: 1200,
-        height: 630,
-        alt: "Streefi - Discover authentic street food vendors and support local food heroes",
-        type: "image/jpeg",
-      },
-    ],
+    images: {
+      url: "/assets/streefi-logo.png",
+      width: 1200,
+      height: 630,
+      alt: "Streefi - Discover authentic street food vendors and support local food heroes",
+      type: "image/jpeg",
+    },
   },
   twitter: {
     card: "summary_large_image",
@@ -77,7 +112,7 @@ export const metadata: Metadata = {
     creator: "@streefifoods",
     title: "Streefi - Find Best Street Food Near You",
     description: "Find local street food vendors, reviews, and dine-in offers with Streefi. Download the app to explore India's best street food culture.",
-    images: ["/assets/streefi-logo.png"],
+    images: "/assets/streefi-logo.png",
   },
   alternates: {
     canonical: "https://streefi.in/",

@@ -400,27 +400,30 @@ export function WhatsAppAdminProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Dynamic import to reduce bundle size
-      const XLSX = await import('xlsx');
-      
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<any>(firstSheet);
-
+      const text = await file.text();
+      const lines = text.split('\n');
       const phones: string[] = [];
 
-      rows.forEach((row: any) => {
-        // Extract phone from common column names
-        const phone = row.phone || row.Phone || row.mobile || row.Mobile || row.number || row.Number;
-        
-        if (phone) {
-          const cleanPhone = String(phone).trim();
-          if (cleanPhone.length >= 10) {
-            phones.push(cleanPhone);
-          }
+      // Parse CSV: detect header row then extract phone column
+      const headerLine = lines[0] || '';
+      const headers = headerLine.split(',').map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+      const phoneColIdx = headers.findIndex(h =>
+        h.includes('phone') || h.includes('mobile') || h.includes('number')
+      );
+
+      const dataLines = phoneColIdx >= 0 ? lines.slice(1) : lines;
+
+      for (const line of dataLines) {
+        if (!line.trim()) continue;
+        const parts = line.split(',');
+        const rawValue = phoneColIdx >= 0
+          ? (parts[phoneColIdx] || '')
+          : parts[0] || '';
+        const cleanPhone = rawValue.trim().replace(/["'\s]/g, '');
+        if (cleanPhone.length >= 10) {
+          phones.push(cleanPhone);
         }
-      });
+      }
 
       if (phones.length === 0) {
         throw new Error('No valid phone numbers found in file');

@@ -120,13 +120,13 @@ export default function EmailFormSection() {
           <form onSubmit={handleSendBulkEmail}>
             <div className="mb-3 sm:mb-4">
               <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700">
-                Upload CSV/Excel File (Optional)
+                Upload CSV File (Optional)
               </label>
               <label className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-purple-600 bg-white border-2 border-purple-600 rounded-lg cursor-pointer hover:bg-purple-600 hover:text-white transition-colors duration-200 mb-2 sm:mb-3">
-                📁 Choose CSV/Excel File
+                📁 Choose CSV File
                 <input
                   type="file"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv"
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) handleFileUpload(file);
