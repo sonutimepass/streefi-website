@@ -65,9 +65,6 @@ export class CampaignService {
         template_name: request.templateName,
         template_params: request.templateParams,
         total_recipients: request.recipients.length,
-        sent_count: 0,
-        delivered_count: 0,
-        failed_count: 0,
         created_at: now.getTime(),
         batch_size: request.batchSize,
         rate_limit: request.rateLimit,
@@ -96,7 +93,7 @@ export class CampaignService {
    */
   async getCampaign(campaignId: string): Promise<Campaign | null> {
     try {
-      const campaignData = await campaignRepository.getCampaign(campaignId);
+      const { campaign: campaignData, metrics } = await campaignRepository.getCampaignWithMetrics(campaignId);
       
       if (!campaignData) {
         return null;
@@ -109,10 +106,10 @@ export class CampaignService {
         templateName: campaignData.template_name,
         templateParams: campaignData.template_params,
         totalRecipients: campaignData.total_recipients,
-        sentCount: campaignData.sent_count,
-        deliveredCount: campaignData.delivered_count,
-        receivedCount: campaignData.received_count || 0,
-        failedCount: campaignData.failed_count,
+        sentCount: metrics.sent,
+        deliveredCount: metrics.delivered,
+        receivedCount: metrics.delivered, // received = delivered for WhatsApp
+        failedCount: metrics.blocked, // failed = blocked for now
         createdAt: new Date(campaignData.created_at),
         updatedAt: campaignData.updated_at ? new Date(campaignData.updated_at) : undefined,
         scheduledAt: campaignData.scheduled_at ? new Date(campaignData.scheduled_at) : undefined,
@@ -152,30 +149,30 @@ export class CampaignService {
    */
   async getCampaignMetrics(campaignId: string): Promise<CampaignMetrics | null> {
     try {
-      const campaign = await campaignRepository.getCampaign(campaignId);
+      const { campaign, metrics } = await campaignRepository.getCampaignWithMetrics(campaignId);
       
       if (!campaign) {
         return null;
       }
 
       const pending = campaign.total_recipients - 
-        (campaign.sent_count + campaign.failed_count);
+        (metrics.sent + metrics.blocked);
 
       return {
         campaignId: campaign.campaign_id,
         totalRecipients: campaign.total_recipients,
-        sent: campaign.sent_count,
-        delivered: campaign.delivered_count,
-        received: campaign.received_count || 0,
-        read: 0, // TODO: Track read status
-        failed: campaign.failed_count,
+        sent: metrics.sent,
+        delivered: metrics.delivered,
+        received: metrics.delivered, // received = delivered for WhatsApp
+        read: metrics.read,
+        failed: metrics.blocked,
         pending: pending > 0 ? pending : 0,
         processing: 0, // TODO: Count processing recipients
-        deliveryRate: campaign.sent_count > 0 
-          ? (campaign.delivered_count / campaign.sent_count) * 100 
+        deliveryRate: metrics.sent > 0 
+          ? (metrics.delivered / metrics.sent) * 100 
           : 0,
         failureRate: campaign.total_recipients > 0
-          ? (campaign.failed_count / campaign.total_recipients) * 100
+          ? (metrics.blocked / campaign.total_recipients) * 100
           : 0
       };
     } catch (error) {
@@ -186,6 +183,9 @@ export class CampaignService {
 
   /**
    * List all campaigns
+   * 
+   * NOTE: Returns campaigns with zeroed metrics for performance.
+   * Use getCampaign() or getCampaignMetrics() to get actual metrics.
    */
   async listCampaigns(): Promise<Campaign[]> {
     try {
@@ -198,10 +198,10 @@ export class CampaignService {
         templateName: c.template_name,
         templateParams: c.template_params,
         totalRecipients: c.total_recipients,
-        sentCount: c.sent_count,
-        deliveredCount: c.delivered_count,
-        receivedCount: c.received_count || 0,
-        failedCount: c.failed_count,
+        sentCount: 0, // Metrics not loaded in list view for performance
+        deliveredCount: 0,
+        receivedCount: 0,
+        failedCount: 0,
         createdAt: new Date(c.created_at),
         updatedAt: c.updated_at ? new Date(c.updated_at) : undefined,
         scheduledAt: c.scheduled_at ? new Date(c.scheduled_at) : undefined,

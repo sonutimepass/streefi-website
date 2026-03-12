@@ -38,22 +38,34 @@ export function verifyWebhookSignature(
   }
 
   try {
+    // Extract hex signature (remove 'sha256=' prefix)
+    if (!signature.startsWith('sha256=')) {
+      console.warn('⚠️ Invalid signature format (missing sha256= prefix)');
+      return false;
+    }
+
+    const signatureHex = signature.replace('sha256=', '');
+    
     // Calculate expected signature
-    const expectedSignature = 'sha256=' + createHmac('sha256', appSecret)
+    const expectedSignatureHex = createHmac('sha256', appSecret)
       .update(rawBody)
       .digest('hex');
 
+    // Convert to buffers for timing-safe comparison
+    const signatureBuffer = Buffer.from(signatureHex, 'hex');
+    const expectedBuffer = Buffer.from(expectedSignatureHex, 'hex');
+
     // Timing-safe comparison (prevents timing attacks)
-    const isValid = signature.length === expectedSignature.length &&
+    const isValid = signatureBuffer.length === expectedBuffer.length &&
       timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
+        signatureBuffer,
+        expectedBuffer
       );
 
     if (!isValid) {
       console.warn('⚠️ Webhook signature verification failed');
       console.warn('Signature preview:', signature.substring(0, 20) + '...');
-      console.warn('Expected preview:', expectedSignature.substring(0, 20) + '...');
+      console.warn('Expected preview:', ('sha256=' + expectedSignatureHex).substring(0, 20) + '...');
     }
 
     return isValid;

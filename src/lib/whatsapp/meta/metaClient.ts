@@ -133,6 +133,7 @@ export class MetaAPIClient {
   private readonly phoneNumberId: string;
   private readonly maxRetries = 2; // Simple retry: 2 attempts for transient failures
   private readonly retryDelay = 300; // 300ms delay between retries
+  private readonly requestTimeout = 10000; // 10 second timeout for API requests
 
   constructor(accessToken?: string, phoneNumberId?: string) {
     console.log('\n🔧 [MetaClient] Initializing Meta API Client...');
@@ -172,7 +173,7 @@ export class MetaAPIClient {
       throw new Error('Meta Phone Number ID is required. Set META_PHONE_NUMBER_ID or WHATSAPP_PHONE_ID environment variable.');
     }
     
-    console.log('✅ [MetaClient] Client initialized successfully\n');
+    console.log('[MetaClient] Client initialized successfully\n');
   }
 
   /**
@@ -188,15 +189,34 @@ export class MetaAPIClient {
         });
       }
 
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
-      return this.handleResponse<T>(response);
+      try {
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return this.handleResponse<T>(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new MetaApiError(
+            'Request timeout: Meta API did not respond within 10 seconds',
+            408,
+            'REQUEST_TIMEOUT',
+            undefined,
+            408
+          );
+        }
+        throw error;
+      }
     });
   }
 
@@ -207,34 +227,40 @@ export class MetaAPIClient {
     return this.executeWithRetry(async () => {
       const url = `${this.baseUrl}${endpoint}`;
 
-      console.log('📤 [MetaClient] POST Request:', {
-        endpoint,
-        url,
-        bodyPreview: JSON.stringify(body).substring(0, 200) + '...',
-        timestamp: new Date().toISOString(),
-      });
-      console.log('📦 [MetaClient] Full Request Body:', JSON.stringify(body, null, 2));
+      console.log('[MetaClient] POST:', endpoint);
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
-      console.log('📥 [MetaClient] POST Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: {
-          'retry-after': response.headers.get('Retry-After'),
-          'x-fb-trace-id': response.headers.get('x-fb-trace-id'),
-        },
-      });
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
 
-      return this.handleResponse<T>(response);
+        console.log('[MetaClient] Response:', response.status, response.ok ? 'OK' : 'Failed');
+
+        return this.handleResponse<T>(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new MetaApiError(
+            'Request timeout: Meta API did not respond within 10 seconds',
+            408,
+            'REQUEST_TIMEOUT',
+            undefined,
+            408
+          );
+        }
+        throw error;
+      }
     });
   }
 
@@ -245,15 +271,34 @@ export class MetaAPIClient {
     return this.executeWithRetry(async () => {
       const url = `${this.baseUrl}${endpoint}`;
 
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
-      return this.handleResponse<T>(response);
+      try {
+        const response = await fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return this.handleResponse<T>(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new MetaApiError(
+            'Request timeout: Meta API did not respond within 10 seconds',
+            408,
+            'REQUEST_TIMEOUT',
+            undefined,
+            408
+          );
+        }
+        throw error;
+      }
     });
   }
 

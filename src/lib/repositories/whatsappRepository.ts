@@ -11,13 +11,13 @@
  * - Templates: PK=TEMPLATE#{name}, SK=METADATA
  * - Settings: PK=SETTINGS, SK=GLOBAL
  * - Warmup State: PK=WARMUP#{accountId}, SK=STATE
- * - Daily Counters: PK=DAILY_COUNTER, SK={date}
+ * - Daily Counters (Distributed): PK=DAILY_COUNTER#{shardId}#{date}, SK=METADATA (10 shards for hot partition mitigation)
  * 
  * Operations:
  * - Template CRUD (create, get, update, delete, list)
  * - Settings management (get, update)
  * - Account warmup tracking
- * - Daily message counters
+ * - Daily message counters (distributed across 10 shards)
  */
 
 import {
@@ -204,9 +204,19 @@ export class WhatsAppRepository {
    */
   async saveTemplate(template: WhatsAppTemplate): Promise<void> {
     try {
+      // Convert ISO strings to timestamps for DynamoDB
+      const now = Date.now();
+      const createdAtTimestamp = template.createdAt ? new Date(template.createdAt).getTime() : now;
+      const updatedAtTimestamp = template.updatedAt ? new Date(template.updatedAt).getTime() : now;
+      
       const item: any = {
         PK: { S: `TEMPLATE#${template.templateId}` },
         SK: { S: "METADATA" },
+        
+        // GSI1 attributes for status-based queries (Step 7)
+        GSI1PK: { S: 'TEMPLATE' },
+        GSI1SK: { S: `${template.status}#${template.templateId}` },
+        
         templateId: { S: template.templateId },
         name: { S: template.name },
         category: { S: template.category },
@@ -214,8 +224,8 @@ export class WhatsAppRepository {
         variables: { L: template.variables.map(v => ({ S: v })) },
         status: { S: template.status },
         metaStatus: { S: template.metaStatus },
-        createdAt: { S: template.createdAt },
-        updatedAt: { S: template.updatedAt }
+        createdAt: { N: createdAtTimestamp.toString() },
+        updatedAt: { N: updatedAtTimestamp.toString() }
       };
 
       // Optional fields
@@ -245,6 +255,7 @@ export class WhatsAppRepository {
 
   /**
    * Update template status (internal status: draft/active/archived)
+   * Also updates GSI1SK to maintain index consistency
    */
   async updateTemplateStatus(templateId: string, status: TemplateStatus): Promise<void> {
     try {
@@ -255,13 +266,14 @@ export class WhatsAppRepository {
             PK: { S: `TEMPLATE#${templateId}` },
             SK: { S: "METADATA" }
           },
-          UpdateExpression: "SET #status = :status, updatedAt = :timestamp",
+          UpdateExpression: "SET #status = :status, GSI1SK = :gsi1sk, updatedAt = :timestamp",
           ExpressionAttributeNames: {
             "#status": "status"
           },
           ExpressionAttributeValues: {
             ":status": { S: status },
-            ":timestamp": { S: new Date().toISOString() }
+            ":gsi1sk": { S: `${status}#${templateId}` }, // Update GSI1SK for status queries
+            ":timestamp": { N: Date.now().toString() }
           }
         })
       );
@@ -288,7 +300,7 @@ export class WhatsAppRepository {
           UpdateExpression: "SET metaStatus = :status, updatedAt = :timestamp, lastSyncTime = :syncTime",
           ExpressionAttributeValues: {
             ":status": { S: metaStatus },
-            ":timestamp": { S: new Date().toISOString() },
+            ":timestamp": { N: Date.now().toString() },
             ":syncTime": { S: new Date().toISOString() }
           }
         })
@@ -347,6 +359,57 @@ export class WhatsAppRepository {
     } catch (error) {
       console.error("[WhatsAppRepository] Error listing templates:", error);
       throw new Error("Failed to list templates");
+    }
+  }
+
+  /**
+   * List templates by status using GSI1 (FAST - no Scan!)
+   * 
+   * Step 7: GSI1-TemplatesByStatus
+   * - GSI1PK: 'TEMPLATE'
+   * - GSI1SK: '{status}#{templateId}'
+   * 
+   * This is 10-100× faster than using Scan with FilterExpression
+   * 
+   * @param status - Template status (draft/active/archived)
+   * @returns Array of templates with matching status
+   */
+  async listTemplatesByStatus(status: TemplateStatus): Promise<WhatsAppTemplate[]> {
+    try {
+      const response = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: 'GSI1-TemplatesByStatus',
+          KeyConditionExpression: 'GSI1PK = :pk AND begins_with(GSI1SK, :status)',
+          ExpressionAttributeValues: {
+            ':pk': { S: 'TEMPLATE' },
+            ':status': { S: status }
+          },
+          ScanIndexForward: false // Sort by templateId descending (newest first)
+        })
+      );
+
+      if (!response.Items || response.Items.length === 0) {
+        console.log(`[WhatsAppRepository] No templates found with status: ${status}`);
+        return [];
+      }
+
+      console.log(`[WhatsAppRepository] Found ${response.Items.length} templates with status: ${status}`);
+      return response.Items.map(item => this.parseTemplateItem(item));
+    } catch (error) {
+      console.error("[WhatsAppRepository] Error querying templates by status:", error);
+      
+      // If GSI doesn't exist yet, provide helpful error message
+      if (error instanceof Error && error.message.includes('ResourceNotFoundException')) {
+        throw new Error(
+          `GSI1-TemplatesByStatus index not found. Please create it first:\n` +
+          `aws dynamodb update-table --table-name ${this.tableName} ` +
+          `--attribute-definitions AttributeName=GSI1PK,AttributeType=S AttributeName=GSI1SK,AttributeType=S ` +
+          `--global-secondary-index-updates '[{"Create":{"IndexName":"GSI1-TemplatesByStatus",...}}]'`
+        );
+      }
+      
+      throw new Error(`Failed to query templates by status: ${status}`);
     }
   }
 
@@ -723,10 +786,44 @@ export class WhatsAppRepository {
     }
   }
 
+  /**
+   * Get total daily conversation count across all distributed shards
+   * 
+   * DISTRIBUTED COUNTER: Queries all 10 shards and sums the counts
+   * - Handles hot partition mitigation with 10× write capacity
+   * - Each shard: PK = DAILY_COUNTER#{shardId}#{date}
+   * 
+   * @param date - Date string in YYYY-MM-DD format
+   * @returns Total count across all shards
+   */
+  async getDailyConversationCountTotal(date: string): Promise<number> {
+    try {
+      let total = 0;
+      
+      // Query all 10 shards in parallel for efficiency
+      const shardPromises = [];
+      for (let shardId = 0; shardId < 10; shardId++) {
+        const counterKey = `DAILY_COUNTER#${shardId}#${date}`;
+        shardPromises.push(this.getDailyConversationCount(counterKey));
+      }
+      
+      const shardCounts = await Promise.all(shardPromises);
+      total = shardCounts.reduce((sum, count) => sum + count, 0);
+      
+      return total;
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error reading distributed daily conversation count:', error);
+      throw error;
+    }
+  }
+
   async incrementDailyConversationCountConditional(
     counterKey: string,
     limit: number
   ): Promise<number> {
+    // TTL: 90 days for historical analytics
+    const ttl = Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60);
+    
     const response = await this.client.send(
       new UpdateItemCommand({
         TableName: this.tableName,
@@ -734,16 +831,18 @@ export class WhatsAppRepository {
           PK: { S: counterKey },
           SK: { S: 'METADATA' }
         },
-        UpdateExpression: 'ADD #count :inc SET #updatedAt = :now',
+        UpdateExpression: 'ADD #count :inc SET #updatedAt = :now, #ttl = :ttl',
         ConditionExpression: 'attribute_not_exists(PK) OR #count < :limit',
         ExpressionAttributeNames: {
           '#count': 'count',
-          '#updatedAt': 'updatedAt'
+          '#updatedAt': 'updatedAt',
+          '#ttl': 'TTL'
         },
         ExpressionAttributeValues: {
           ':inc': { N: '1' },
           ':limit': { N: limit.toString() },
-          ':now': { N: Date.now().toString() }
+          ':now': { N: Date.now().toString() },
+          ':ttl': { N: ttl.toString() }
         },
         ReturnValues: 'ALL_NEW'
       })
@@ -864,8 +963,8 @@ export class WhatsAppRepository {
       variables: item.variables?.L ? item.variables.L.map((v: any) => v.S || "") : [],
       status: (item.status?.S || "draft") as TemplateStatus,
       metaStatus: (item.metaStatus?.S || "NOT_SUBMITTED") as MetaStatus,
-      createdAt: item.createdAt?.S || new Date().toISOString(),
-      updatedAt: item.updatedAt?.S || new Date().toISOString(),
+      createdAt: item.createdAt?.N ? new Date(parseInt(item.createdAt.N)).toISOString() : new Date().toISOString(),
+      updatedAt: item.updatedAt?.N ? new Date(parseInt(item.updatedAt.N)).toISOString() : new Date().toISOString(),
       syncedFromMeta: item.syncedFromMeta?.BOOL,
       lastSyncTime: item.lastSyncTime?.S,
       metaTemplateId: item.metaTemplateId?.S
@@ -898,6 +997,10 @@ export class WhatsAppRepository {
     
     const sk = `MSG#${timestamp}#${direction.toUpperCase().substring(0, 3)}`;
     
+    // TTL: 7 days (not 90!) for cost savings (92% reduction at scale)
+    // 50k users × 100 msgs × 7 days = 70GB vs 90 days = 900GB
+    const ttl = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60);
+    
     const item: any = {
       PK: { S: `CONV#${phone}` },
       SK: { S: sk },
@@ -909,7 +1012,8 @@ export class WhatsAppRepository {
       content: { S: content },
       timestamp: { N: timestamp.toString() },
       status: { S: status },
-      createdAt: { S: new Date().toISOString() }
+      createdAt: { S: new Date().toISOString() },
+      TTL: { N: ttl.toString() }
     };
 
     if (vendorId) {
@@ -940,6 +1044,8 @@ export class WhatsAppRepository {
    * PK = CONV#{phone}
    * SK = META
    * TYPE = CONVERSATION
+   * GSI2PK = CONVERSATION (for GSI2-ConversationsByActivity)
+   * GSI2SK = {status}#{lastMessageTimestamp} (for sorted queries)
    * 
    * Powers dashboard conversation list via GSI.
    */
@@ -951,6 +1057,7 @@ export class WhatsAppRepository {
     lastDirection?: 'inbound' | 'outbound';
     incrementUnread?: boolean;
     vendorId?: string;
+    status?: 'active' | 'inactive';
   }): Promise<void> {
     const { 
       phone, 
@@ -959,7 +1066,8 @@ export class WhatsAppRepository {
       lastMessageTimestamp, 
       lastDirection, 
       incrementUnread,
-      vendorId 
+      vendorId,
+      status = 'active'
     } = params;
 
     const now = Date.now();
@@ -995,6 +1103,11 @@ export class WhatsAppRepository {
       expressionAttributeValues[':vendorId'] = { S: vendorId };
     }
 
+    // Set conversation status (active/inactive)
+    updateExpressions.push('#status = :status');
+    expressionAttributeNames['#status'] = 'status';
+    expressionAttributeValues[':status'] = { S: status };
+
     // Increment unread count for inbound messages
     if (incrementUnread) {
       updateExpressions.push('unreadCount = if_not_exists(unreadCount, :zero) + :one');
@@ -1008,6 +1121,15 @@ export class WhatsAppRepository {
     expressionAttributeNames['#type'] = 'TYPE';
     expressionAttributeValues[':type'] = { S: 'CONVERSATION' };
     expressionAttributeValues[':phone'] = { S: phone };
+
+    // Step 8: Add GSI2 attributes for ConversationsByActivity index
+    // GSI2PK = 'CONVERSATION' (constant for all conversations)
+    // GSI2SK = '{status}#{timestamp}' (enables sorting by activity with status filter)
+    const timestamp = lastMessageTimestamp || now;
+    updateExpressions.push('GSI2PK = :gsi2pk');
+    updateExpressions.push('GSI2SK = :gsi2sk');
+    expressionAttributeValues[':gsi2pk'] = { S: 'CONVERSATION' };
+    expressionAttributeValues[':gsi2sk'] = { S: `${status}#${timestamp}` };
 
     const updateExpression = 'SET ' + updateExpressions.join(', ');
 
@@ -1218,6 +1340,81 @@ export class WhatsAppRepository {
     } catch (error) {
       console.error('[WhatsAppRepository] Error listing conversations:', error);
       throw new Error('Failed to list conversations');
+    }
+  }
+
+  /**
+   * STEP 8: List conversations by activity using GSI2-ConversationsByActivity
+   * 
+   * Query conversations sorted by most recent activity with optional status filter.
+   * Uses GSI2PK='CONVERSATION' and GSI2SK='{status}#{timestamp}' for efficient queries.
+   * 
+   * Performance: Query (uses index) vs Scan (full table scan)
+   * - Query: O(log n) + results
+   * - Scan: O(n) where n = all items
+   * 
+   * @param status - Filter by conversation status (active/inactive), defaults to 'active'
+   * @param limit - Max conversations to return (default: 50)
+   */
+  async listConversationsByActivity(params?: {
+    status?: 'active' | 'inactive';
+    limit?: number;
+    lastEvaluatedKey?: Record<string, any>;
+  }): Promise<{
+    conversations: Array<{
+      phone: string;
+      name?: string;
+      lastMessage?: string;
+      lastMessageTimestamp?: number;
+      lastDirection?: 'inbound' | 'outbound';
+      unreadCount?: number;
+      status?: string;
+      vendorId?: string;
+    }>;
+    lastEvaluatedKey?: Record<string, any>;
+  }> {
+    try {
+      const status = params?.status || 'active';
+      
+      const queryParams: any = {
+        TableName: this.tableName,
+        IndexName: 'GSI2-ConversationsByActivity',
+        KeyConditionExpression: 'GSI2PK = :gsi2pk AND begins_with(GSI2SK, :statusPrefix)',
+        ExpressionAttributeValues: {
+          ':gsi2pk': { S: 'CONVERSATION' },
+          ':statusPrefix': { S: `${status}#` }
+        },
+        ScanIndexForward: false, // DESC order (most recent first)
+        Limit: params?.limit || 50
+      };
+
+      // Pagination support
+      if (params?.lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = params.lastEvaluatedKey;
+      }
+
+      const response = await this.client.send(new QueryCommand(queryParams));
+
+      const conversations = (response.Items || []).map(item => ({
+        phone: item.phone?.S || '',
+        name: item.name?.S,
+        lastMessage: item.lastMessage?.S,
+        lastMessageTimestamp: item.lastMessageTimestamp?.N 
+          ? parseInt(item.lastMessageTimestamp.N, 10) 
+          : undefined,
+        lastDirection: item.lastDirection?.S as 'inbound' | 'outbound' | undefined,
+        unreadCount: item.unreadCount?.N ? parseInt(item.unreadCount.N, 10) : 0,
+        status: item.status?.S,
+        vendorId: item.vendorId?.S
+      }));
+
+      return {
+        conversations,
+        lastEvaluatedKey: response.LastEvaluatedKey
+      };
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error listing conversations by activity:', error);
+      throw new Error('Failed to list conversations by activity');
     }
   }
 
@@ -1456,6 +1653,410 @@ export class WhatsAppRepository {
     } catch (error) {
       console.error('[WhatsAppRepository] Error deleting conversation:', error);
       throw new Error('Failed to delete conversation');
+    }
+  }
+
+  // ==================== WEBHOOK DEDUPLICATION ====================
+
+  /**
+   * Check if webhook event was already processed
+   * 
+   * Schema: PK=WEBHOOK_EVENT#{eventId}, SK=METADATA
+   * TTL: 7 days (Meta retry window)
+   * 
+   * Returns true if event was already processed (duplicate)
+   */
+  /**
+   * Check if webhook event was already processed
+   * 
+   * @deprecated Use tryMarkWebhookEventProcessedAtomic instead for race-free deduplication
+   */
+  async isWebhookEventProcessed(eventId: string): Promise<boolean> {
+    try {
+      const response = await this.client.send(
+        new GetItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `WEBHOOK_EVENT#${eventId}` },
+            SK: { S: 'METADATA' }
+          }
+        })
+      );
+
+      return !!response.Item;
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error checking webhook event:', error);
+      // On error, allow processing (false positive better than false negative)
+      return false;
+    }
+  }
+
+  /**
+   * Atomically try to mark webhook event as processed
+   * 
+   * CRITICAL: This is the race-free deduplication method.
+   * Uses DynamoDB conditional write to ensure only ONE webhook processes the event.
+   * 
+   * @returns true if this is the FIRST time seeing this event (proceed with processing)
+   * @returns false if event was already processed (skip processing)
+   * 
+   * TTL: 7 days (Meta retry window)
+   */
+  async tryMarkWebhookEventProcessedAtomic(eventId: string, eventData?: any): Promise<boolean> {
+    const ttl = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60); // 7 days
+
+    try {
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: {
+            PK: { S: `WEBHOOK_EVENT#${eventId}` },
+            SK: { S: 'METADATA' },
+            eventId: { S: eventId },
+            processedAt: { N: Date.now().toString() },
+            eventData: { S: JSON.stringify(eventData || {}) },
+            TTL: { N: ttl.toString() }
+          },
+          ConditionExpression: 'attribute_not_exists(PK)' // ATOMIC: Only create if not exists
+        })
+      );
+      
+      // Success - this is the first time we're seeing this event
+      return true;
+      
+    } catch (error: any) {
+      // ConditionalCheckFailedException = event already exists (duplicate)
+      if (error.name === 'ConditionalCheckFailedException') {
+        return false; // Already processed - skip
+      }
+      
+      // Other errors - log and allow processing (fail open)
+      console.error('[WhatsAppRepository] Error in atomic webhook dedupe:', error);
+      return true; // On error, allow processing (false positive better than false negative)
+    }
+  }
+
+  /**
+   * Mark webhook event as processed
+   * 
+   * Idempotent - safe to call multiple times
+   * TTL: 7 days (Meta retry window)
+   */
+  async markWebhookEventProcessed(eventId: string, eventData?: any): Promise<void> {
+    const ttl = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60); // 7 days
+
+    try {
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: {
+            PK: { S: `WEBHOOK_EVENT#${eventId}` },
+            SK: { S: 'METADATA' },
+            eventId: { S: eventId },
+            processedAt: { N: Date.now().toString() },
+            eventData: { S: JSON.stringify(eventData || {}) },
+            TTL: { N: ttl.toString() }
+          },
+          ConditionExpression: 'attribute_not_exists(PK)' // Only create if not exists
+        })
+      );
+    } catch (error: any) {
+      // Ignore ConditionalCheckFailedException (already marked)
+      if (error.name !== 'ConditionalCheckFailedException') {
+        console.error('[WhatsAppRepository] Error marking webhook event:', error);
+        // Don't throw - non-critical
+      }
+    }
+  }
+
+  /**
+   * Delete webhook event processed marker
+   * 
+   * Used when handler fails to allow Meta to retry the event
+   * Part of atomic deduplication with failure recovery
+   */
+  async deleteWebhookEventProcessed(eventId: string): Promise<void> {
+    try {
+      await this.client.send(
+        new DeleteItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `WEBHOOK_EVENT#${eventId}` },
+            SK: { S: 'METADATA' }
+          }
+        })
+      );
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error deleting webhook event marker:', error);
+      // Don't throw - best effort cleanup
+    }
+  }
+
+  // ==================== PHONE QUALITY TRACKING ====================
+
+  /**
+   * Store phone number quality update
+   * 
+   * Schema: PK=PHONE_QUALITY#{phoneNumberId}, SK=METADATA
+   * 
+   * Quality: GREEN, YELLOW, RED
+   * Critical for monitoring account health
+   */
+  async updatePhoneQuality(params: {
+    phoneNumberId: string;
+    displayPhone: string;
+    qualityScore: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+    previousScore?: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+    event?: string;
+    reason?: string;
+  }): Promise<void> {
+    const { phoneNumberId, displayPhone, qualityScore, previousScore, event, reason } = params;
+    const now = Date.now();
+
+    try {
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: {
+            PK: { S: `PHONE_QUALITY#${phoneNumberId}` },
+            SK: { S: 'METADATA' },
+            phoneNumberId: { S: phoneNumberId },
+            displayPhone: { S: displayPhone },
+            qualityScore: { S: qualityScore },
+            previousScore: { S: previousScore || 'UNKNOWN' },
+            event: { S: event || 'quality_update' },
+            reason: { S: reason || '' },
+            updatedAt: { N: now.toString() },
+            timestamp: { S: new Date().toISOString() }
+          }
+        })
+      );
+
+      console.log(`[WhatsAppRepository] Phone quality updated: ${displayPhone} → ${qualityScore}`);
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error updating phone quality:', error);
+      // Don't throw - non-critical for webhook processing
+    }
+  }
+
+  /**
+   * Get current phone quality status
+   */
+  async getPhoneQuality(phoneNumberId: string): Promise<{
+    qualityScore: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+    displayPhone: string;
+    updatedAt: number;
+    reason?: string;
+  } | null> {
+    try {
+      const response = await this.client.send(
+        new GetItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `PHONE_QUALITY#${phoneNumberId}` },
+            SK: { S: 'METADATA' }
+          }
+        })
+      );
+
+      if (!response.Item) {
+        return null;
+      }
+
+      const item = response.Item;
+      return {
+        qualityScore: item.qualityScore?.S as any || 'UNKNOWN',
+        displayPhone: item.displayPhone?.S || '',
+        updatedAt: item.updatedAt?.N ? parseInt(item.updatedAt.N, 10) : 0,
+        reason: item.reason?.S
+      };
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error getting phone quality:', error);
+      return null;
+    }
+  }
+
+  // ==================== USER PREFERENCES (OPT-OUT TRACKING) ====================
+
+  /**
+   * Update user marketing preferences
+   * 
+   * Schema: PK=USER_PREF#{phone}, SK=METADATA
+   * 
+   * Critical for marketing compliance - MUST respect opt-outs
+   */
+  async updateUserPreferences(params: {
+    phone: string;
+    marketingOptIn: boolean;
+    preference?: string;
+    event?: string;
+  }): Promise<void> {
+    const { phone, marketingOptIn, preference, event } = params;
+    const now = Date.now();
+
+    try {
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: {
+            PK: { S: `USER_PREF#${phone}` },
+            SK: { S: 'METADATA' },
+            phone: { S: phone },
+            marketingOptIn: { BOOL: marketingOptIn },
+            preference: { S: preference || 'marketing' },
+            event: { S: event || 'preference_update' },
+            updatedAt: { N: now.toString() },
+            timestamp: { S: new Date().toISOString() }
+          }
+        })
+      );
+
+      const status = marketingOptIn ? 'OPTED IN' : 'OPTED OUT';
+      console.log(`[WhatsAppRepository] User preference updated: ${phone} → ${status}`);
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error updating user preferences:', error);
+      // Don't throw - non-critical for webhook processing
+    }
+  }
+
+  /**
+   * Check if user has opted out of marketing
+   * 
+   * Returns true if user opted out, false if opted in or no preference set
+   */
+  async isUserOptedOutOfMarketing(phone: string): Promise<boolean> {
+    try {
+      const response = await this.client.send(
+        new GetItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `USER_PREF#${phone}` },
+            SK: { S: 'METADATA' }
+          }
+        })
+      );
+
+      if (!response.Item) {
+        // No preference set - default to opted IN
+        return false;
+      }
+
+      // If marketingOptIn is false, user is opted OUT
+      return response.Item.marketingOptIn?.BOOL === false;
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error checking opt-out status:', error);
+      // On error, assume opted IN (fail open)
+      return false;
+    }
+  }
+
+  // ==================== TEMPLATE QUALITY TRACKING ====================
+
+  /**
+   * Update template quality score
+   * 
+   * Schema: Updates existing template item
+   * 
+   * Quality: GREEN, YELLOW, RED
+   * Affects delivery rates and template status
+   */
+  async updateTemplateQuality(params: {
+    templateName: string;
+    previousQuality?: 'GREEN' | 'YELLOW' | 'RED';
+    newQuality: 'GREEN' | 'YELLOW' | 'RED';
+    reason?: string;
+  }): Promise<void> {
+    const { templateName, previousQuality, newQuality, reason } = params;
+
+    try {
+      // Find template by name
+      const template = await this.getTemplateByName(templateName);
+      
+      if (!template) {
+        console.warn(`[WhatsAppRepository] Template not found for quality update: ${templateName}`);
+        return;
+      }
+
+      // Update template with quality info
+      await this.client.send(
+        new UpdateItemCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: { S: `TEMPLATE#${template.templateId}` },
+            SK: { S: 'METADATA' }
+          },
+          UpdateExpression: 'SET qualityScore = :newQuality, previousQualityScore = :prevQuality, qualityReason = :reason, qualityUpdatedAt = :timestamp, updatedAt = :updatedAt',
+          ExpressionAttributeValues: {
+            ':newQuality': { S: newQuality },
+            ':prevQuality': { S: previousQuality || 'UNKNOWN' },
+            ':reason': { S: reason || '' },
+            ':timestamp': { N: Date.now().toString() },
+            ':updatedAt': { N: Date.now().toString() }
+          }
+        })
+      );
+
+      console.log(`[WhatsAppRepository] Template quality updated: ${templateName} → ${newQuality}`);
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error updating template quality:', error);
+      // Don't throw - non-critical for webhook processing
+    }
+  }
+
+  // ==================== ACCOUNT ALERTS TRACKING ====================
+
+  /**
+   * Store account alert
+   * 
+   * Schema: PK=ACCOUNT_ALERT#{timestamp}, SK=METADATA
+   * TTL: 90 days
+   * 
+   * For monitoring critical account issues
+   */
+  async storeAccountAlert(params: {
+    alertType: string;
+    severity: 'INFORMATIONAL' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    title: string;
+    description?: string;
+    event?: string;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    const { alertType, severity, title, description, event, metadata } = params;
+    const now = Date.now();
+    const ttl = Math.floor(now / 1000) + (90 * 24 * 60 * 60); // 90 days
+    const alertId = `${alertType}_${now}`;
+
+    try {
+      const item: Record<string, any> = {
+        PK: { S: `ACCOUNT_ALERT#${now}` },
+        SK: { S: 'METADATA' },
+        alertId: { S: alertId },
+        alertType: { S: alertType },
+        severity: { S: severity },
+        title: { S: title },
+        description: { S: description || '' },
+        event: { S: event || '' },
+        createdAt: { N: now.toString() },
+        timestamp: { S: new Date().toISOString() },
+        TTL: { N: ttl.toString() }
+      };
+
+      // Add metadata if provided
+      if (metadata) {
+        item.metadata = { S: JSON.stringify(metadata) };
+      }
+
+      await this.client.send(
+        new PutItemCommand({
+          TableName: this.tableName,
+          Item: item
+        })
+      );
+
+      console.log(`[WhatsAppRepository] Account alert stored: ${title} [${severity}]`);
+    } catch (error) {
+      console.error('[WhatsAppRepository] Error storing account alert:', error);
+      // Don't throw - non-critical
     }
   }
 }

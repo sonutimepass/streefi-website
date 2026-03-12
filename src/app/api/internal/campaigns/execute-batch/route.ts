@@ -233,8 +233,8 @@ async function executeBatch(
     console.log(`✅ [Batch Executor] Warmup limit OK: ${warmupCheck.remainingToday}/${warmupCheck.dailyLimit} remaining today`);
     
     console.log('📥 [Batch Executor] Loading campaign metadata...');
-    // 1️⃣ Load campaign metadata
-    const campaign = await campaignRepository.getCampaign(campaignId);
+    // 1️⃣ Load campaign metadata WITH metrics
+    const { campaign, metrics } = await campaignRepository.getCampaignWithMetrics(campaignId);
     
     if (!campaign) {
       console.error('❌ [Batch Executor] Campaign not found:', campaignId);
@@ -311,8 +311,8 @@ async function executeBatch(
     }
 
     // 🎯 CRITICAL: Campaign daily cap enforcement
-    if (campaign.sent_count >= (campaign.daily_cap ?? Infinity)) {
-      console.warn(`🎯 [Batch Executor] Campaign daily cap reached: ${campaign.sent_count}/${campaign.daily_cap}`);
+    if (metrics.sent >= (campaign.daily_cap ?? Infinity)) {
+      console.warn(`🎯 [Batch Executor] Campaign daily cap reached: ${metrics.sent}/${campaign.daily_cap}`);
       await campaignRepository.pauseCampaign(campaignId, `Campaign daily cap reached: ${campaign.daily_cap} messages`);
       return {
         processed: 0,
@@ -325,9 +325,9 @@ async function executeBatch(
     }
 
     // 📊 CRITICAL: Metrics integrity check
-    const processedCount = campaign.sent_count + campaign.failed_count;
+    const processedCount = metrics.sent + metrics.blocked;
     if (processedCount > campaign.total_recipients) {
-      console.error(`❌ [Batch Executor] METRICS CORRUPTION: sentCount(${campaign.sent_count}) + failedCount(${campaign.failed_count}) = ${processedCount} > totalRecipients(${campaign.total_recipients})`);
+      console.error(`❌ [Batch Executor] METRICS CORRUPTION: sentCount(${metrics.sent}) + failedCount(${metrics.blocked}) = ${processedCount} > totalRecipients(${campaign.total_recipients})`);
       await campaignRepository.pauseCampaign(campaignId, 'Metrics corruption detected - manual intervention required');
       return {
         processed: 0,

@@ -61,18 +61,25 @@ export class CampaignDispatcher {
         return [];
       }
 
-      const campaigns: CampaignDispatchItem[] = runningCampaigns.map(c => ({
-        campaignId: c.campaign_id,
-        status: c.campaign_status as CampaignDispatchItem['status'],
-        totalRecipients: c.total_recipients,
-        sentCount: c.sent_count,
-        lastDispatchAt: c.last_dispatch_at
-      }));
+      // Fetch metrics for all running campaigns
+      const campaignsWithMetrics = await Promise.all(
+        runningCampaigns.map(async (c) => {
+          const { metrics } = await campaignRepository.getCampaignWithMetrics(c.campaign_id);
+          return {
+            campaignId: c.campaign_id,
+            status: c.campaign_status as CampaignDispatchItem['status'],
+            priority: (c as any).priority, // Optional priority field
+            totalRecipients: c.total_recipients,
+            sentCount: metrics.sent,
+            lastDispatchAt: c.last_dispatch_at
+          };
+        })
+      );
 
       // Filter campaigns that are ready for next batch
       const now = Math.floor(Date.now() / 1000);
       const DISPATCH_COOLDOWN = 60; // 1-minute cooldown between dispatches
-      const readyCampaigns = campaigns.filter(c => {
+      const readyCampaigns = campaignsWithMetrics.filter(c => {
         // Skip if already completed
         if (c.sentCount >= c.totalRecipients) return false;
 

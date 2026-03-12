@@ -79,14 +79,14 @@ export class BlockRateCircuitBreaker {
     failedCount: number;
   }> {
     try {
-      const campaign = await campaignRepository.getCampaign(campaignId);
+      const { campaign, metrics } = await campaignRepository.getCampaignWithMetrics(campaignId);
       if (!campaign) {
         return { blockedCount: 0, sentCount: 0, failedCount: 0 };
       }
       return {
-        blockedCount: campaign.blocked_count || 0,
-        sentCount: campaign.sent_count,
-        failedCount: campaign.failed_count
+        blockedCount: metrics.blocked || 0,
+        sentCount: metrics.sent,
+        failedCount: metrics.blocked // failed = blocked for now
       };
     } catch (error) {
       console.error('[BlockRateCircuitBreaker] Failed to get campaign metrics:', error);

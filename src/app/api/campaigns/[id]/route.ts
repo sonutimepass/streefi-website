@@ -62,7 +62,7 @@ export async function GET(
     }
 
     // 2️⃣ Load campaign from repository
-    const campaign = await campaignRepository.getCampaign(campaignId);
+    const { campaign, metrics } = await campaignRepository.getCampaignWithMetrics(campaignId);
 
     if (!campaign) {
       return NextResponse.json(
@@ -73,8 +73,8 @@ export async function GET(
 
     // 3️⃣ Parse campaign data and calculate metrics
     const totalRecipients = campaign.total_recipients || 0;
-    const sentCount = campaign.sent_count || 0;
-    const failedCount = campaign.failed_count || 0;
+    const sentCount = metrics.sent || 0;
+    const failedCount = metrics.blocked || 0;
     const pendingCount = totalRecipients - sentCount - failedCount;
     const progressPercentage = totalRecipients > 0 
       ? Math.round(((sentCount + failedCount) / totalRecipients) * 100)

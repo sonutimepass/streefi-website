@@ -32,7 +32,7 @@ export type {
 } from './whatsappRepository';
 
 export { CampaignRepository, campaignRepository } from './campaignRepository';
-export type { Campaign, CampaignStatus, CampaignLog, CampaignMetrics, CampaignAnalytics, GlobalPauseState } from './campaignRepository';
+export type { Campaign, CampaignStatus, CampaignLog, CampaignMetrics, CampaignMetricsRecord, CampaignAnalytics, GlobalPauseState } from './campaignRepository';
 
 export { RecipientRepository, recipientRepository } from './recipientRepository';
 export type { Recipient, RecipientStatus } from './recipientRepository';

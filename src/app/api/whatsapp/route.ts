@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
 import { whatsappRepository } from '@/lib/repositories/whatsappRepository';
 import { verifyWebhookSignature } from '@/lib/whatsapp/signatureVerifier';
 import { routeWebhookEvent } from '@/lib/whatsapp/webhookRouter';
-import { truncateText } from '@/lib/whatsapp/metaTypes';
+import crypto from 'crypto';
 
+// Force Node.js runtime for crypto operations in signature verification
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Check if running locally
+// Check if running locally (server-only env var)
 const isLocalDevelopment = process.env.NODE_ENV === 'development' || 
-                          process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
-
-const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
+                          process.env.WHATSAPP_SKIP_SIGNATURE === 'true';
 
 /**
  * GET - WhatsApp Webhook Verification
@@ -25,14 +24,11 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
-    // 🔍 DEBUG: Log all incoming verification parameters
-    console.log('\n========== WEBHOOK VERIFICATION ATTEMPT ==========');
-    console.log('📥 Request URL:', request.url);
-    console.log('📝 Parameters:', {
-      mode,
-      token: token ? `${token.substring(0, 10)}...` : 'null',
-      challenge: challenge ? 'present' : 'null'
-    });
+    // Log verification attempt (summary only)
+    console.log('\n[Webhook Verification]');
+    console.log('Mode:', mode);
+    console.log('Token:', token ? 'present' : 'missing');
+    console.log('Challenge:', challenge ? 'present' : 'missing');
 
     // Security check: Return 403 for any unauthorized GET requests (like Zomato)
     if (!mode || !token || !challenge) {
@@ -50,72 +46,41 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 🔍 DEBUG: Check environment variable availability
-    console.log('\n🔐 Environment Variable Check:');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('NEXT_RUNTIME:', process.env.NEXT_RUNTIME);
-    
-    // List all WhatsApp-related env vars (safely)
-    const whatsappEnvVars = {
-      WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN ? '✅ SET' : '❌ NOT SET',
-      WHATSAPP_APP_SECRET: process.env.WHATSAPP_APP_SECRET ? '✅ SET' : '❌ NOT SET',
-      WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN ? '✅ SET' : '❌ NOT SET',
-      META_PHONE_NUMBER_ID: process.env.META_PHONE_NUMBER_ID ? '✅ SET' : '❌ NOT SET',
-      WHATSAPP_PHONE_ID: process.env.WHATSAPP_PHONE_ID ? '✅ SET' : '❌ NOT SET',
-    };
-    console.log('WhatsApp Environment Variables:', whatsappEnvVars);
-
-    // Verify webhook from Meta
-    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
-    if (!verifyToken) {
-      console.error('\n❌ CRITICAL: WHATSAPP_VERIFY_TOKEN not configured in environment variables');
-      console.error('💡 Solution:');
-      console.error('   1. Go to AWS Amplify Console');
-      console.error('   2. Navigate to: Environment variables');
-      console.error('   3. Add: WHATSAPP_VERIFY_TOKEN = <your_token>');
-      console.error('   4. Rebuild the application');
-      console.log('==================================================\n');
+    // Validate environment configuration
+    if (!process.env.WHATSAPP_VERIFY_TOKEN) {
+      console.error('[Webhook] WHATSAPP_VERIFY_TOKEN not configured');
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    console.log('✅ WHATSAPP_VERIFY_TOKEN is configured');
-    console.log('🔑 Token preview:', `${verifyToken.substring(0, 10)}...`);
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
 
-    console.log('✅ WHATSAPP_VERIFY_TOKEN is configured');
-    console.log('🔑 Token preview:', `${verifyToken.substring(0, 10)}...`);
+    // Verify token and mode (explicit check)
+    if (mode !== 'subscribe' || token !== verifyToken) {
+      console.warn('[Webhook] Verification failed: Invalid mode or token');
+      return new NextResponse(
+        '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
+        { 
+          status: 403,
+          headers: {
+            'Content-Type': 'text/html; charset=iso-8859-1',
+            'Cache-Control': 'max-age=0, no-cache, no-store',
+            'Pragma': 'no-cache',
+          }
+        }
+      );
+    }
 
-    // 🔍 DEBUG: Compare tokens
-    console.log('\n🔍 Token Comparison:');
-    console.log('Mode:', mode);
-    console.log('Expected token (first 15 chars):', verifyToken.substring(0, 15) + '...');
-    console.log('Received token (first 15 chars):', token.substring(0, 15) + '...');
-    console.log('Tokens match:', token === verifyToken);
-    console.log('Token lengths - Expected:', verifyToken.length, 'Received:', token.length);
-
-    // Simple string comparison for webhook verification
+    // Verification successful
     if (mode === 'subscribe' && token === verifyToken) {
-      // Respond with 200 OK and challenge token from the request
-      console.log('\n✅ Webhook verified successfully!');
-      console.log('📤 Sending challenge response:', challenge);
-      console.log('==================================================\n');
+      console.log('[Webhook] Verification successful');
       return new NextResponse(challenge, { 
         status: 200,
-        headers: {
-          'Content-Type': 'text/plain',
-        }
+        headers: { 'Content-Type': 'text/plain' }
       });
     }
 
-    // Invalid verification token
-    console.warn('\n⚠️ Webhook verification failed - Token mismatch');
-    console.warn('Details:', { 
-      mode, 
-      modeMatches: mode === 'subscribe',
-      tokenMatches: token === verifyToken,
-      tokenReceivedPreview: token?.substring(0, 10) + '...', 
-      expectedTokenPreview: verifyToken.substring(0, 10) + '...' 
-    });
-    console.log('==================================================\n');
+    // Should never reach here (already handled above)
+    console.warn('[Webhook] Verification failed: Unknown reason');
     return new NextResponse(
       '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
       { 
@@ -128,7 +93,7 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('❌ Webhook verification error:', error);
+    console.error('[Webhook] Verification error:', error);
     return new NextResponse(
       '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>403 Forbidden</title>\n</head><body>\n<h1>Forbidden</h1>\n<p>You don\'t have permission to access this resource.</p>\n</body></html>',
       { 
@@ -142,286 +107,106 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - WhatsApp Webhook Handler & Message Sending API
+ * POST - WhatsApp Webhook Handler (Meta events only)
  * 
- * Handles two types of requests:
- * 1. Webhook events from Meta (incoming messages, statuses, operational alerts)
- * 2. Internal message sending API (admin/vendor sends message to customer)
+ * Handles webhook events from Meta:
+ * - Incoming messages
+ * - Message statuses
+ * - Template updates
+ * - Phone quality alerts
+ * - Account alerts
+ * 
+ * For sending messages, use: POST /api/whatsapp/send
  */
 export async function POST(request: NextRequest) {
-  // 🔍 VERBOSE LOGGING: Log every POST request
-  console.log('\n========== WEBHOOK POST RECEIVED ==========');
-  console.log('⏰ Time:', new Date().toISOString());
-  console.log('🌍 URL:', request.url);
-  console.log('📋 Headers:', Object.fromEntries(request.headers));
+  const requestId = crypto.randomUUID();
+  console.log(`[Webhook:${requestId}] Event received:`, new Date().toISOString());
 
   try {
     // Read raw body for signature verification
     const rawBody = await request.text();
-    console.log('📦 Raw Body Length:', rawBody.length, 'bytes');
+    
+    // Guard against extremely large payloads (Meta typically sends <100KB)
+    if (rawBody.length > 1024 * 1024) {
+      console.warn(`[Webhook:${requestId}] Payload too large:`, rawBody.length, 'bytes');
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
     
     let body: any;
-    
     try {
       body = JSON.parse(rawBody);
-      console.log('📄 Parsed Body:', JSON.stringify(body, null, 2));
     } catch (parseError) {
-      console.error('❌ JSON Parse Error:', parseError);
-      console.log('===========================================\n');
+      console.error(`[Webhook:${requestId}] Invalid JSON`);
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // WEBHOOK EVENT FROM META (incoming messages/events)
-    // ═══════════════════════════════════════════════════════════
-    if (body.object === 'whatsapp_business_account') {
-      console.log('\n🎯 DETECTED: WhatsApp Webhook Event');
-      console.log('📱 Object Type:', body.object);
-      console.log('🔍 Environment:', isLocalDevelopment ? 'LOCAL' : 'PRODUCTION');
-      console.log('📊 Entry Count:', body.entry?.length || 0);
+    // Validate webhook object type
+    if (body.object !== 'whatsapp_business_account') {
+      console.warn(`[Webhook:${requestId}] Invalid object type:`, body.object);
+      return NextResponse.json({ error: 'Invalid webhook object' }, { status: 400 });
+    }
+
+    console.log(`[Webhook:${requestId}] Object:`, body.object, '| Entries:', body.entry?.length || 0);
+    // Verify webhook signature (production only)
+    if (!isLocalDevelopment) {
+      const appSecret = process.env.WHATSAPP_APP_SECRET;
       
-      // 🔒 SECURITY: Verify Meta webhook signature (production only)
-      if (!isLocalDevelopment) {
-        const appSecret = process.env.WHATSAPP_APP_SECRET;
-        
-        if (!appSecret) {
-          console.error('❌ WHATSAPP_APP_SECRET not configured');
-          console.log('===========================================\n');
-          return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-        }
-
-        const signature = request.headers.get('x-hub-signature-256');
-        console.log('🔐 Signature Header:', signature ? 'Present' : 'Missing');
-        
-        if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
-          console.warn('⚠️ Webhook signature verification failed');
-          console.log('===========================================\n');
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-
-        console.log('✅ Webhook signature verified');
-      } else {
-        console.warn('⚠️ LOCAL DEV: Skipping signature verification');
+      if (!appSecret) {
+        console.error(`[Webhook:${requestId}] WHATSAPP_APP_SECRET not configured`);
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
       }
 
-      // Route webhook events to handlers
-      if (body.entry && Array.isArray(body.entry)) {
-        console.log('📮 Processing', body.entry.length, 'entries...');
-        
-        for (const entry of body.entry) {
-          console.log('  📦 Entry ID:', entry.id);
-          
-          if (entry.changes && Array.isArray(entry.changes)) {
-            console.log('  📝 Changes:', entry.changes.length);
-            
-            for (const change of entry.changes) {
-              console.log('    🔄 Field:', change.field);
-              console.log('    📄 Value:', JSON.stringify(change.value, null, 2));
-              
-              await routeWebhookEvent(change.field, change.value, entry.id);
-            }
-          }
-        }
-      } else {
-        console.warn('⚠️ No entries found in webhook payload');
-      }
-
-      // Always return 200 OK to acknowledge receipt
-      console.log('✅ Webhook processed successfully');
-      console.log('===========================================\n');
-      return NextResponse.json({ success: true, received: true }, { status: 200 });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // INTERNAL MESSAGE SENDING API (not a webhook from Meta)
-    // ═══════════════════════════════════════════════════════════
-    console.log('🔐 Not a webhook - checking authentication...');
-    console.log('===========================================\n');
-
-    // 🔒 SECURITY: For non-webhook requests (message sending), validate admin session
-    const auth = await validateAdminSession(request, 'whatsapp-session');
-    if (!auth.valid) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // If not a webhook event, treat as message sending request (internal API)
-    const { phone, message, template } = body;
-
-    // Validate input - either message or template must be provided
-    if (!phone || (!message && !template)) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required fields: phone and either message or template are required' 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Get credentials from environment variables
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    const phoneNumberId = process.env.META_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_ID;
-
-    // 🔍 DEBUG: Log credential availability
-    console.log('\n========== MESSAGE SENDING REQUEST ==========');
-    console.log('🔐 Credentials Check:');
-    console.log('WHATSAPP_ACCESS_TOKEN:', accessToken ? '✅ SET' : '❌ NOT SET');
-    console.log('META_PHONE_NUMBER_ID:', process.env.META_PHONE_NUMBER_ID ? '✅ SET' : '❌ NOT SET');
-    console.log('WHATSAPP_PHONE_ID:', process.env.WHATSAPP_PHONE_ID ? '✅ SET' : '❌ NOT SET');
-    console.log('Using phoneNumberId:', phoneNumberId || 'NOT CONFIGURED');
-
-    if (!accessToken || !phoneNumberId) {
-      console.error('❌ WhatsApp credentials not configured');
-      console.error('💡 Required environment variables:');
-      console.error('   - WHATSAPP_ACCESS_TOKEN');
-      console.error('   - META_PHONE_NUMBER_ID or WHATSAPP_PHONE_ID');
-      console.log('============================================\n');
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'WhatsApp service not configured' 
-        },
-        { status: 500 }
-      );
-    }
-
-    // Format phone number (remove any non-digit characters)
-    const formattedPhone = phone.replace(/\D/g, '');
-
-    // Prepare message payload based on type
-    let messagePayload: any = {
-      messaging_product: 'whatsapp',
-      to: formattedPhone,
-    };
-
-    if (template) {
-      // Template message
-      messagePayload.type = 'template';
+      const signature = request.headers.get('x-hub-signature-256');
       
-      // Support both simplified and full Meta API format
-      if (template.components) {
-        // Full Meta API format - use as-is
-        messagePayload.template = {
-          name: template.name,
-          language: template.language || { code: 'en' },
-          components: template.components,
-        };
-      } else {
-        // Simplified format - convert to Meta API format
-        messagePayload.template = {
-          name: template.name,
-          language: typeof template.language === 'string' 
-            ? { code: template.language } 
-            : (template.language || { code: 'en' }),
-        };
-
-        // Add template parameters if provided (simplified format)
-        if (template.parameters && template.parameters.length > 0) {
-          messagePayload.template.components = [
-            {
-              type: 'body',
-              parameters: template.parameters.map((param: string) => ({
-                type: 'text',
-                text: param,
-              })),
-            },
-          ];
-        }
+      // Explicit signature header check
+      if (!signature) {
+        console.warn(`[Webhook:${requestId}] Missing signature header`);
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
-    } else {
-      // Regular text message
-      messagePayload.type = 'text';
-      messagePayload.text = {
-        body: message,
-      };
-    }
-
-    // Send WhatsApp message via Meta Cloud API
-    const whatsappResponse = await fetch(
-      `${WHATSAPP_API_URL}/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messagePayload),
-      }
-    );
-
-    const responseData = await whatsappResponse.json();
-
-    if (!whatsappResponse.ok) {
-      console.error('WhatsApp API error:', responseData);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to send WhatsApp message',
-          details: responseData.error?.message || 'Unknown error'
-        },
-        { status: whatsappResponse.status }
-      );
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // CRITICAL: Store outbound message for conversation history
-    // ═══════════════════════════════════════════════════════════
-    if (responseData.messages?.[0]?.id) {
-      const messageContent = template 
-        ? `[Template: ${template.name}]` 
-        : message;
-
-      try {
-        // Write 1: Store outbound message
-        await whatsappRepository.storeMessage({
-          phone: formattedPhone,
-          direction: 'outbound',
-          messageId: responseData.messages[0].id,
-          messageType: template ? 'template' : 'text',
-          content: messageContent,
-          timestamp: Math.floor(Date.now() / 1000),
-          status: 'sent'
-        });
-
-        // Write 2: Update conversation metadata
-        await whatsappRepository.updateConversationMeta({
-          phone: formattedPhone,
-          lastMessage: truncateText(messageContent, 100),
-          lastMessageTimestamp: Math.floor(Date.now() / 1000),
-          lastDirection: 'outbound',
-          incrementUnread: false // Vendor replies don't increment unread
-        });
-
-        console.log('✅ Stored outbound message:', responseData.messages[0].id);
-      } catch (storeError) {
-        console.error('❌ Failed to store outbound message:', storeError);
-        // Continue - message was sent successfully
+      
+      if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
+        console.warn(`[Webhook:${requestId}] Signature verification failed`);
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
 
-    // Success response
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: template 
-          ? `Template message sent successfully (${template.name})`
-          : 'WhatsApp message sent successfully',
-        messageId: responseData.messages?.[0]?.id,
-      },
-      { status: 200 }
-    );
+    // Process webhook entries
+    if (!body.entry || !Array.isArray(body.entry)) {
+      console.warn(`[Webhook:${requestId}] No entries in payload`);
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    // Process entries SEQUENTIALLY to maintain consistency
+    // Parallel processing can cause race conditions and inconsistent DB state
+    for (const entry of body.entry) {
+      if (!entry.changes || !Array.isArray(entry.changes)) {
+        console.warn(`[Webhook:${requestId}] Entry ${entry.id} has no changes array`);
+        continue;
+      }
+      
+      console.log(`[Webhook:${requestId}] Processing ${entry.changes.length} change(s) for entry ${entry.id}`);
+      
+      // Process changes SEQUENTIALLY within each entry
+      for (const change of entry.changes) {
+        // Log summary (no PII)
+        console.log(`[Webhook:${requestId}] Field:`, change.field, '| Entry:', entry.id);
+        
+        // Route to handler (includes deduplication check and processing)
+        // If this throws, we'll return 500 to Meta for retry
+        await routeWebhookEvent(change.field, change.value, entry.id);
+      }
+    }
+
+    // Success - return 200 to Meta
+    console.log(`[Webhook:${requestId}] Processed successfully`);
+    return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error) {
-    console.error('WhatsApp send error:', error);
+    console.error(`[Webhook:${requestId}] Processing failed - returning 500 for Meta retry:`, error);
+    // Return 500 so Meta will retry this event
+    // The router has already removed the processed marker
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error while sending message',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Processing failed', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

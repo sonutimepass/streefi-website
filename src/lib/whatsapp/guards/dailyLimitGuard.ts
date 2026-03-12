@@ -11,15 +11,24 @@
  * - 200 conversations per 24h (80% of limit, configurable via WHATSAPP_DAILY_LIMIT env)
  * 
  * ARCHITECTURE:
- * ✅ Atomic daily counter (O(1) reads/writes)
+ * ✅ Distributed atomic counter with 10 shards (hot partition mitigation)
+ * ✅ Random shard selection for true load distribution
+ * ✅ Per-shard limit enforcement (totalLimit / 10 per shard)
  * ✅ No table scans - scales infinitely
- * ✅ Race-condition-free via DynamoDB ADD operation
+ * ✅ Race-condition-free via DynamoDB ADD operation with ConditionExpression
  * ✅ Fail-closed mode (blocks on DynamoDB errors)
  * ✅ Configurable limit via environment variable
  * 
+ * DISTRIBUTED COUNTER DESIGN:
+ * - 10 shards: DAILY_COUNTER#0#date through DAILY_COUNTER#9#date
+ * - Each shard: max = totalLimit / 10 (e.g., 200 / 10 = 20 per shard)
+ * - Random shard selection ensures even distribution
+ * - Total capacity: 10 shards × 20 = 200 (enforces global limit)
+ * - 10× write capacity vs single partition
+ * 
  * LAYER RESPONSIBILITY:
  * ✅ Check if phone has active conversation (last 24h)
- * ✅ Enforce daily limit via atomic counter
+ * ✅ Enforce daily limit via distributed atomic counter
  * ✅ Track conversation state in DynamoDB
  * 
  * ❌ Message sending (belongs to messageService)
@@ -28,7 +37,7 @@
  * 
  * DATA STRUCTURE:
  * - CONV#{phone} / METADATA → Individual conversation tracking
- * - DAILY_COUNTER#YYYY-MM-DD / METADATA → Atomic daily counter
+ * - DAILY_COUNTER#{shardId}#{date} / METADATA → Distributed atomic counters (10 shards)
  */
 
 import { whatsappRepository } from '@/lib/repositories';
@@ -75,7 +84,16 @@ export interface ConversationRecord {
  */
 export class DailyLimitGuard {
   /**
-   * Get today's counter key (format: DAILY_COUNTER#YYYY-MM-DD)
+   * Get today's counter key with random shard selection (format: DAILY_COUNTER#{shardId}#YYYY-MM-DD)
+   * 
+   * DISTRIBUTED COUNTER (HOT PARTITION FIX):
+   * - Uses 10 shards (0-9) with RANDOM selection
+   * - Each shard = separate DynamoDB partition = 10x write capacity
+   * - Random selection ensures true distribution (not phone-based hash)
+   * 
+   * WHY RANDOM vs HASH?
+   * - hash(phone) % 10: Same phone always hits same shard (hot partition if high volume)
+   * - random: True distribution across all shards regardless of phone patterns
    * 
    * NOTE: Uses calendar day boundary (midnight UTC/local), not rolling 24h window.
    * Meta uses rolling 24h window, so there's a potential mismatch:
@@ -87,7 +105,8 @@ export class DailyLimitGuard {
    */
   private getDailyCounterKey(): string {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    return `DAILY_COUNTER#${today}`;
+    const shardId = Math.floor(Math.random() * 10); // 0-9 random shard
+    return `DAILY_COUNTER#${shardId}#${today}`;
   }
 
   /**
@@ -181,19 +200,22 @@ export class DailyLimitGuard {
   }
 
   /**
-   * Get current daily conversation count (O(1) operation)
+   * Get current daily conversation count across ALL shards (O(10) operation)
    * 
-   * Reads atomic counter for today's date.
-   * Returns 0 if counter doesn't exist yet.
+   * DISTRIBUTED COUNTER: Queries all 10 shards and sums the counts
+   * - Used for displaying current usage to admins
+   * - Not used for limit enforcement (that's done per-shard atomically)
+   * 
+   * Returns 0 if no counters exist yet.
    */
   private async getDailyCount(): Promise<number> {
-    const counterKey = this.getDailyCounterKey();
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     try {
-      return await whatsappRepository.getDailyConversationCount(counterKey);
+      return await whatsappRepository.getDailyConversationCountTotal(today);
     } catch (error) {
-      console.error('[DailyLimitGuard] Error reading daily count:', {
-        counterKey,
+      console.error('[DailyLimitGuard] Error reading distributed daily count:', {
+        date: today,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -203,36 +225,49 @@ export class DailyLimitGuard {
   /**
    * Atomically increment daily counter WITH conditional check (O(1) operation)
    * 
-   * CRITICAL: Uses ConditionExpression to make check + increment atomic.
-   * DynamoDB enforces: "Only increment if count < limit"
+   * DISTRIBUTED COUNTER WITH SHARDING:
+   * - Uses per-shard limit = totalLimit / 10 shards
+   * - Example: 200 total limit → 20 per shard
+   * - Each shard can hold max 20, so total across 10 shards = max 200
+   * - Random shard selection ensures even distribution over time
+   * 
+   * ATOMIC OPERATION:
+   * - DynamoDB ConditionExpression enforces: "Only increment if shard count < shard limit"
+   * - Race-condition proof within each shard
    * 
    * Race-condition proof:
-   * - If 2 requests hit at count=199
-   * - Both attempt conditional increment
-   * - DynamoDB serializes: first gets 200, second gets ConditionalCheckFailedException
-   * - No overshoot possible
+   * - If 2 requests hit same shard at count=19
+   * - Both attempt conditional increment (limit=20)
+   * - DynamoDB serializes: first gets 20, second gets ConditionalCheckFailedException
+   * - No overshoot possible per shard
    * 
-   * @returns New count value after increment
-   * @throws ConditionalCheckFailedException if limit reached
+   * @returns New count value for the selected shard after increment
+   * @throws ConditionalCheckFailedException if shard limit reached
    */
   private async incrementDailyCounterConditional(): Promise<number> {
     try {
       const counterKey = this.getDailyCounterKey();
+      // CRITICAL: Use per-shard limit (total limit / 10 shards)
+      // This ensures total across all shards can't exceed the total limit
+      const perShardLimit = Math.ceil(DAILY_CONVERSATION_LIMIT / 10);
+      
       const newCount = await whatsappRepository.incrementDailyConversationCountConditional(
         counterKey,
-        DAILY_CONVERSATION_LIMIT
+        perShardLimit
       );
 
       console.log('[DailyLimitGuard] Daily counter incremented:', {
-        date: counterKey.replace('DAILY_COUNTER#', ''),
-        newCount,
-        limit: DAILY_CONVERSATION_LIMIT,
+        shard: counterKey.split('#')[1],
+        date: counterKey.split('#')[2],
+        newShardCount: newCount,
+        perShardLimit,
+        totalLimit: DAILY_CONVERSATION_LIMIT,
       });
 
       return newCount;
     } catch (error: any) {
       if (error.name === 'ConditionalCheckFailedException') {
-        console.warn('[DailyLimitGuard] Daily limit reached, increment rejected by DynamoDB');
+        console.warn('[DailyLimitGuard] Shard limit reached, increment rejected by DynamoDB');
       } else {
         console.error('[DailyLimitGuard] Error incrementing daily counter:', error);
       }

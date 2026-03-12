@@ -26,9 +26,11 @@ import {
   PutItemCommand,
   UpdateItemCommand,
   DeleteItemCommand,
-  QueryCommand
+  QueryCommand,
+  BatchGetItemCommand
 } from "@aws-sdk/client-dynamodb";
 import { dynamoClient, TABLES } from "../dynamoClient";
+import { MetricsBuffer } from "../utils/metricsBuffer";
 
 /**
  * Campaign status enum
@@ -37,6 +39,11 @@ export type CampaignStatus = "DRAFT" | "SCHEDULED" | "RUNNING" | "PAUSED" | "COM
 
 /**
  * Campaign metadata entity
+ * 
+ * ⚠️ IMPORTANT: This record does NOT contain metrics (sent/delivered/failed counts).
+ * Metrics are stored in a SEPARATE CampaignMetricsRecord to prevent hot partition.
+ * 
+ * To get metrics: Use getCampaignWithMetrics() or getCampaignMetrics()
  */
 export interface Campaign {
   campaign_id: string;
@@ -57,13 +64,11 @@ export interface Campaign {
   template_weights?: number[]; // Weights for template selection
   template_strategy?: 'random' | 'weighted' | 'round-robin';
   
-  // Metrics
+  // Total recipients (does NOT change during execution)
   total_recipients: number;
-  sent_count: number;
-  delivered_count: number;
-  failed_count: number;
-  received_count?: number;
-  blocked_count?: number; // Circuit breaker tracking
+  
+  // ⚠️ REMOVED: sent_count, delivered_count, failed_count, received_count, blocked_count
+  // These are now in CampaignMetricsRecord (separate SK=METRICS record)
   
   // Limits
   daily_cap?: number;
@@ -105,7 +110,40 @@ export interface CampaignLog {
 
 /**
  * Campaign metrics (funnel counters)
- * Stored as: PK=CAMPAIGN#{campaignId}, SK=METRICS
+ * Stored as SEPARATE record from METADATA to prevent hot partition
+ * 
+ * Record: PK=CAMPAIGN#{campaignId}, SK=METRICS
+ * 
+ * ⚠️ CRITICAL: Metrics are updated via MetricsBuffer (batched writes)
+ * Direct writes to this record will cause hot partition at high volume!
+ */
+export interface CampaignMetricsRecord {
+  PK: string;              // CAMPAIGN#{uuid}
+  SK: string;              // METRICS
+  TYPE: 'CAMPAIGN_METRICS';
+  
+  // Funnel counters (updated in batches)
+  sent: number;
+  delivered: number;
+  read: number;
+  clicked: number;
+  replied: number;
+  converted: number;
+  blocked: number;
+  revenue?: number;
+  
+  // Batch tracking (for monitoring write reduction)
+  lastBatchUpdate: string; // ISO timestamp
+  batchUpdateCount: number; // How many batches processed
+  
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Campaign metrics (for API responses)
+ * Flattened version without DynamoDB keys
  */
 export interface CampaignMetrics {
   campaignId: string;
@@ -117,6 +155,10 @@ export interface CampaignMetrics {
   converted: number;
   blocked: number;
   revenue?: number;
+  
+  // Batch tracking (optional - only present when metrics exist)
+  batchUpdateCount?: number;
+  lastBatchUpdate?: string;
 }
 
 /**
@@ -150,10 +192,22 @@ export interface GlobalPauseState {
 export class CampaignRepository {
   private client: DynamoDBClient;
   private tableName: string;
+  private metricsBuffer: MetricsBuffer;
 
   constructor(client: DynamoDBClient = dynamoClient, tableName: string = TABLES.CAMPAIGNS) {
     this.client = client;
     this.tableName = tableName;
+    
+    // Initialize metrics buffer with flush callback
+    this.metricsBuffer = new MetricsBuffer(
+      this.batchUpdateMetrics.bind(this),
+      {
+        threshold: 100,  // Flush after 100 updates
+        interval: 30000  // Flush every 30 seconds
+      }
+    );
+    
+    console.log('[CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)');
   }
 
   /**
@@ -183,55 +237,179 @@ export class CampaignRepository {
   }
 
   /**
+   * Get campaign WITH metrics in a single batch operation
+   * Returns both METADATA and METRICS records
+   * 
+   * Use this when you need both campaign info AND metrics (most common case)
+   */
+  async getCampaignWithMetrics(campaignId: string): Promise<{
+    campaign: Campaign;
+    metrics: CampaignMetrics;
+  }> {
+    try {
+      // Batch get both METADATA and METRICS
+      const result = await this.client.send(new BatchGetItemCommand({
+        RequestItems: {
+          [this.tableName]: {
+            Keys: [
+              {
+                PK: { S: `CAMPAIGN#${campaignId}` },
+                SK: { S: 'METADATA' }
+              },
+              {
+                PK: { S: `CAMPAIGN#${campaignId}` },
+                SK: { S: 'METRICS' }
+              }
+            ]
+          }
+        }
+      }));
+      
+      const items = result.Responses?.[this.tableName] || [];
+      
+      if (items.length === 0) {
+        throw new Error(`Campaign ${campaignId} not found`);
+      }
+      
+      const metadataItem = items.find(item => item.SK?.S === 'METADATA');
+      const metricsItem = items.find(item => item.SK?.S === 'METRICS');
+      
+      if (!metadataItem) {
+        throw new Error(`Campaign ${campaignId} metadata not found`);
+      }
+      
+      const campaign = this.parseCampaignItem(metadataItem);
+      
+      // Parse metrics (or return zeros if not found)
+      let metrics: CampaignMetrics;
+      if (metricsItem) {
+        metrics = {
+          campaignId,
+          sent: parseInt(metricsItem.sent?.N || '0', 10),
+          delivered: parseInt(metricsItem.delivered?.N || '0', 10),
+          read: parseInt(metricsItem.read?.N || '0', 10),
+          clicked: parseInt(metricsItem.clicked?.N || '0', 10),
+          replied: parseInt(metricsItem.replied?.N || '0', 10),
+          converted: parseInt(metricsItem.converted?.N || '0', 10),
+          blocked: parseInt(metricsItem.blocked?.N || '0', 10),
+          revenue: metricsItem.revenue?.N ? parseInt(metricsItem.revenue.N, 10) : undefined,
+          batchUpdateCount: parseInt(metricsItem.batchUpdateCount?.N || '0', 10),
+          lastBatchUpdate: metricsItem.lastBatchUpdate?.S
+        };
+      } else {
+        // No metrics record yet - return zeros
+        metrics = {
+          campaignId,
+          sent: 0,
+          delivered: 0,
+          read: 0,
+          clicked: 0,
+          replied: 0,
+          converted: 0,
+          blocked: 0
+        };
+      }
+      
+      return { campaign, metrics };
+    } catch (error) {
+      console.error("[CampaignRepository] Error fetching campaign with metrics:", error);
+      throw new Error(`Failed to fetch campaign with metrics: ${campaignId}`);
+    }
+  }
+
+  /**
    * Create new campaign
+   * Creates BOTH metadata (METADATA) and metrics (METRICS) records
+   * 
+   * STEP 11: Adds GSI5 attributes for ActiveCampaigns index
+   * - GSI5PK: 'CAMPAIGN_STATUS' (constant for all campaigns)
+   * - GSI5SK: '{status}#{scheduledAt}' (enables status-based queries with time sorting)
    */
   async createCampaign(campaign: Campaign): Promise<Campaign> {
     try {
       const now = Date.now();
-      const item: any = {
-        PK: { S: `CAMPAIGN#${campaign.campaign_id}` },
+      const campaignId = campaign.campaign_id;
+      const scheduledAt = campaign.scheduled_at || now;
+      
+      // 1. Create METADATA record (no counters! - prevents hot partition)
+      const metadataItem: any = {
+        PK: { S: `CAMPAIGN#${campaignId}` },
         SK: { S: "METADATA" },
         
         // GSI1 attributes for efficient querying
         ENTITY_TYPE: { S: "CAMPAIGN" },
         CREATED_AT: { N: (campaign.created_at || now).toString() },
         
-        campaign_id: { S: campaign.campaign_id },
+        // Step 11: GSI5 attributes for CampaignStatus index
+        GSI5PK: { S: 'CAMPAIGN_STATUS' },
+        GSI5SK: { S: `${campaign.campaign_status}#${scheduledAt}` },
+        
+        campaign_id: { S: campaignId },
         campaign_name: { S: campaign.campaign_name },
         template_name: { S: campaign.template_name },
         campaign_status: { S: campaign.campaign_status },
         
         total_recipients: { N: campaign.total_recipients.toString() },
-        sent_count: { N: campaign.sent_count.toString() },
-        delivered_count: { N: campaign.delivered_count.toString() },
-        failed_count: { N: campaign.failed_count.toString() },
+        
+        // ⚠️ NO COUNTERS HERE! (sent_count, delivered_count, failed_count removed)
+        // Counters are in separate METRICS record
         
         created_at: { N: (campaign.created_at || now).toString() },
         updated_at: { N: now.toString() }
       };
       
       // Optional fields
-      if (campaign.channel) item.channel = { S: campaign.channel };
-      if (campaign.audience_type) item.audience_type = { S: campaign.audience_type };
-      if (campaign.created_by) item.created_by = { S: campaign.created_by };
-      if (campaign.template_params) item.template_params = { S: JSON.stringify(campaign.template_params) };
-      if (campaign.templates) item.templates = { L: campaign.templates.map(t => ({ S: t })) };
-      if (campaign.template_weights) item.template_weights = { L: campaign.template_weights.map(w => ({ N: w.toString() })) };
-      if (campaign.template_strategy) item.template_strategy = { S: campaign.template_strategy };
-      if (campaign.blocked_count !== undefined) item.blocked_count = { N: campaign.blocked_count.toString() };
-      if (campaign.daily_cap) item.daily_cap = { N: campaign.daily_cap.toString() };
-      if (campaign.scheduled_at) item.scheduled_at = { N: campaign.scheduled_at.toString() };
-      if (campaign.batch_size) item.batch_size = { N: campaign.batch_size.toString() };
-      if (campaign.rate_limit) item.rate_limit = { N: campaign.rate_limit.toString() };
+      if (campaign.channel) metadataItem.channel = { S: campaign.channel };
+      if (campaign.audience_type) metadataItem.audience_type = { S: campaign.audience_type };
+      if (campaign.created_by) metadataItem.created_by = { S: campaign.created_by };
+      if (campaign.template_params) metadataItem.template_params = { S: JSON.stringify(campaign.template_params) };
+      if (campaign.templates) metadataItem.templates = { L: campaign.templates.map(t => ({ S: t })) };
+      if (campaign.template_weights) metadataItem.template_weights = { L: campaign.template_weights.map(w => ({ N: w.toString() })) };
+      if (campaign.template_strategy) metadataItem.template_strategy = { S: campaign.template_strategy };
+      if (campaign.daily_cap) metadataItem.daily_cap = { N: campaign.daily_cap.toString() };
+      if (campaign.scheduled_at) metadataItem.scheduled_at = { N: campaign.scheduled_at.toString() };
+      if (campaign.batch_size) metadataItem.batch_size = { N: campaign.batch_size.toString() };
+      if (campaign.rate_limit) metadataItem.rate_limit = { N: campaign.rate_limit.toString() };
+      if (campaign.redirect_url) metadataItem.redirect_url = { S: campaign.redirect_url };
 
-      await this.client.send(
-        new PutItemCommand({
+      // 2. Create METRICS record (separate item! - prevents hot partition)
+      const metricsNow = new Date().toISOString();
+      const metricsItem: any = {
+        PK: { S: `CAMPAIGN#${campaignId}` },
+        SK: { S: 'METRICS' },
+        TYPE: { S: 'CAMPAIGN_METRICS' },
+        
+        // Initialize counters to zero
+        sent: { N: '0' },
+        delivered: { N: '0' },
+        read: { N: '0' },
+        clicked: { N: '0' },
+        replied: { N: '0' },
+        converted: { N: '0' },
+        blocked: { N: '0' },
+        
+        // Batch tracking
+        lastBatchUpdate: { S: metricsNow },
+        batchUpdateCount: { N: '0' },
+        
+        // Timestamps
+        createdAt: { S: metricsNow },
+        updatedAt: { S: metricsNow }
+      };
+      
+      // 3. Write BOTH records to DynamoDB
+      await Promise.all([
+        this.client.send(new PutItemCommand({
           TableName: this.tableName,
-          Item: item
-        })
-      );
+          Item: metadataItem
+        })),
+        this.client.send(new PutItemCommand({
+          TableName: this.tableName,
+          Item: metricsItem
+        }))
+      ]);
 
-      console.log("[CampaignRepository] Campaign created:", campaign.campaign_id);
+      console.log("[CampaignRepository] Campaign created with separate METADATA + METRICS:", campaignId);
       return { ...campaign, created_at: campaign.created_at || now, updated_at: now };
     } catch (error) {
       console.error("[CampaignRepository] Error creating campaign:", error);
@@ -301,14 +479,29 @@ export class CampaignRepository {
 
   /**
    * Update campaign status
+   * 
+   * STEP 11: Updates GSI5SK when status changes
    */
   async updateCampaignStatus(campaignId: string, status: CampaignStatus): Promise<void> {
     try {
       const now = Date.now();
-      const updateExpressions: string[] = ["campaign_status = :status", "updated_at = :timestamp"];
+      
+      // Fetch current campaign to get scheduled_at for GSI5SK
+      const campaign = await this.getCampaign(campaignId);
+      if (!campaign) {
+        throw new Error(`Campaign not found: ${campaignId}`);
+      }
+      const scheduledAt = campaign.scheduled_at || campaign.created_at || now;
+      
+      const updateExpressions: string[] = [
+        "campaign_status = :status",
+        "updated_at = :timestamp",
+        "GSI5SK = :gsi5sk" // Step 11: Update GSI5SK when status changes
+      ];
       const attributeValues: any = {
         ":status": { S: status },
-        ":timestamp": { N: now.toString() }
+        ":timestamp": { N: now.toString() },
+        ":gsi5sk": { S: `${status}#${scheduledAt}` }
       };
 
       // Add timestamps based on status
@@ -415,34 +608,123 @@ export class CampaignRepository {
   }
 
   /**
-   * Increment campaign metric (atomic operation)
+   * Increment campaign metric (BUFFERED - prevents hot partition)
+   * 
+   * ⚠️ IMPORTANT: This method BUFFERS updates in memory and flushes in batches!
+   * - Auto-flushes every 100 updates OR every 30 seconds
+   * - Call flushMetrics() manually before reading metrics for real-time accuracy
+   * 
+   * Old behavior (HOT PARTITION):
+   *   1000 messages = 1000 DynamoDB writes to same partition = throttling
+   * 
+   * New behavior (DISTRIBUTED):
+   *   1000 messages = 10 DynamoDB writes (100× reduction!) = no throttling
+   * 
+   * @deprecated Use `incrementBufferedMetric` instead (this is kept for backward compatibility)
    */
   async incrementMetric(
     campaignId: string,
     metric: "sent_count" | "delivered_count" | "failed_count" | "received_count" | "blocked_count",
     incrementBy: number = 1
   ): Promise<void> {
-    try {
-      await this.client.send(
-        new UpdateItemCommand({
-          TableName: this.tableName,
-          Key: {
-            PK: { S: `CAMPAIGN#${campaignId}` },
-            SK: { S: "METADATA" }
-          },
-          UpdateExpression: `ADD ${metric} :increment SET updated_at = :timestamp`,
-          ExpressionAttributeValues: {
-            ":increment": { N: incrementBy.toString() },
-            ":timestamp": { N: Date.now().toString() }
-          }
-        })
-      );
-
-      console.log(`[CampaignRepository] ${metric} incremented by ${incrementBy}:`, campaignId);
-    } catch (error) {
-      console.error("[CampaignRepository] Error incrementing metric:", error);
-      throw new Error(`Failed to increment ${metric} for campaign: ${campaignId}`);
+    // Map old metric names to new names
+    const metricMap: Record<string, 'sent' | 'delivered' | 'failed' | 'blocked'> = {
+      'sent_count': 'sent',
+      'delivered_count': 'delivered',
+      'failed_count': 'failed',
+      'received_count': 'delivered', // Map received to delivered
+      'blocked_count': 'blocked'
+    };
+    
+    const newMetric = metricMap[metric];
+    if (!newMetric) {
+      console.warn(`[CampaignRepository] Unknown metric: ${metric}`);
+      return;
     }
+    
+    // Use buffered update
+    this.incrementBufferedMetric(campaignId, newMetric, incrementBy);
+  }
+
+  /**
+   * Increment campaign metric (BUFFERED)
+   * Adds update to buffer - will be flushed automatically or on demand
+   */
+  incrementBufferedMetric(
+    campaignId: string,
+    type: 'sent' | 'delivered' | 'read' | 'failed' | 'blocked',
+    count: number = 1
+  ): void {
+    this.metricsBuffer.add({ campaignId, type, count });
+  }
+  
+  /**
+   * Batch update metrics (called by MetricsBuffer on flush)
+   * This is where the actual DynamoDB writes happen  - ONE write per campaign
+   * 
+   * Example: 250 messages across 3 campaigns:
+   *   - 250 individual increments → buffered in memory
+   *   - Flush triggered (1 batch) → 3 DynamoDB writes (one per campaign)
+   *   - Write reduction: 250 → 3 (83× improvement!)
+   */
+  private async batchUpdateMetrics(
+    updates: Map<string, Record<string, number>>
+  ): Promise<void> {
+    const promises = [];
+    
+    for (const [campaignId, metrics] of updates) {
+      // Build update expression for all metrics in this campaign
+      const updateExpressions: string[] = [];
+      const expressionValues: any = {};
+      
+      for (const [type, count] of Object.entries(metrics)) {
+        updateExpressions.push(`${type} = if_not_exists(${type}, :zero) + :${type}`);
+        expressionValues[`:${type}`] = { N: count.toString() };
+      }
+      
+      // Add :zero for if_not_exists
+      expressionValues[':zero'] = { N: '0' };
+      expressionValues[':now'] = { S: new Date().toISOString() };
+      expressionValues[':inc'] = { N: '1' };
+      
+      // Single atomic update for this campaign
+      const promise = this.client.send(new UpdateItemCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: { S: `CAMPAIGN#${campaignId}` },
+          SK: { S: 'METRICS' }
+        },
+        UpdateExpression: `SET ${updateExpressions.join(', ')}, lastBatchUpdate = :now, batchUpdateCount = if_not_exists(batchUpdateCount, :zero) + :inc, updatedAt = :now`,
+        ExpressionAttributeValues: expressionValues
+      }));
+      
+      promises.push(promise);
+    }
+    
+    await Promise.all(promises);
+    
+    console.log(`[CampaignRepository] Batch metrics update: ${updates.size} campaign(s) flushed`);
+  }
+  
+  /**
+   * Force flush buffered metrics to DynamoDB
+   * Call this before reading metrics for real-time accuracy
+   * 
+   * Example use cases:
+   * - Before ending a test/simulation
+   * - Before displaying campaign progress to user
+   * - Before checking if campaign is complete
+   * - On application shutdown
+   */
+  async flushMetrics(): Promise<void> {
+    await this.metricsBuffer.flush();
+  }
+  
+  /**
+   * Cleanup metrics buffer (call on shutdown)
+   */
+  async destroy(): Promise<void> {
+    await this.metricsBuffer.destroy();
   }
 
   /**
@@ -1049,15 +1331,22 @@ export class CampaignRepository {
 
   /**
    * Check if a webhook message status has already been processed
-   * Key: PK=MESSAGE_STATUS#{messageId}, SK=STATUS#{statusType}[#{errorCode}]
+   * Key: PK=MESSAGE_STATUS#{messageId}, SK=STATUS#{statusType}#{timestamp}#{errorCode}
+   * 
+   * CRITICAL: Timestamp AND errorCode must be included to handle:
+   * 1. Meta sending same status multiple times with different metadata
+   * 2. Multiple failed statuses with same timestamp but different error codes
+   * 
+   * ErrorCode of 0 = non-failed status (delivered, sent, read)
    */
   async isStatusAlreadyProcessed(
     messageId: string,
     statusType: string,
-    errorCode?: number
+    timestamp: string,
+    errorCode: number
   ): Promise<boolean> {
     try {
-      const sk = errorCode ? `STATUS#${statusType}#${errorCode}` : `STATUS#${statusType}`;
+      const sk = `STATUS#${statusType}#${timestamp}#${errorCode}`;
       const response = await this.client.send(
         new GetItemCommand({
           TableName: this.tableName,
@@ -1077,26 +1366,26 @@ export class CampaignRepository {
   /**
    * Mark a webhook message status as processed
    * TTL: 30 days
+   * ErrorCode is always included (0 for non-failed statuses)
    */
   async markStatusProcessed(
     messageId: string,
     statusType: string,
-    errorCode?: number
+    timestamp: string,
+    errorCode: number
   ): Promise<void> {
     try {
-      const timestamp = Math.floor(Date.now() / 1000);
-      const ttl = timestamp + 30 * 24 * 60 * 60;
-      const sk = errorCode ? `STATUS#${statusType}#${errorCode}` : `STATUS#${statusType}`;
+      const now = Math.floor(Date.now() / 1000);
+      const ttl = now + 30 * 24 * 60 * 60;
+      const sk = `STATUS#${statusType}#${timestamp}#${errorCode}`;
 
       const item: Record<string, { S: string } | { N: string }> = {
         PK: { S: `MESSAGE_STATUS#${messageId}` },
         SK: { S: sk },
-        processedAt: { N: timestamp.toString() },
-        ttl: { N: ttl.toString() }
+        processedAt: { N: now.toString() },
+        ttl: { N: ttl.toString() },
+        errorCode: { N: errorCode.toString() }
       };
-      if (errorCode !== undefined) {
-        item.errorCode = { N: errorCode.toString() };
-      }
 
       await this.client.send(
         new PutItemCommand({
@@ -1115,6 +1404,10 @@ export class CampaignRepository {
    * Store sharded message-to-campaign mapping for webhook lookups
    * Uses 10-shard key to avoid hot partition: PK=MSG#{shard}, SK={messageId}
    * TTL: 30 days
+   * 
+   * STEP 9: Added GSI3 attributes for MessagesByCampaign index
+   * - GSI3PK: {campaignId} (enables campaign-based queries)
+   * - GSI3SK: {timestamp} (sorts messages chronologically)
    */
   async logMessageForWebhookTracking(
     campaignId: string,
@@ -1132,13 +1425,15 @@ export class CampaignRepository {
             SK: { S: messageId }
           },
           UpdateExpression:
-            'SET campaignId = :campaignId, recipientPhone = :phone, createdAt = :timestamp, #ttl = :ttl',
+            'SET campaignId = :campaignId, recipientPhone = :phone, createdAt = :timestamp, #ttl = :ttl, GSI3PK = :gsi3pk, GSI3SK = :gsi3sk',
           ExpressionAttributeNames: { '#ttl': 'ttl' },
           ExpressionAttributeValues: {
             ':campaignId': { S: campaignId },
             ':phone': { S: recipientPhone },
             ':timestamp': { N: now.toString() },
-            ':ttl': { N: (now + 30 * 24 * 60 * 60).toString() }
+            ':ttl': { N: (now + 30 * 24 * 60 * 60).toString() },
+            ':gsi3pk': { S: campaignId },
+            ':gsi3sk': { S: now.toString() }
           }
         })
       );
@@ -1167,6 +1462,135 @@ export class CampaignRepository {
     } catch (error) {
       console.error('[CampaignRepository] Error looking up campaign by message ID:', error);
       return null;
+    }
+  }
+
+  /**
+   * STEP 9: List messages by campaign using GSI3-MessagesByCampaign
+   * 
+   * Query all messages for a specific campaign, sorted chronologically.
+   * Uses GSI3PK={campaignId} and GSI3SK={timestamp} for efficient queries.
+   * 
+   * Performance: Query (uses index) vs Scan (full table scan)
+   * - Query: O(log n) + results
+   * - Scan: O(n) where n = all items
+   * 
+   * @param campaignId - Campaign to query messages for
+   * @param limit - Max messages to return (default: 100)
+   */
+  async listMessagesByCampaign(params: {
+    campaignId: string;
+    limit?: number;
+    lastEvaluatedKey?: Record<string, any>;
+  }): Promise<{
+    messages: Array<{
+      messageId: string;
+      recipientPhone: string;
+      createdAt: number;
+      campaignId: string;
+    }>;
+    lastEvaluatedKey?: Record<string, any>;
+  }> {
+    try {
+      const queryParams: any = {
+        TableName: this.tableName,
+        IndexName: 'GSI3-MessagesByCampaign',
+        KeyConditionExpression: 'GSI3PK = :campaignId',
+        ExpressionAttributeValues: {
+          ':campaignId': { S: params.campaignId }
+        },
+        ScanIndexForward: true, // ASC order (oldest first - chronological)
+        Limit: params.limit || 100
+      };
+
+      // Pagination support
+      if (params.lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = params.lastEvaluatedKey;
+      }
+
+      const response = await this.client.send(new QueryCommand(queryParams));
+
+      const messages = (response.Items || []).map(item => ({
+        messageId: item.SK?.S || '',
+        recipientPhone: item.recipientPhone?.S || '',
+        createdAt: item.createdAt?.N ? parseInt(item.createdAt.N, 10) : 0,
+        campaignId: item.campaignId?.S || ''
+      }));
+
+      return {
+        messages,
+        lastEvaluatedKey: response.LastEvaluatedKey
+      };
+    } catch (error) {
+      console.error('[CampaignRepository] Error listing messages by campaign:', error);
+      throw new Error('Failed to list messages by campaign');
+    }
+  }
+
+  /**
+   * STEP 11: List campaigns by status using GSI5-ActiveCampaigns
+   * 
+   * Query campaigns by status, sorted by scheduled time.
+   * Uses GSI5PK='CAMPAIGN_STATUS' and GSI5SK='{status}#{scheduledAt}' for efficient queries.
+   * 
+   * Performance: Query (uses index) vs Scan (full table scan)
+   * - Query: O(log n) + results
+   * - Scan: O(n) where n = all items
+   * 
+   * @param status - Campaign status to filter (DRAFT, SCHEDULED, RUNNING, etc.)
+   * @param limit - Max campaigns to return (default: 50)
+   */
+  async listCampaignsByStatus(params: {
+    status: CampaignStatus;
+    limit?: number;
+    lastEvaluatedKey?: Record<string, any>;
+  }): Promise<{
+    campaigns: Array<{
+      campaignId: string;
+      campaignName: string;
+      status: string;
+      scheduledAt: number;
+      createdAt: number;
+      totalRecipients: number;
+    }>;
+    lastEvaluatedKey?: Record<string, any>;
+  }> {
+    try {
+      const queryParams: any = {
+        TableName: this.tableName,
+        IndexName: 'GSI5-ActiveCampaigns',
+        KeyConditionExpression: 'GSI5PK = :gsi5pk AND begins_with(GSI5SK, :statusPrefix)',
+        ExpressionAttributeValues: {
+          ':gsi5pk': { S: 'CAMPAIGN_STATUS' },
+          ':statusPrefix': { S: `${params.status}#` }
+        },
+        ScanIndexForward: true, // ASC order (earliest scheduled first)
+        Limit: params.limit || 50
+      };
+
+      // Pagination support
+      if (params.lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = params.lastEvaluatedKey;
+      }
+
+      const response = await this.client.send(new QueryCommand(queryParams));
+
+      const campaigns = (response.Items || []).map(item => ({
+        campaignId: item.campaign_id?.S || '',
+        campaignName: item.campaign_name?.S || '',
+        status: item.campaign_status?.S || '',
+        scheduledAt: item.scheduled_at?.N ? parseInt(item.scheduled_at.N, 10) : 0,
+        createdAt: item.created_at?.N ? parseInt(item.created_at.N, 10) : 0,
+        totalRecipients: item.total_recipients?.N ? parseInt(item.total_recipients.N, 10) : 0
+      }));
+
+      return {
+        campaigns,
+        lastEvaluatedKey: response.LastEvaluatedKey
+      };
+    } catch (error) {
+      console.error('[CampaignRepository] Error listing campaigns by status:', error);
+      throw new Error('Failed to list campaigns by status');
     }
   }
 
@@ -1556,11 +1980,9 @@ export class CampaignRepository {
       template_params: item.template_params?.S ? JSON.parse(item.template_params.S) : undefined,
 
       total_recipients: parseInt(item.total_recipients?.N || "0", 10),
-      sent_count: parseInt(item.sent_count?.N || "0", 10),
-      delivered_count: parseInt(item.delivered_count?.N || "0", 10),
-      failed_count: parseInt(item.failed_count?.N || "0", 10),
-      received_count: item.received_count?.N ? parseInt(item.received_count.N, 10) : undefined,
-      blocked_count: item.blocked_count?.N ? parseInt(item.blocked_count.N, 10) : undefined,
+      
+      // ⚠️ REMOVED: sent_count, delivered_count, failed_count, received_count, blocked_count
+      // These are now in separate METRICS record - use getCampaignWithMetrics() or getCampaignMetrics()
 
       daily_cap: item.daily_cap?.N ? parseInt(item.daily_cap.N, 10) : undefined,
 

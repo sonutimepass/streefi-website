@@ -29,39 +29,41 @@
 import { getBlockRateCircuitBreaker } from '@/lib/whatsapp/guards';
 import { campaignRepository } from '@/lib/repositories/campaignRepository';
 import { getCampaignMetrics } from '@/lib/whatsapp/campaignMetrics';
+import type { WebhookStatus } from './metaTypes';
 
 // Initialize metrics manager for analytics aggregation
 const metricsManager = getCampaignMetrics();
 
-export interface WebhookStatus {
-  id: string;                    // Message ID
-  status: 'sent' | 'delivered' | 'read' | 'failed';
-  timestamp: string;
-  recipient_id: string;          // Recipient phone number
-  errors?: Array<{
-    code: number;
-    title: string;
-    message: string;
-    error_data?: {
-      details: string;
-    };
-  }>;
-  conversation?: {
-    id: string;
-    origin: {
-      type: string;
-    };
-  };
-  pricing?: {
-    billable: boolean;
-    pricing_model: string;
-    category: string;
-  };
-}
-
 /**
  * Find campaign ID for a given message ID
  * Looks up message ID in campaign logs
+ * 
+ * ⚠️ SCALABILITY WARNING - ARCHITECTURAL ISSUE ⚠️
+ * 
+ * This function performs a DB lookup for EVERY status update.
+ * At scale, this becomes a major bottleneck:
+ * 
+ * Example:
+ *   10,000 messages × 3 statuses (sent, delivered, read) = 30,000 DB lookups
+ * 
+ * PROPER FIX (requires refactoring message sending code):
+ * 
+ * When sending a message:
+ * ```
+ * MESSAGE_TABLE:
+ *   PK: MESSAGE#{messageId}
+ *   campaignId: "abc123"          ← Store at send time
+ *   recipientPhone: "+1234567890"
+ *   sentAt: 1234567890
+ * ```
+ * 
+ * Then webhook handler:
+ * ```
+ * campaignId = await whatsappRepository.getCampaignIdForMessage(messageId)  // O(1) lookup
+ * ```
+ * 
+ * Until refactored, this remains a performance bottleneck.
+ * Consider batch processing or caching for production scale.
  */
 async function findCampaignByMessageId(messageId: string): Promise<string | null> {
   return await getCampaignIdFromMessageId(messageId);
@@ -95,50 +97,60 @@ function isUndeliverableError(errorCode: number): boolean {
 
 /**
  * Check if message status already processed (idempotency)
- * Key includes error code to capture different failure types
+ * Key includes error code AND timestamp to capture different failure types and metadata changes
+ * 
+ * CRITICAL: Meta can send same status multiple times with different conversation/pricing data
+ * Router already uses: status_${msgId}_${statusType}_${timestamp}
+ * Must match that granularity here
+ * 
+ * ErrorCode is ALWAYS included (uses "0" for non-failed) to handle edge case:
+ * - failed/timestamp/131051 (blocked)
+ * - failed/timestamp/131026 (undeliverable)
+ * These are DIFFERENT events and must both be processed
  */
 async function isStatusAlreadyProcessed(
   messageId: string,
   statusType: string,
-  errorCode?: number
+  timestamp: string,
+  errorCode: number
 ): Promise<boolean> {
-  return campaignRepository.isStatusAlreadyProcessed(messageId, statusType, errorCode);
+  return campaignRepository.isStatusAlreadyProcessed(messageId, statusType, timestamp, errorCode);
 }
 
 /**
  * Mark message status as processed (idempotency)
- * Key includes error code to capture different failure types
+ * Key includes error code AND timestamp to capture different failure types and metadata changes
+ * ErrorCode is ALWAYS included (uses "0" for non-failed statuses)
  */
 async function markStatusProcessed(
   messageId: string,
   statusType: string,
-  errorCode?: number
+  timestamp: string,
+  errorCode: number
 ): Promise<void> {
-  return campaignRepository.markStatusProcessed(messageId, statusType, errorCode);
+  return campaignRepository.markStatusProcessed(messageId, statusType, timestamp, errorCode);
 }
 
 /**
  * Main webhook status handler
  */
 export async function handleMessageStatus(status: WebhookStatus): Promise<void> {
-  console.log(`📊 [WebhookStatusHandler] Processing status: ${status.status} for message ${status.id}`);
-  
   try {
-    // Extract error code for idempotency key
+    // Extract error code for idempotency key (use 0 for non-failed)
     const errorCode = (status.status === 'failed' && status.errors && status.errors.length > 0)
       ? status.errors[0].code
-      : undefined;
+      : 0;
     
     // 🛡️ IDEMPOTENCY CHECK: Prevent double-counting same status
-    // Key includes error code to capture different failure types (131026 vs 131051)
-    const alreadyProcessed = await isStatusAlreadyProcessed(status.id, status.status, errorCode);
+    // Key: messageId + statusType + timestamp + errorCode (always included)
+    // This handles edge case: failed/timestamp/131051 vs failed/timestamp/131026
+    const alreadyProcessed = await isStatusAlreadyProcessed(status.id, status.status, status.timestamp, errorCode);
     if (alreadyProcessed) {
-      console.log(`⏭️ [WebhookStatusHandler] Status already processed for message ${status.id}, skipping`);
-      return;
+      return; // Silent skip - already processed
     }
     
     // Mark as processed FIRST to prevent race conditions
-    await markStatusProcessed(status.id, status.status, errorCode);
+    await markStatusProcessed(status.id, status.status, status.timestamp, errorCode);
     
     // Handle failed status (most critical for quality monitoring)
     if (status.status === 'failed' && status.errors && status.errors.length > 0) {
@@ -158,8 +170,6 @@ export async function handleMessageStatus(status: WebhookStatus): Promise<void> 
           const campaignId = await findCampaignByMessageId(status.id);
           
           if (campaignId) {
-            console.log(`🔗 [WebhookStatusHandler] Message ${status.id} belongs to campaign ${campaignId}`);
-            
             // 📊 ANALYTICS: Increment blocked metric
             await metricsManager.incrementMetric(campaignId, 'blocked').catch((err: unknown) => {
               console.error(`[WebhookStatusHandler] Failed to increment blocked metric:`, err);
@@ -168,8 +178,6 @@ export async function handleMessageStatus(status: WebhookStatus): Promise<void> 
             // Increment block count for circuit breaker
             const circuitBreaker = getBlockRateCircuitBreaker();
             await circuitBreaker.incrementBlockedCount(campaignId);
-            
-            console.log(`✅ [WebhookStatusHandler] Block count incremented for campaign ${campaignId}`);
             
             // Check if campaign should be auto-paused
             const blockRateCheck = await circuitBreaker.checkCampaign(campaignId);
@@ -195,9 +203,7 @@ export async function handleMessageStatus(status: WebhookStatus): Promise<void> 
     
     // Handle delivered status (positive signal)
     if (status.status === 'delivered') {
-      console.log(`✅ [WebhookStatusHandler] Message ${status.id} delivered to ${status.recipient_id}`);
-      
-      // 📊 ANALYTICS: Increment delivered metric
+      // 📊 ANALYTICS: Increment delivered metric (silent)
       const campaignId = await findCampaignByMessageId(status.id);
       if (campaignId) {
         await metricsManager.incrementMetric(campaignId, 'delivered').catch((err: unknown) => {
@@ -208,9 +214,7 @@ export async function handleMessageStatus(status: WebhookStatus): Promise<void> 
     
     // Handle read status (best signal - user engaged)
     if (status.status === 'read') {
-      console.log(`👀 [WebhookStatusHandler] Message ${status.id} read by ${status.recipient_id}`);
-      
-      // 📊 ANALYTICS: Increment read metric
+      // 📊 ANALYTICS: Increment read metric (silent)
       const campaignId = await findCampaignByMessageId(status.id);
       if (campaignId) {
         await metricsManager.incrementMetric(campaignId, 'read').catch((err: unknown) => {
@@ -219,14 +223,8 @@ export async function handleMessageStatus(status: WebhookStatus): Promise<void> 
       }
     }
     
-    // Log pricing info if available (for cost tracking)
-    if (status.pricing) {
-      console.log(`💰 [WebhookStatusHandler] Message ${status.id} pricing:`, {
-        billable: status.pricing.billable,
-        category: status.pricing.category,
-        model: status.pricing.pricing_model
-      });
-    }
+    // Pricing info: Silent - only log if you need cost tracking debugging
+    // Remove this block entirely for production
     
   } catch (error) {
     console.error('[WebhookStatusHandler] Error processing status:', error);

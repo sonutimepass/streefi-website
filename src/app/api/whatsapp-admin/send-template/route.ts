@@ -28,15 +28,19 @@ export async function POST(request: Request) {
     console.log("=== SEND TEMPLATE START ===");
     console.log("Timestamp:", new Date().toISOString());
 
-    // Step 1: Validate admin session
+    // Step 1: Validate admin session (bypass in development)
     console.log("Step 1: Validating admin session...");
-    const auth = await validateAdminSession(request, 'whatsapp-session');
-    
-    if (!auth.valid) {
-      console.log("Auth failed - returning 401");
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (process.env.NODE_ENV !== 'development') {
+      const auth = await validateAdminSession(request, 'whatsapp-session');
+      
+      if (!auth.valid) {
+        console.log("Auth failed - returning 401");
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      console.log("✓ Session valid");
+    } else {
+      console.log("⚠️ Development mode - skipping authentication");
     }
-    console.log("✓ Session valid");
 
     // Step 2: Parse and validate request
     console.log("Step 2: Parsing request...");

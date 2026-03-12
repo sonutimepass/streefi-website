@@ -198,6 +198,11 @@ export class RecipientRepository {
         case "FAILED":
           updateExpressions.push("failed_at = :timestamp");
           attributeValues[":timestamp"] = { N: now.toString() };
+          // Step 10: Add GSI4 attributes for global failed recipient queries
+          updateExpressions.push("GSI4PK = :gsi4pk");
+          updateExpressions.push("GSI4SK = :gsi4sk");
+          attributeValues[":gsi4pk"] = { S: "RECIPIENT_STATUS" };
+          attributeValues[":gsi4sk"] = { S: `FAILED#${campaignId}#${now}` };
           break;
       }
 
@@ -418,6 +423,77 @@ export class RecipientRepository {
    */
   async getFailedRecipients(campaignId: string): Promise<Recipient[]> {
     return this.getRecipientsByStatus(campaignId, "FAILED");
+  }
+
+  /**
+   * STEP 10: List failed recipients globally using GSI4-FailedRecipients
+   * 
+   * Query all failed recipients across ALL campaigns, sorted by campaign and timestamp.
+   * Uses GSI4PK='RECIPIENT_STATUS' and GSI4SK='FAILED#{campaignId}#{timestamp}' for efficient queries.
+   * 
+   * Performance: Query (uses index) vs Scan (full table scan)
+   * - Query: O(log n) + results
+   * - Scan: O(n) where n = all items
+   * 
+   * @param campaignId - Optional: Filter to specific campaign
+   * @param limit - Max recipients to return (default: 100)
+   */
+  async listFailedRecipientsGlobally(params?: {
+    campaignId?: string;
+    limit?: number;
+    lastEvaluatedKey?: Record<string, any>;
+  }): Promise<{
+    recipients: Array<{
+      campaignId: string;
+      phone: string;
+      failedAt: number;
+      errorMessage?: string;
+      errorCode?: string;
+      messageId?: string;
+      attempts: number;
+    }>;
+    lastEvaluatedKey?: Record<string, any>;
+  }> {
+    try {
+      const queryParams: any = {
+        TableName: this.tableName,
+        IndexName: 'GSI4-FailedRecipients',
+        KeyConditionExpression: params?.campaignId
+          ? 'GSI4PK = :gsi4pk AND begins_with(GSI4SK, :campaignPrefix)'
+          : 'GSI4PK = :gsi4pk',
+        ExpressionAttributeValues: {
+          ':gsi4pk': { S: 'RECIPIENT_STATUS' },
+          ...(params?.campaignId && { ':campaignPrefix': { S: `FAILED#${params.campaignId}#` } })
+        },
+        ScanIndexForward: false, // DESC order (most recent first)
+        Limit: params?.limit || 100
+      };
+
+      // Pagination support
+      if (params?.lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = params.lastEvaluatedKey;
+      }
+
+      const response = await this.client.send(new QueryCommand(queryParams));
+
+      const recipients = (response.Items || []).map(item => ({
+        campaignId: item.campaign_id?.S || '',
+        phone: item.phone?.S || '',
+        failedAt: item.failed_at?.N ? parseInt(item.failed_at.N, 10) : 0,
+        errorMessage: item.error_message?.S,
+        errorCode: item.error_code?.S,
+        messageId: item.message_id?.S,
+        attempts: item.attempts?.N ? parseInt(item.attempts.N, 10) : 0
+      }));
+
+      return {
+        recipients,
+        lastEvaluatedKey: response.LastEvaluatedKey
+      };
+    } catch (error) {
+      console.error('[RecipientRepository] Error listing failed recipients globally:', error);
+      throw new Error('Failed to list failed recipients');
+    }
   }
 
   /**

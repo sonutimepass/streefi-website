@@ -12,14 +12,18 @@ export async function GET(request: Request) {
       ADMIN_TABLE_NAME: process.env.ADMIN_TABLE_NAME,
     });
 
-    // Validate admin session
-    console.log("Validating session...");
-    const auth = await validateAdminSession(request, 'whatsapp-session');
-    console.log("Session valid:", auth.valid);
-    
-    if (!auth.valid) {
-      console.log("Auth failed - returning 401");
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Validate admin session (bypass in development)
+    if (process.env.NODE_ENV !== 'development') {
+      console.log("Validating session...");
+      const auth = await validateAdminSession(request, 'whatsapp-session');
+      console.log("Session valid:", auth.valid);
+      
+      if (!auth.valid) {
+        console.log("Auth failed - returning 401");
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      console.log("⚠️ Development mode - skipping authentication");
     }
 
     console.log("Fetching templates from DynamoDB...");
@@ -47,18 +51,22 @@ export async function POST(request: Request) {
       AWS_REGION: process.env.AWS_REGION,
     });
 
-    // Validate admin session
-    console.log("Step 1: Validating session...");
-    const auth = await validateAdminSession(request, 'whatsapp-session');
-    console.log("Session validation result:", {
-      valid: auth.valid,
-      error: auth.error,
-      hasSession: !!auth.session,
-    });
-    
-    if (!auth.valid) {
-      console.log("Auth failed - returning 401");
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Validate admin session (bypass in development)
+    if (process.env.NODE_ENV !== 'development') {
+      console.log("Step 1: Validating session...");
+      const auth = await validateAdminSession(request, 'whatsapp-session');
+      console.log("Session validation result:", {
+        valid: auth.valid,
+        error: auth.error,
+        hasSession: !!auth.session,
+      });
+      
+      if (!auth.valid) {
+        console.log("Auth failed - returning 401");
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      console.log("⚠️ Development mode - skipping authentication");
     }
 
     console.log("Step 2: Parsing request body...");

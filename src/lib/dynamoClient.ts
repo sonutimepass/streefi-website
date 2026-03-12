@@ -1,11 +1,11 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
 // Use default region for build time, will be overridden at runtime
-const region = process.env.AWS_REGION || "us-east-1";
+const region = process.env.AWS_REGION || "ap-south-1";
 
 // Validate region is configured at runtime (not during build)
 if (typeof window === "undefined" && process.env.NODE_ENV !== "production" && !process.env.AWS_REGION) {
-  console.warn("⚠️ AWS_REGION not configured. Using default: us-east-1");
+  console.warn("⚠️ AWS_REGION not configured. Using default: ap-south-1 (Mumbai)");
 }
 
 export const dynamoClient = new DynamoDBClient({

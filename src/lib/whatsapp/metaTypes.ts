@@ -62,7 +62,16 @@ export interface WebhookStatus {
     billable: boolean;
     pricing_model: string;
     category: string;
+    type?: string; // e.g., 'free_customer_service', 'regular', etc.
   };
+  errors?: Array<{
+    code: number;
+    title: string;
+    message?: string;
+    error_data?: {
+      details: string;
+    };
+  }>;
 }
 
 export interface WebhookContact {
