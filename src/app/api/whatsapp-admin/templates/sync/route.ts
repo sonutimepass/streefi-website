@@ -180,6 +180,15 @@ export async function POST(req: NextRequest) {
           metaStatus = 'NOT_SUBMITTED';
         }
 
+        // Safely map Meta category — Meta can return non-standard values like
+        // ALERT_UPDATE, TRANSACTIONAL, OTP which are not in our internal enum
+        const categoryMap: Record<string, 'MARKETING' | 'UTILITY' | 'AUTHENTICATION'> = {
+          MARKETING: 'MARKETING',
+          UTILITY: 'UTILITY',
+          AUTHENTICATION: 'AUTHENTICATION',
+        };
+        const category = categoryMap[metaTemplate.category] ?? 'UTILITY';
+
         // Check if template already exists (by name and language)
         // For now, we'll use Meta template ID as our templateId
         const templateId = metaTemplate.id || randomUUID();
@@ -188,7 +197,7 @@ export async function POST(req: NextRequest) {
         const template = {
           templateId,
           name: metaTemplate.name,
-          category: metaTemplate.category as 'MARKETING' | 'UTILITY' | 'AUTHENTICATION',
+          category,
           language: metaTemplate.language,
           variables,
           status: 'active' as const, // Mark synced templates as active
