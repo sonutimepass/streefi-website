@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccountWarmupManager } from '@/lib/whatsapp/accountWarmupManager';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 
 /**
  * GET /api/whatsapp-admin/warmup-status

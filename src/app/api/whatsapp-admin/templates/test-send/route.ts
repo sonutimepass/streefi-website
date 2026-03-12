@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { getMessageService } from '@/lib/whatsapp/meta/messageService';
 import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
 

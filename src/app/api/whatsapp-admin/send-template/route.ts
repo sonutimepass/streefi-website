@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { validateAdminSession } from '@/lib/adminAuth';
+import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { whatsappRepository } from '@/lib/repositories';
 import { MessageService, TemplateMessage, TemplateParameter } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
