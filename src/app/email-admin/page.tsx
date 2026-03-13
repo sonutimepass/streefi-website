@@ -1,11 +1,31 @@
-import dynamic from 'next/dynamic';
+'use client';
 
-// Dynamically import with no SSR - this prevents prerendering
-const EmailAdminClient = dynamic(
-  () => import('./EmailAdminClient'),
-  { ssr: false }
-);
+import { 
+  AuthSection, 
+  EmailFormSection, 
+  LoadingSection,
+  EmailAdminProvider,
+  useEmailAdminContext
+} from '@/modules/email-admin';
+
+function EmailAdminContent() {
+  const { isAuthenticated, isLoading } = useEmailAdminContext();
+
+  if (isLoading) {
+    return <LoadingSection />;
+  }
+
+  if (!isAuthenticated) {
+    return <AuthSection />;
+  }
+
+  return <EmailFormSection />;
+}
 
 export default function EmailAdminPage() {
-  return <EmailAdminClient />;
+  return (
+    <EmailAdminProvider>
+      <EmailAdminContent />
+    </EmailAdminProvider>
+  );
 }
