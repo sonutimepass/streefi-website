@@ -26,7 +26,7 @@ import {
   UpdateItemCommand 
 } from "@aws-sdk/client-dynamodb";
 
-const client = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" });
+const client = new DynamoDBClient({ region: "ap-south-1" });
 const TABLE_NAME = process.env.CAMPAIGNS_TABLE_NAME || "streefi_campaigns";
 
 interface BackfillStats {
@@ -49,7 +49,7 @@ async function backfillCampaignMetadata(): Promise<BackfillStats> {
 
   console.log("🚀 Starting GSI1 backfill for campaign metadata...");
   console.log(`   Table: ${TABLE_NAME}`);
-  console.log(`   Region: ${process.env.AWS_REGION || "us-east-1"}\n`);
+  console.log(`   Region: ap-south-1\n`);
 
   do {
     try {

@@ -18,7 +18,6 @@ export function validateCampaignSystemStartup() {
     hasPhoneId: !!process.env.WHATSAPP_PHONE_ID,
     hasRealPhoneId: process.env.WHATSAPP_PHONE_ID !== 'your_phone_number_id',
     dailyLimit: parseInt(process.env.WHATSAPP_DAILY_LIMIT || '200'),
-    hasAwsRegion: !!process.env.AWS_REGION,
     campaignsTable: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
     recipientsTable: process.env.RECIPIENTS_TABLE_NAME || 'streefi_campaign_recipients',
     environmentDryRunSetting: process.env.META_DRY_RUN, // Debug: log actual value
@@ -75,7 +74,7 @@ export function validateCampaignSystemStartup() {
 
   // Check 4: Database Configuration
   console.log('🗄️  Database Configuration:');
-  console.log(`   └─ AWS Region: ${checks.hasAwsRegion ? process.env.AWS_REGION : '❌ NOT SET (using default: us-east-1)'}`);
+  console.log(`   └─ AWS Region: ap-south-1 (Mumbai)`);
   console.log(`   └─ Campaigns Table: ${checks.campaignsTable}`);
   console.log(`   └─ Recipients Table: ${checks.recipientsTable}`);
   console.log('');

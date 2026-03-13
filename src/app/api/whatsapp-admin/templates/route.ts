@@ -44,7 +44,6 @@ export async function POST(request: Request) {
     console.log("Environment:", {
       DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME,
       ADMIN_TABLE_NAME: process.env.ADMIN_TABLE_NAME,
-      AWS_REGION: process.env.AWS_REGION,
     });
 
     // Validate admin session (with bypass for local dev)

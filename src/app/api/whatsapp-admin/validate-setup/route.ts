@@ -60,8 +60,7 @@ export async function GET(request: Request) {
       META_ACCESS_TOKEN: !!process.env.META_ACCESS_TOKEN,
       META_PHONE_NUMBER_ID: !!process.env.META_PHONE_NUMBER_ID,
       DYNAMODB_TABLE_NAME: !!process.env.DYNAMODB_TABLE_NAME,
-      AWS_REGION: !!process.env.AWS_REGION,
-      // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are not needed in production (uses IAM role)
+      // AWS credentials managed by Amplify IAM policy (not needed as env vars)
     };
 
     const missingVars = Object.entries(envVars)

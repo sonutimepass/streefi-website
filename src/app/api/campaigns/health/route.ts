@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     const checks = {
       dryRunMode: process.env.META_DRY_RUN === 'true',
-      awsRegion: process.env.AWS_REGION || 'not set',
+      awsRegion: 'ap-south-1',
       tables: {
         campaigns: process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns',
         recipients: process.env.RECIPIENTS_TABLE_NAME || 'streefi_recipients',

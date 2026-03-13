@@ -77,25 +77,7 @@ try {
         Write-Host "❌ META_WABA_ID:          NOT SET" -ForegroundColor Red
     }
     
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host "   AWS CREDENTIALS" -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    
-    if ($response.aws.AWS_ACCESS_KEY_ID -eq "SET") {
-        Write-Host "✅ AWS_ACCESS_KEY_ID:     SET" -ForegroundColor Green
-    } else {
-        Write-Host "❌ AWS_ACCESS_KEY_ID:     NOT SET" -ForegroundColor Red
-    }
-    
-    if ($response.aws.AWS_SECRET_ACCESS_KEY -eq "SET") {
-        Write-Host "✅ AWS_SECRET_ACCESS_KEY: SET" -ForegroundColor Green
-    } else {
-        Write-Host "❌ AWS_SECRET_ACCESS_KEY: NOT SET" -ForegroundColor Red
-    }
-    
-    Write-Host "   AWS_REGION:            $($response.aws.AWS_REGION)" -ForegroundColor White
-    Write-Host "   DYNAMODB_TABLE_NAME:   $($response.aws.DYNAMODB_TABLE_NAME)" -ForegroundColor White
+
     
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan

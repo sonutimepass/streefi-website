@@ -18,8 +18,7 @@
  *   node scripts/create-admin.js team@streefi.in TeamPass456! admin
  *
  * Prerequisites:
- *   - Set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY in your environment
- *     OR have AWS credentials configured via ~/.aws/credentials
+ *   - AWS credentials configured via IAM role (production) or ~/.aws/credentials (local dev)
  *   - ADMIN_TABLE_NAME env var (optional, defaults to "streefi_admins")
  *   - DYNAMODB_ENDPOINT (optional, for local DynamoDB testing)
  *
@@ -80,7 +79,7 @@ if (password.length < 8) {
 
 // ── DynamoDB client ────────────────────────────────────────────────────────
 const TABLE_NAME = process.env.ADMIN_TABLE_NAME || 'streefi_admins';
-const region = process.env.AWS_REGION || 'us-east-1';
+const region = 'ap-south-1';
 
 const clientConfig = { region };
 if (process.env.DYNAMODB_ENDPOINT) {
@@ -136,7 +135,7 @@ run().catch(err => {
   } else if (err.name === 'ResourceNotFoundException') {
     console.error(`   Table "${TABLE_NAME}" not found. Check ADMIN_TABLE_NAME env var.\n`);
   } else if (err.name === 'UnrecognizedClientException' || err.message?.includes('credentials')) {
-    console.error('   AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.\n');
+    console.error('   AWS credentials managed by Amplify IAM policy (no manual configuration needed).\n');
   }
   process.exit(1);
 });

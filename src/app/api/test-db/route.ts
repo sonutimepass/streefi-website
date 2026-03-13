@@ -11,9 +11,9 @@ import { validateAdminSession } from '@/lib/adminAuth';
 // Force Node.js runtime (required for DynamoDB SDK)
 export const runtime = 'nodejs';
 
-// Explicitly set region - AWS_REGION is automatically available in AWS Amplify
+// Explicitly set region - AWS credentials managed by Amplify IAM policy
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION,
+  region: 'ap-south-1',
 });
 
 const TABLE_NAME = "streefi_admins"; // Case-sensitive - must match exactly
@@ -54,10 +54,10 @@ export async function GET(request: Request) {
       const isProduction = executionEnv === "AWS_Lambda";
       
       const config = {
-        region: process.env.AWS_REGION || client.config.region || "not-set",
+        region: 'ap-south-1',
         tableName: TABLE_NAME,
         credentialSource: executionEnv,
-        authMethod: isProduction ? "IAM Role (Secure ✅)" : "Local testing or IAM role",
+        authMethod: isProduction ? "IAM Role (Secure ✅)" : "IAM role",
         note: "AWS explicit credentials (access key/secret) are NOT needed. Production uses Amplify IAM role automatically."
       };
       results.tests.push({ 

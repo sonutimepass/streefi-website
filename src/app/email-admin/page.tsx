@@ -10,13 +10,12 @@ import {
   useEmailAdminContext
 } from '@/modules/email-admin';
 
+// Create a separate inner component that uses the context
 function EmailAdminContent() {
   const { isAuthenticated, isLoading } = useEmailAdminContext();
 
   if (isLoading) return <LoadingSection />;
-
   if (!isAuthenticated) return <AuthSection />;
-
   return <DashboardLayout />;
 }
 
@@ -27,10 +26,12 @@ export default function EmailAdminPage() {
     setIsClient(true);
   }, []);
 
+  // During SSR, render a simple loading state without any context
   if (!isClient) {
     return <LoadingSection />;
   }
 
+  // On client-side, wrap everything with the provider
   return (
     <EmailAdminProvider>
       <EmailAdminContent />

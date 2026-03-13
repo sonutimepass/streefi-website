@@ -13,7 +13,7 @@
 
 import { DynamoDBClient, UpdateItemCommand, QueryCommand, ScanCommand } from '@aws-sdk/client-dynamodb';
 
-const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-south-1' });
+const client = new DynamoDBClient({ region: 'ap-south-1' });
 const TABLE_NAME = 'streefi_campaigns';
 
 // Test campaign IDs

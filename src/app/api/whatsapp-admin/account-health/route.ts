@@ -4,7 +4,7 @@ import { DynamoDBClient, QueryCommand, ScanCommand } from '@aws-sdk/client-dynam
 
 export const dynamic = 'force-dynamic';
 
-const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const client = new DynamoDBClient({ region: 'ap-south-1' });
 
 const WHATSAPP_TABLE = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
 const CAMPAIGNS_TABLE = process.env.CAMPAIGNS_TABLE_NAME || 'streefi_campaigns';

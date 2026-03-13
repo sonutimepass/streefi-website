@@ -4,7 +4,7 @@ import { DescribeTableCommand, ListTablesCommand } from '@aws-sdk/client-dynamod
 import { validateAdminSession } from '@/lib/adminAuth';
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: 'ap-south-1',
 });
 
 // Table configuration — must match dynamoClient.ts TABLES constants
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const diagnostics = {
       timestamp: new Date().toISOString(),
-      region: process.env.AWS_REGION || 'not set',
+      region: 'ap-south-1',
       tables: [] as any[],
       allHealthy: true,
     };

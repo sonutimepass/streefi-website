@@ -21,8 +21,7 @@ frontend:
         - env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
         - env | grep -e FROM_EMAIL >> .env.production || true
 
-        # AWS & DynamoDB Configuration
-        - env | grep -e AWS_REGION >> .env.production || true
+        # DynamoDB Configuration (AWS credentials managed by Amplify IAM policy)
         - env | grep -e DYNAMODB_TABLE_NAME >> .env.production || true
         - env | grep -e WHATSAPP_CONVERSATIONS_TABLE_NAME >> .env.production || true
         - env | grep -e ADMIN_TABLE_NAME >> .env.production || true

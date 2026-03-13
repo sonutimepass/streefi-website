@@ -5,23 +5,10 @@ import { DynamoDBClient, QueryCommand, ScanCommand } from '@aws-sdk/client-dynam
 export const dynamic = 'force-dynamic';
 
 // Initialize DynamoDB client
-// In AWS Lambda (Amplify), use IAM role credentials (no explicit credentials needed)
-// For local testing, use explicit credentials from env vars
+// In production (Amplify), uses IAM role credentials automatically
 const dynamoClientConfig: any = {
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: 'us-east-1',
 };
-
-// Only add explicit credentials if they exist (local testing)
-// In production (Lambda), omit this to use IAM role automatically
-if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-  dynamoClientConfig.credentials = {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  };
-  console.log('[WebhookDebug] Using explicit AWS credentials from env vars');
-} else {
-  console.log('[WebhookDebug] Using default AWS credentials (IAM role)');
-}
 
 const dynamoClient = new DynamoDBClient(dynamoClientConfig);
 const WHATSAPP_TABLE = process.env.DYNAMODB_TABLE_NAME || 'streefi_whatsapp';
