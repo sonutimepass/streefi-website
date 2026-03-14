@@ -121,10 +121,3 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
-
-/**
- * Helper function to get system settings (for use in other APIs)
- */
-export async function getSystemSettings(): Promise<SystemSettings> {
-  return whatsappRepository.getSystemSettings();
-}

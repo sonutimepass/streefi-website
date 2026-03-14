@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { getMessageService } from '@/lib/whatsapp/meta/messageService';
-import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
+import { isKillSwitchEnabled } from '@/lib/whatsapp/kill-switch';
 
 interface SendTestRequest {
   templateName: string;

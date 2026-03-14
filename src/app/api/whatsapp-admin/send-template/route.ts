@@ -3,7 +3,7 @@ import { validateAdminSessionWithBypass } from '@/lib/adminAuth';
 import { whatsappRepository } from '@/lib/repositories';
 import { MessageService, TemplateMessage, TemplateParameter } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
-import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
+import { isKillSwitchEnabled } from '@/lib/whatsapp/kill-switch';
 
 interface SendTemplateRequest {
   templateName: string;

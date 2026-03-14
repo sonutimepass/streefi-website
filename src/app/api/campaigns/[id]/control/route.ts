@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminSession } from '@/lib/adminAuth';
-import { isKillSwitchEnabled } from '@/app/api/whatsapp-admin/kill-switch/route';
+import { isKillSwitchEnabled } from '@/lib/whatsapp/kill-switch';
 import { getCampaignStateValidator, type CampaignStatus } from '@/lib/whatsapp/campaignStateValidator';
 import { campaignRepository } from '@/lib/repositories';
 

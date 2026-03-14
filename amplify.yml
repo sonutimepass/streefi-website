@@ -6,7 +6,7 @@ frontend:
         - nvm install 20.18.0  # Lock to Node 20 LTS
         - nvm use 20.18.0
         - node --version       # Verify
-        - npm install --legacy-peer-deps --cache .npm --prefer-offline
+        - npm install --cache .npm --prefer-offline
 
     build:
       commands:

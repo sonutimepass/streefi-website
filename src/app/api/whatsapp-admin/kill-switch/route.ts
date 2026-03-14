@@ -84,15 +84,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-/**
- * Helper function to check kill switch status (for use in other APIs)
- * Returns true if sending is DISABLED
- */
-export async function isKillSwitchEnabled(): Promise<{ enabled: boolean; reason?: string }> {
-  const status = await whatsappRepository.getKillSwitchStatus();
-  return {
-    enabled: status.enabled,
-    reason: status.reason
-  };
-}
