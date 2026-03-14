@@ -6,6 +6,8 @@ import ConditionalFloatingButton from "@/components/common/ConditionalFloatingBu
 import ParticleBackground from "@/components/common/ParticleBackground";
 import Providers from "@/providers";
 
+export const dynamic = 'force-dynamic';
+
 const ubuntu = Ubuntu({
   weight: ["300", "400", "500", "700"],
   subsets: ["latin"],
