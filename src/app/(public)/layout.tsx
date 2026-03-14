@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import ConditionalFloatingButton from "@/components/common/ConditionalFloatingButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,5 +12,10 @@ export default function PublicLayout({
 }: {
   children: ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      {children}
+      <ConditionalFloatingButton />
+    </>
+  );
 }

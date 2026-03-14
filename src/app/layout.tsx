@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Ubuntu } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
-import ConditionalFloatingButton from "@/components/common/ConditionalFloatingButton";
 import ParticleBackground from "@/components/common/ParticleBackground";
 
 export const dynamic = 'force-dynamic';
@@ -276,7 +275,6 @@ export default function RootLayout({
         />
 
         {children}
-        <ConditionalFloatingButton />
 
         {/* Google Analytics */}
         <Script
