@@ -60,7 +60,7 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
 
                     {items.map((item, index) => (
                         <li
-                            key={index}
+                            key={item.href || item.label}
                             className="flex items-center whitespace-nowrap"
                             itemProp="itemListElement"
                             itemScope
