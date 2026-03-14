@@ -1,8 +1,8 @@
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Header, MobileHeader, Footer, MobileFooter } from '@/core/layouts';
 import { PolicyNavigation, Breadcrumb } from '@/modules/policies';
 
+export const dynamic = 'force-dynamic';
 
 export default function Policies() {
     return (
