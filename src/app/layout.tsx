@@ -4,7 +4,6 @@ import "./globals.css";
 import Script from "next/script";
 import ConditionalFloatingButton from "@/components/common/ConditionalFloatingButton";
 import ParticleBackground from "@/components/common/ParticleBackground";
-import Providers from "@/providers";
 
 export const dynamic = 'force-dynamic';
 
@@ -276,10 +275,8 @@ export default function RootLayout({
           }}
         />
 
-        <Providers>
-          {children}
-          <ConditionalFloatingButton />
-        </Providers>
+        {children}
+        <ConditionalFloatingButton />
 
         {/* Google Analytics */}
         <Script
