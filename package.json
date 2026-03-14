@@ -13,29 +13,29 @@
     "test:production": "ts-node scripts/run-production-tests.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "3.699.0",
-    "@upstash/ratelimit": "2.0.7",
-    "@upstash/redis": "1.35.7",
-    "bcryptjs": "2.4.3",
-    "framer-motion": "11.15.0",
-    "lucide-react": "0.469.0",
-    "next": "14.2.18",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "schema-dts": "1.1.5",
-    "sharp": "0.34.5"
+    "@aws-sdk/client-dynamodb": "^3.699.0",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.7",
+    "bcryptjs": "^2.4.3",
+    "framer-motion": "^11.15.0",
+    "lucide-react": "^0.469.0",
+    "next": "^15.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "schema-dts": "^1.1.5",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.0.0",
-    "@types/bcryptjs": "2.4.6",
-    "@types/node": "20.17.10",
-    "@types/react": "18.3.1",
-    "@types/react-dom": "18.3.1",
-    "eslint": "9.17.0",
-    "eslint-config-next": "14.2.18",
-    "tailwindcss": "4.0.0",
-    "ts-node": "10.9.2",
-    "tsx": "4.21.0",
-    "typescript": "5.7.2"
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.17.10",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "tailwindcss": "^4.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.2"
   }
 }
