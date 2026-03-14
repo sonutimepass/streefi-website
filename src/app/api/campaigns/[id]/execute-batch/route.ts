@@ -28,7 +28,7 @@ import { whatsappRepository } from '@/lib/repositories/whatsappRepository';
 import { sessionRepository } from '@/lib/repositories/sessionRepository';
 import { getMessageService, MessageService, DailyLimitExceededError } from '@/lib/whatsapp/meta/messageService';
 import { MetaApiError } from '@/lib/whatsapp/meta/metaClient';
-import { isKillSwitchEnabled } from '@/lib/whatsapp/kill-switch';
+import { isKillSwitchEnabled } from '@/lib/whatsapp/kill-switch-utils';
 import { getGlobalDailyLimitGuard } from '@/lib/whatsapp/guards';
 import { getBlockRateCircuitBreaker } from '@/lib/whatsapp/guards';
 import { getAccountWarmupManager } from '@/lib/whatsapp/accountWarmupManager';

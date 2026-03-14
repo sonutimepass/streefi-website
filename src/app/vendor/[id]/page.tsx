@@ -4,9 +4,9 @@ import { generateVendorMetadata } from '@/lib/seo';
 import VendorDetailClient from './VendorDetailClient';
 
 interface VendorPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // This would fetch vendor data from your API
@@ -30,7 +30,8 @@ async function getVendor(id: string) {
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: VendorPageProps): Promise<Metadata> {
-  const vendor = await getVendor(params.id);
+  const { id } = await params;
+  const vendor = await getVendor(id);
   
   if (!vendor) {
     return {
@@ -51,7 +52,8 @@ export async function generateMetadata({ params }: VendorPageProps): Promise<Met
 }
 
 export default async function VendorDetailPage({ params }: VendorPageProps) {
-  const vendor = await getVendor(params.id);
+  const { id } = await params;
+  const vendor = await getVendor(id);
 
   if (!vendor) {
     notFound();
