@@ -1,9 +1,9 @@
-2026-03-13T19:40:15.609Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
-2026-03-13T19:40:16.898Z [INFO]: # Cloning repository: git@github.com:sonutimepass/streefi-website.git
-2026-03-13T19:40:24.716Z [INFO]: 
-2026-03-13T19:40:24.807Z [INFO]: Cloning into 'streefi-website'...
-2026-03-13T19:40:24.807Z [INFO]: # Switching to commit: 74f729f17d26bf914aa614cc9a96ab13a089c135
-2026-03-13T19:40:25.007Z [INFO]: Note: switching to '74f729f17d26bf914aa614cc9a96ab13a089c135'.
+2026-03-14T13:21:10.156Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
+2026-03-14T13:21:10.980Z [INFO]: # Cloning repository: git@github.com:sonutimepass/streefi-website.git
+2026-03-14T13:21:18.204Z [INFO]: 
+2026-03-14T13:21:18.277Z [INFO]: Cloning into 'streefi-website'...
+2026-03-14T13:21:18.277Z [INFO]: # Switching to commit: c2d1e25b7c70038addcf15b6a120dac989570470
+2026-03-14T13:21:18.468Z [INFO]: Note: switching to 'c2d1e25b7c70038addcf15b6a120dac989570470'.
                                  You are in 'detached HEAD' state. You can look around, make experimental
                                  changes and commit them, and you can discard any commits you make in this
                                  state without impacting any branches by switching back to a branch.
@@ -13,131 +13,147 @@
                                  Or undo this operation with:
                                  git switch -
                                  Turn off this advice by setting config variable advice.detachedHead to false
-                                 HEAD is now at 74f729f f
-2026-03-13T19:40:25.052Z [INFO]: Successfully cleaned up Git credentials
-2026-03-13T19:40:25.053Z [INFO]: # Checking for Git submodules at: /codebuild/output/src141683393/src/streefi-website/.gitmodules
-2026-03-13T19:40:25.062Z [INFO]: # Retrieving environment cache...
-2026-03-13T19:40:25.105Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
-2026-03-13T19:40:25.105Z [INFO]: ---- Setting Up SSM Secrets ----
-2026-03-13T19:40:25.105Z [INFO]: SSM params {"Path":"/amplify/d1levaqu4bxq8c/testing/","WithDecryption":true}
-2026-03-13T19:40:25.158Z [WARNING]: !Failed to set up process.env.secrets
-2026-03-13T19:40:25.864Z [INFO]: # No package override configuration found.
-2026-03-13T19:40:25.869Z [INFO]: # Retrieving cache...
-2026-03-13T19:40:29.274Z [INFO]: # Extracting cache...
-2026-03-13T19:40:31.082Z [INFO]: # Extraction completed
-2026-03-13T19:40:31.117Z [INFO]: # Retrieved cache
-2026-03-13T19:40:35.221Z [INFO]: ## Starting Backend Build
+                                 HEAD is now at c2d1e25 ok
+2026-03-14T13:21:18.517Z [INFO]: Successfully cleaned up Git credentials
+2026-03-14T13:21:18.517Z [INFO]: # Checking for Git submodules at: /codebuild/output/src3147853993/src/streefi-website/.gitmodules
+2026-03-14T13:21:18.525Z [INFO]: # Retrieving environment cache...
+2026-03-14T13:21:18.562Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
+2026-03-14T13:21:18.562Z [INFO]: ---- Setting Up SSM Secrets ----
+2026-03-14T13:21:18.562Z [INFO]: SSM params {"Path":"/amplify/d1levaqu4bxq8c/testing/","WithDecryption":true}
+2026-03-14T13:21:18.603Z [WARNING]: !Failed to set up process.env.secrets
+2026-03-14T13:21:19.385Z [INFO]: # No package override configuration found.
+2026-03-14T13:21:19.390Z [INFO]: # Retrieving cache...
+2026-03-14T13:21:22.809Z [INFO]: # Extracting cache...
+2026-03-14T13:21:24.801Z [INFO]: # Extraction completed
+2026-03-14T13:21:24.856Z [INFO]: # Retrieved cache
+2026-03-14T13:21:29.780Z [INFO]: ## Starting Backend Build
                                  ## Checking for associated backend environment...
                                  ## No backend environment association found, continuing...
                                  ## Completed Backend Build
-2026-03-13T19:40:35.228Z [INFO]: {"backendDuration": 0}
+2026-03-14T13:21:29.787Z [INFO]: {"backendDuration": 0}
                                  ## Starting Frontend Build
                                  # Starting phase: preBuild
                                  # Executing command: npm ci --cache .npm --prefer-offline
-2026-03-13T19:41:03.956Z [INFO]: added 730 packages, and audited 731 packages in 24s
-2026-03-13T19:41:03.960Z [INFO]: 174 packages are looking for funding
+2026-03-14T13:21:59.451Z [INFO]: added 730 packages, and audited 731 packages in 25s
+2026-03-14T13:21:59.455Z [INFO]: 174 packages are looking for funding
                                  run `npm fund` for details
                                  found 0 vulnerabilities
-2026-03-13T19:41:03.992Z [INFO]: # Completed phase: preBuild
+2026-03-14T13:21:59.496Z [INFO]: # Completed phase: preBuild
                                  # Starting phase: build
                                  # Executing command: rm -f .env.production
-2026-03-13T19:41:03.994Z [INFO]: # Executing command: touch .env.production
-2026-03-13T19:41:03.996Z [INFO]: # Executing command: env | grep -e EMAIL_ADMIN_PASSWORD_HASH >> .env.production || true
-2026-03-13T19:41:03.998Z [INFO]: # Executing command: env | grep -e WA_ADMIN_PASSWORD_HASH >> .env.production || true
-2026-03-13T19:41:04.000Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_ID >> .env.production || true
-2026-03-13T19:41:04.001Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_SECRET >> .env.production || true
-2026-03-13T19:41:04.003Z [INFO]: # Executing command: env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
-2026-03-13T19:41:04.005Z [INFO]: # Executing command: env | grep -e FROM_EMAIL >> .env.production || true
-2026-03-13T19:41:04.007Z [INFO]: # Executing command: env | grep -e DYNAMODB_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.008Z [INFO]: # Executing command: env | grep -e WHATSAPP_CONVERSATIONS_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.010Z [INFO]: # Executing command: env | grep -e ADMIN_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.012Z [INFO]: # Executing command: env | grep -e SESSION_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.014Z [INFO]: # Executing command: env | grep -e CAMPAIGNS_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.016Z [INFO]: # Executing command: env | grep -e RECIPIENTS_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.017Z [INFO]: # Executing command: env | grep -e CONTACTS_TABLE_NAME >> .env.production || true
-2026-03-13T19:41:04.019Z [INFO]: # Executing command: env | grep -e WHATSAPP_ACCESS_TOKEN >> .env.production || true
-2026-03-13T19:41:04.021Z [INFO]: # Executing command: env | grep -e META_PHONE_NUMBER_ID >> .env.production || true
-2026-03-13T19:41:04.022Z [INFO]: # Executing command: env | grep -e WHATSAPP_PHONE_ID >> .env.production || true
-2026-03-13T19:41:04.024Z [INFO]: # Executing command: env | grep -e WHATSAPP_VERIFY_TOKEN >> .env.production || true
-2026-03-13T19:41:04.026Z [INFO]: # Executing command: env | grep -e WHATSAPP_APP_SECRET >> .env.production || true
-2026-03-13T19:41:04.027Z [INFO]: # Executing command: env | grep -e META_WABA_ID >> .env.production || true
-2026-03-13T19:41:04.029Z [INFO]: # Executing command: env | grep -e META_DRY_RUN >> .env.production || true
-2026-03-13T19:41:04.031Z [INFO]: # Executing command: env | grep -e INTERNAL_OPERATIONS_KEY >> .env.production || true
-2026-03-13T19:41:04.032Z [INFO]: # Executing command: env | grep -e TRACKING_TOKEN_SECRET >> .env.production || true
-2026-03-13T19:41:04.034Z [INFO]: # Executing command: env | grep -e WHATSAPP_DAILY_LIMIT >> .env.production || true
-2026-03-13T19:41:04.036Z [INFO]: # Executing command: env | grep -e WHATSAPP_RATE_LIMIT_PER_SEC >> .env.production || true
-2026-03-13T19:41:04.037Z [INFO]: # Executing command: env | grep -e META_DAILY_LIMIT >> .env.production || true
-2026-03-13T19:41:04.039Z [INFO]: # Executing command: env | grep -e META_SAFETY_BUFFER >> .env.production || true
-2026-03-13T19:41:04.041Z [INFO]: # Executing command: env | grep -e NEXT_PUBLIC_ >> .env.production || true
-2026-03-13T19:41:04.042Z [INFO]: # Executing command: npm run build
-2026-03-13T19:41:04.185Z [INFO]: > streefl-website@0.1.0 build
+2026-03-14T13:21:59.498Z [INFO]: # Executing command: touch .env.production
+2026-03-14T13:21:59.500Z [INFO]: # Executing command: env | grep -e EMAIL_ADMIN_PASSWORD_HASH >> .env.production || true
+2026-03-14T13:21:59.502Z [INFO]: # Executing command: env | grep -e WA_ADMIN_PASSWORD_HASH >> .env.production || true
+2026-03-14T13:21:59.503Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_ID >> .env.production || true
+2026-03-14T13:21:59.506Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_SECRET >> .env.production || true
+2026-03-14T13:21:59.508Z [INFO]: # Executing command: env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
+2026-03-14T13:21:59.510Z [INFO]: # Executing command: env | grep -e FROM_EMAIL >> .env.production || true
+2026-03-14T13:21:59.512Z [INFO]: # Executing command: env | grep -e DYNAMODB_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.514Z [INFO]: # Executing command: env | grep -e WHATSAPP_CONVERSATIONS_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.516Z [INFO]: # Executing command: env | grep -e ADMIN_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.519Z [INFO]: # Executing command: env | grep -e SESSION_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.521Z [INFO]: # Executing command: env | grep -e CAMPAIGNS_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.522Z [INFO]: # Executing command: env | grep -e RECIPIENTS_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.524Z [INFO]: # Executing command: env | grep -e CONTACTS_TABLE_NAME >> .env.production || true
+2026-03-14T13:21:59.526Z [INFO]: # Executing command: env | grep -e WHATSAPP_ACCESS_TOKEN >> .env.production || true
+2026-03-14T13:21:59.528Z [INFO]: # Executing command: env | grep -e META_PHONE_NUMBER_ID >> .env.production || true
+2026-03-14T13:21:59.529Z [INFO]: # Executing command: env | grep -e WHATSAPP_PHONE_ID >> .env.production || true
+2026-03-14T13:21:59.531Z [INFO]: # Executing command: env | grep -e WHATSAPP_VERIFY_TOKEN >> .env.production || true
+2026-03-14T13:21:59.532Z [INFO]: # Executing command: env | grep -e WHATSAPP_APP_SECRET >> .env.production || true
+2026-03-14T13:21:59.534Z [INFO]: # Executing command: env | grep -e META_WABA_ID >> .env.production || true
+2026-03-14T13:21:59.535Z [INFO]: # Executing command: env | grep -e META_DRY_RUN >> .env.production || true
+2026-03-14T13:21:59.537Z [INFO]: # Executing command: env | grep -e INTERNAL_OPERATIONS_KEY >> .env.production || true
+2026-03-14T13:21:59.538Z [INFO]: # Executing command: env | grep -e TRACKING_TOKEN_SECRET >> .env.production || true
+2026-03-14T13:21:59.540Z [INFO]: # Executing command: env | grep -e WHATSAPP_DAILY_LIMIT >> .env.production || true
+2026-03-14T13:21:59.541Z [INFO]: # Executing command: env | grep -e WHATSAPP_RATE_LIMIT_PER_SEC >> .env.production || true
+2026-03-14T13:21:59.543Z [INFO]: # Executing command: env | grep -e META_DAILY_LIMIT >> .env.production || true
+2026-03-14T13:21:59.544Z [INFO]: # Executing command: env | grep -e META_SAFETY_BUFFER >> .env.production || true
+2026-03-14T13:21:59.545Z [INFO]: # Executing command: env | grep -e NEXT_PUBLIC_ >> .env.production || true
+2026-03-14T13:21:59.547Z [INFO]: # Executing command: npm run build
+2026-03-14T13:21:59.692Z [INFO]: > streefl-website@0.1.0 build
                                  > next build
-2026-03-13T19:41:04.308Z [WARNING]: ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
-2026-03-13T19:41:05.351Z [INFO]: ▲ Next.js 16.1.6 (Turbopack)
-2026-03-13T19:41:05.351Z [INFO]: - Environments: .env.production
+2026-03-14T13:21:59.812Z [WARNING]: ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+2026-03-14T13:22:00.844Z [INFO]: ▲ Next.js 16.1.6 (Turbopack)
+2026-03-14T13:22:00.845Z [INFO]: - Environments: .env.production
                                  - Experiments (use with caution):
-2026-03-13T19:41:05.352Z [INFO]: · clientTraceMetadata
-2026-03-13T19:41:05.490Z [INFO]: Creating an optimized production build ...
-2026-03-13T19:41:25.795Z [INFO]: ✓ Compiled successfully in 19.4s
+2026-03-14T13:22:00.845Z [INFO]: · clientTraceMetadata
+2026-03-14T13:22:00.970Z [INFO]: Creating an optimized production build ...
+2026-03-14T13:22:21.811Z [INFO]: ✓ Compiled successfully in 20.0s
                                  Running next.config.js provided runAfterProductionCompile ...
-2026-03-13T19:41:27.729Z [INFO]: ✓ Completed runAfterProductionCompile in 1937ms
-2026-03-13T19:41:27.730Z [INFO]: Running TypeScript ...
-2026-03-13T19:41:39.228Z [INFO]: Collecting page data using 3 workers ...
-2026-03-13T19:41:39.772Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
-2026-03-13T19:41:39.781Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
-2026-03-13T19:41:39.829Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
-2026-03-13T19:41:39.974Z [INFO]: Generating static pages using 3 workers (0/52) ...
-2026-03-13T19:41:40.012Z [INFO]: Generating static pages using 3 workers (13/52)
-2026-03-13T19:41:40.427Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:26.448Z [INFO]: ✓ Completed runAfterProductionCompile in 4640ms
+2026-03-14T13:22:26.452Z [INFO]: Running TypeScript ...
+2026-03-14T13:22:38.453Z [INFO]: Collecting page data using 3 workers ...
+2026-03-14T13:22:38.927Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
+2026-03-14T13:22:38.968Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
+2026-03-14T13:22:38.983Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
+2026-03-14T13:22:39.120Z [INFO]: Generating static pages using 3 workers (0/52) ...
+2026-03-14T13:22:39.182Z [INFO]: Generating static pages using 3 workers (13/52)
+2026-03-14T13:22:39.534Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.428Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.535Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.429Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.552Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.555Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
+                                    Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.430Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.555Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.453Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.587Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.455Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.588Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.462Z [WARNING]: Each child in a list should have a unique "key" prop.
-                                    Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.463Z [WARNING]: Each child in a list should have a unique "key" prop.
-                                    Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.485Z [WARNING]: Each child in a list should have a unique "key" prop.
-                                    Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.485Z [WARNING]: Each child in a list should have a unique "key" prop.
-                                    Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.494Z [WARNING]: Each child in a list should have a unique "key" prop.
-                                    Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.495Z [WARNING]: Each child in a list should have a unique "key" prop.
-                                    Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.497Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.598Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <__next_viewport_boundary__>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.500Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.600Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <M>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.504Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.604Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.505Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.604Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.521Z [WARNING]: Error occurred prerendering page "/vendor". Read more: https://nextjs.org/docs/messages/prerender-error
+2026-03-14T13:22:39.607Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.607Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.616Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.623Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
                                     Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
                                     Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.523Z [WARNING]: TypeError: Cannot read properties of null (reading 'useContext')
-                                    at s (.next/server/chunks/ssr/[root-of-the-server]__e565d739._.js:1:6733) {
-                                    digest: '1891235280'
-                                    }
-2026-03-13T19:41:40.523Z [WARNING]: Export encountered an error on /vendor/page: /vendor, exiting the build.
-2026-03-13T19:41:40.527Z [WARNING]: Each child in a list should have a unique "key" prop.
+2026-03-14T13:22:39.624Z [WARNING]: Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.527Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Each child in a list should have a unique "key" prop.
                                     Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
-2026-03-13T19:41:40.562Z [WARNING]: ⨯ Next.js build worker exited with code: 1 and signal: null
-2026-03-13T19:41:40.634Z [ERROR]: !!! Build failed
-2026-03-13T19:41:40.634Z [INFO]: Please read more about Amplify Hosting's support for SSR frameworks to find if your build failure is related to an unsupported feature: https://docs.aws.amazon.com/amplify/latest/userguide/amplify-ssr-framework-support.html. You may also find this troubleshooting guide useful: https://docs.aws.amazon.com/amplify/latest/userguide/troubleshooting-ssr-deployment.html
-2026-03-13T19:41:40.634Z [ERROR]: !!! Error: Command failed with exit code 1
-2026-03-13T19:41:40.634Z [INFO]: # Starting environment caching...
-2026-03-13T19:41:40.635Z [INFO]: # Environment caching completed
+2026-03-14T13:22:39.641Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
+                                    Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.648Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.648Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.656Z [WARNING]: Error occurred prerendering page "/vendor". Read more: https://nextjs.org/docs/messages/prerender-error
+2026-03-14T13:22:39.659Z [WARNING]: TypeError: Cannot read properties of null (reading 'useContext')
+                                    at s (.next/server/chunks/ssr/[root-of-the-server]__e565d739._.js:1:6733) {
+                                    digest: '1317679020'
+                                    }
+2026-03-14T13:22:39.659Z [WARNING]: Export encountered an error on /vendor/page: /vendor, exiting the build.
+2026-03-14T13:22:39.660Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <html>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.660Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <noscript>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.664Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <meta>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.665Z [WARNING]: Each child in a list should have a unique "key" prop.
+                                    Check the top-level render call using <head>. See https://react.dev/link/warning-keys for more information.
+2026-03-14T13:22:39.703Z [WARNING]: ⨯ Next.js build worker exited with code: 1 and signal: null
+2026-03-14T13:22:39.768Z [ERROR]: !!! Build failed
+2026-03-14T13:22:39.768Z [INFO]: Please read more about Amplify Hosting's support for SSR frameworks to find if your build failure is related to an unsupported feature: https://docs.aws.amazon.com/amplify/latest/userguide/amplify-ssr-framework-support.html. You may also find this troubleshooting guide useful: https://docs.aws.amazon.com/amplify/latest/userguide/troubleshooting-ssr-deployment.html
+2026-03-14T13:22:39.768Z [ERROR]: !!! Error: Command failed with exit code 1
+2026-03-14T13:22:39.768Z [INFO]: # Starting environment caching...
+2026-03-14T13:22:39.769Z [INFO]: # Environment caching completed
 
