@@ -3,6 +3,8 @@
 import { WhatsAppAdminProvider, useWhatsAppAdminContext, LoadingSection, AuthSection } from '@/modules/whatsapp-admin';
 import AccountHealthContent from '@/modules/whatsapp-admin/components/AccountHealthContent';
 
+export const dynamic = 'force-dynamic';
+
 export default function AccountHealthPage() {
   return (
     <WhatsAppAdminProvider>

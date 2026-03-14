@@ -1,4 +1,7 @@
 'use client';
+
+
+
 import dynamic from 'next/dynamic';
 import { Header, MobileHeader, Footer, MobileFooter } from '@/core/layouts';
 import { HeroSection } from '@/modules/home';

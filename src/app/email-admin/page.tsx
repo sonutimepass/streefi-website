@@ -8,6 +8,8 @@ import {
   useEmailAdminContext
 } from '@/modules/email-admin';
 
+export const dynamic = 'force-dynamic';
+
 function EmailAdminContent() {
   const { isAuthenticated, isLoading } = useEmailAdminContext();
 

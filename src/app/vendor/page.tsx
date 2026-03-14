@@ -1,4 +1,6 @@
 'use client';
+
+
 import dynamic from 'next/dynamic';
 import { Header, MobileHeader, Footer, MobileFooter } from '@/core/layouts';
 import { VendorHeroSection } from '@/modules/vendor';

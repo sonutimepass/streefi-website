@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoadingSection } from '@/modules/whatsapp-admin';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * WhatsApp Admin Root - Redirects to /dashboard
  * 

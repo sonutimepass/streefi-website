@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 const IOS_LINK = "https://apps.apple.com/in/app/streefi/id6747432924";
 const ANDROID_LINK = "https://play.google.com/store/apps/details?id=com.streefi.customer&pcampaignid=web_share";
 const DESKTOP_LINK = "https://streefi.in";
