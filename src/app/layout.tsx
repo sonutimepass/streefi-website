@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Ubuntu } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
+import Providers from "@/providers";
 
 export const dynamic = 'force-dynamic';
 
@@ -273,7 +274,9 @@ export default function RootLayout({
           }}
         />
 
-        {children}
+        <Providers>
+          {children}
+        </Providers>
 
         {/* Google Analytics */}
         <Script
