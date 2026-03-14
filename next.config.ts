@@ -1,11 +1,7 @@
-import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from "next";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  // Externalize problematic Node.js modules for Windows compatibility
-  serverExternalPackages: ['@sentry/nextjs'],
-  
   turbopack: {
     root: __dirname,
   },
@@ -491,40 +487,4 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 }
 
-export default withSentryConfig(nextConfig, {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-
-  org: "streefi-private-limited",
-  project: "javascript-nextjs",
-
-  // Only print logs for uploading source maps in CI/production builds
-  silent: !process.env.CI && process.env.NODE_ENV !== 'production',
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
-
-  // Note: tunnelRoute disabled for static exports compatibility
-  // tunnelRoute: "/monitoring", // Disabled - not compatible with static exports
-
-  // Upload source maps to Sentry for better error tracking
-  sourcemaps: {
-    disable: true, // Temporarily disabled to fix build hanging issue
-    deleteSourcemapsAfterUpload: true,
-    // Only upload specific source maps, ignore all JS files without corresponding maps
-    assets: ['**/*.js.map', '**/*.css.map'],
-    ignore: [
-      // Ignore Next.js internal manifest files
-      '*_client-reference-manifest.js',
-      'interception-route-rewrite-manifest.js',
-      'middleware-build-manifest.js', 
-      'next-font-manifest.js',
-      'server-reference-manifest.js',
-      // Ignore files without source maps to prevent warnings
-      '**/chunks/**/*.js',
-    ]
-  },
-});
+export default nextConfig;

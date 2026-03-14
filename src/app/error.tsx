@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
 import Link from 'next/link';
 import { Home, RefreshCcw } from 'lucide-react';
 
@@ -12,20 +10,6 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    // Send error to Sentry with additional context
-    Sentry.captureException(error, {
-      tags: {
-        errorBoundary: 'app-error',
-      },
-      contexts: {
-        errorInfo: {
-          digest: error.digest,
-        },
-      },
-    });
-  }, [error]);
-
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6">
       <div className="max-w-2xl w-full text-center">
