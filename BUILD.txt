@@ -1,9 +1,9 @@
-2026-03-14T19:15:06.784Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
-2026-03-14T19:15:07.701Z [INFO]: # Cloning repository: git@github.com:sonutimepass/streefi-website.git
-2026-03-14T19:15:15.665Z [INFO]: 
-2026-03-14T19:15:15.742Z [INFO]: Cloning into 'streefi-website'...
-2026-03-14T19:15:15.743Z [INFO]: # Switching to commit: 013ec35cdfc14a179054d67fe2d547a0cbf36267
-2026-03-14T19:15:15.966Z [INFO]: Note: switching to '013ec35cdfc14a179054d67fe2d547a0cbf36267'.
+2026-03-14T20:16:39.201Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
+2026-03-14T20:16:40.112Z [INFO]: # Cloning repository: git@github.com:sonutimepass/streefi-website.git
+2026-03-14T20:16:48.122Z [INFO]: 
+2026-03-14T20:16:48.202Z [INFO]: Cloning into 'streefi-website'...
+2026-03-14T20:16:48.202Z [INFO]: # Switching to commit: 043a5a94a6052c931745be14c6b115f82e08ad07
+2026-03-14T20:16:48.338Z [INFO]: Note: switching to '043a5a94a6052c931745be14c6b115f82e08ad07'.
                                  You are in 'detached HEAD' state. You can look around, make experimental
                                  changes and commit them, and you can discard any commits you make in this
                                  state without impacting any branches by switching back to a branch.
@@ -13,143 +13,134 @@
                                  Or undo this operation with:
                                  git switch -
                                  Turn off this advice by setting config variable advice.detachedHead to false
-                                 HEAD is now at 013ec35 s
-2026-03-14T19:15:16.018Z [INFO]: Successfully cleaned up Git credentials
-2026-03-14T19:15:16.019Z [INFO]: # Checking for Git submodules at: /codebuild/output/src2555680271/src/streefi-website/.gitmodules
-2026-03-14T19:15:16.027Z [INFO]: # Retrieving environment cache...
-2026-03-14T19:15:16.064Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
-2026-03-14T19:15:16.064Z [INFO]: ---- Setting Up SSM Secrets ----
-2026-03-14T19:15:16.065Z [INFO]: SSM params {"Path":"/amplify/d1levaqu4bxq8c/testing/","WithDecryption":true}
-2026-03-14T19:15:16.107Z [WARNING]: !Failed to set up process.env.secrets
-2026-03-14T19:15:16.844Z [INFO]: # No package override configuration found.
-2026-03-14T19:15:16.850Z [INFO]: # Retrieving cache...
-2026-03-14T19:15:20.259Z [INFO]: # Extracting cache...
-2026-03-14T19:15:22.305Z [INFO]: # Extraction completed
-2026-03-14T19:15:22.341Z [INFO]: # Retrieved cache
-2026-03-14T19:15:26.686Z [INFO]: ## Starting Backend Build
+                                 HEAD is now at 043a5a9 chore: upgrade to Next.js 15, React 19, and latest dependencies
+2026-03-14T20:16:48.354Z [INFO]: Successfully cleaned up Git credentials
+2026-03-14T20:16:48.354Z [INFO]: # Checking for Git submodules at: /codebuild/output/src225488117/src/streefi-website/.gitmodules
+2026-03-14T20:16:48.362Z [INFO]: # Retrieving environment cache...
+2026-03-14T20:16:48.402Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
+2026-03-14T20:16:48.403Z [INFO]: ---- Setting Up SSM Secrets ----
+2026-03-14T20:16:48.403Z [INFO]: SSM params {"Path":"/amplify/d1levaqu4bxq8c/testing/","WithDecryption":true}
+2026-03-14T20:16:48.449Z [WARNING]: !Failed to set up process.env.secrets
+2026-03-14T20:16:49.352Z [INFO]: # No package override configuration found.
+2026-03-14T20:16:49.357Z [INFO]: # Retrieving cache...
+2026-03-14T20:16:52.770Z [INFO]: # Extracting cache...
+2026-03-14T20:16:54.657Z [INFO]: # Extraction completed
+2026-03-14T20:16:54.693Z [INFO]: # Retrieved cache
+2026-03-14T20:16:59.302Z [INFO]: ## Starting Backend Build
                                  ## Checking for associated backend environment...
                                  ## No backend environment association found, continuing...
                                  ## Completed Backend Build
-2026-03-14T19:15:26.693Z [INFO]: {"backendDuration": 0}
-                                 ## Starting Frontend Build
+2026-03-14T20:16:59.313Z [INFO]: ## Starting Frontend Build
                                  # Starting phase: preBuild
-                                 # Executing command: nvm install 20.18.0
-2026-03-14T19:15:27.398Z [INFO]: Downloading and installing node v20.18.0...
-2026-03-14T19:15:27.522Z [WARNING]: Downloading https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-x64.tar.gz...
-2026-03-14T19:15:27.740Z [WARNING]: #=#=#
-2026-03-14T19:15:28.015Z [WARNING]: 
-2026-03-14T19:15:28.015Z [WARNING]: 0.0%
-2026-03-14T19:15:28.115Z [WARNING]: ###############
-2026-03-14T19:15:28.115Z [WARNING]: 21.6%
-2026-03-14T19:15:28.231Z [WARNING]: ###################################
-2026-03-14T19:15:28.231Z [WARNING]: #                                      50.2%
-2026-03-14T19:15:28.331Z [WARNING]: ###################################
-2026-03-14T19:15:28.331Z [WARNING]: ########################               82.8%
-2026-03-14T19:15:28.434Z [WARNING]: ##############
-2026-03-14T19:15:28.435Z [WARNING]: ####################################################        92.5%
-2026-03-14T19:15:28.461Z [WARNING]: ##########################
-2026-03-14T19:15:28.462Z [WARNING]: ############################################## 100.0%
-2026-03-14T19:15:28.487Z [WARNING]: Computing checksum with sha256sum
-2026-03-14T19:15:28.716Z [WARNING]: Checksums matched!
-2026-03-14T19:15:30.995Z [INFO]: Now using node v20.18.0 (npm v10.8.2)
-2026-03-14T19:15:31.086Z [INFO]: Installing default global packages from /root/.nvm/default-packages...
+                                 # Executing command: nvm install 20
+2026-03-14T20:16:59.931Z [INFO]: Downloading and installing node v20.20.1...
+2026-03-14T20:17:00.063Z [WARNING]: Downloading https://nodejs.org/dist/v20.20.1/node-v20.20.1-linux-x64.tar.gz...
+2026-03-14T20:17:00.179Z [WARNING]: ###########################
+2026-03-14T20:17:00.179Z [WARNING]: #####                                          45.6%
+2026-03-14T20:17:00.257Z [WARNING]: ##############################
+2026-03-14T20:17:00.257Z [WARNING]: ########################################## 100.0%
+2026-03-14T20:17:00.281Z [WARNING]: Computing checksum with sha256sum
+2026-03-14T20:17:00.508Z [WARNING]: Checksums matched!
+2026-03-14T20:17:02.628Z [INFO]: Now using node v20.20.1 (npm v10.8.2)
+2026-03-14T20:17:02.699Z [INFO]: Installing default global packages from /root/.nvm/default-packages...
                                  npm install -g --quiet @aws-amplify/cli bower cypress grunt-cli hugo-extended vuepress yarn
-2026-03-14T19:17:19.730Z [WARNING]: npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
-2026-03-14T19:17:19.776Z [WARNING]: npm warn deprecated stable@0.1.8: Modern JS already guarantees Array#sort() is a stable sort, so this library is deprecated. See the compatibility table on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#browser_compatibility
-2026-03-14T19:17:19.777Z [WARNING]: npm warn deprecated source-map-url@0.4.1: See https://github.com/lydell/source-map-url#deprecated
-2026-03-14T19:17:19.817Z [WARNING]: npm warn deprecated move-concurrently@1.0.1: This package is no longer supported.
-2026-03-14T19:17:19.822Z [WARNING]: npm warn deprecated @babel/plugin-proposal-class-properties@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-class-properties instead.
-2026-03-14T19:17:19.886Z [WARNING]: npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
-2026-03-14T19:17:19.886Z [WARNING]: npm warn deprecated figgy-pudding@3.5.2: This module is no longer supported.
-2026-03-14T19:17:19.913Z [WARNING]: npm warn deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
-2026-03-14T19:17:19.914Z [WARNING]: npm warn deprecated har-validator@5.1.5: this library is no longer supported
-2026-03-14T19:17:19.967Z [WARNING]: npm warn deprecated lodash.template@4.5.0: This package is deprecated. Use https://socket.dev/npm/package/eta instead.
-2026-03-14T19:17:19.986Z [WARNING]: npm warn deprecated copy-concurrently@1.0.5: This package is no longer supported.
-2026-03-14T19:17:20.059Z [WARNING]: npm warn deprecated consolidate@0.15.1: Please upgrade to consolidate v1.0.0+ as it has been modernized with several long-awaited fixes implemented. Maintenance is supported by Forward Email at https://forwardemail.net ; follow/watch https://github.com/ladjs/consolidate for updates and release changelog
-2026-03-14T19:17:20.064Z [WARNING]: npm warn deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
-2026-03-14T19:17:20.128Z [WARNING]: npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-2026-03-14T19:17:20.147Z [WARNING]: npm warn deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
-2026-03-14T19:17:20.223Z [WARNING]: npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+2026-03-14T20:18:36.967Z [WARNING]: npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-03-14T20:18:37.032Z [WARNING]: npm warn deprecated stable@0.1.8: Modern JS already guarantees Array#sort() is a stable sort, so this library is deprecated. See the compatibility table on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#browser_compatibility
+2026-03-14T20:18:37.032Z [WARNING]: npm warn deprecated source-map-url@0.4.1: See https://github.com/lydell/source-map-url#deprecated
+2026-03-14T20:18:37.046Z [WARNING]: npm warn deprecated move-concurrently@1.0.1: This package is no longer supported.
+2026-03-14T20:18:37.052Z [WARNING]: npm warn deprecated @babel/plugin-proposal-class-properties@7.18.6: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-class-properties instead.
+2026-03-14T20:18:37.123Z [WARNING]: npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-03-14T20:18:37.123Z [WARNING]: npm warn deprecated figgy-pudding@3.5.2: This module is no longer supported.
+2026-03-14T20:18:37.165Z [WARNING]: npm warn deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
+2026-03-14T20:18:37.166Z [WARNING]: npm warn deprecated har-validator@5.1.5: this library is no longer supported
+2026-03-14T20:18:37.204Z [WARNING]: npm warn deprecated lodash.template@4.5.0: This package is deprecated. Use https://socket.dev/npm/package/eta instead.
+2026-03-14T20:18:37.228Z [WARNING]: npm warn deprecated copy-concurrently@1.0.5: This package is no longer supported.
+2026-03-14T20:18:37.305Z [WARNING]: npm warn deprecated consolidate@0.15.1: Please upgrade to consolidate v1.0.0+ as it has been modernized with several long-awaited fixes implemented. Maintenance is supported by Forward Email at https://forwardemail.net ; follow/watch https://github.com/ladjs/consolidate for updates and release changelog
+2026-03-14T20:18:37.321Z [WARNING]: npm warn deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
+2026-03-14T20:18:37.382Z [WARNING]: npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-03-14T20:18:37.412Z [WARNING]: npm warn deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
+2026-03-14T20:18:37.493Z [WARNING]: npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
                                     npm warn deprecated
                                     npm warn deprecated (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
-2026-03-14T19:17:20.276Z [WARNING]: npm warn deprecated fs-write-stream-atomic@1.0.10: This package is no longer supported.
-2026-03-14T19:17:20.457Z [WARNING]: npm warn deprecated mkdirp@0.3.0: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x. (Note that the API surface has changed to use Promises in 1.x.)
-2026-03-14T19:17:20.481Z [WARNING]: npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
-2026-03-14T19:17:20.495Z [WARNING]: npm warn deprecated webpack-chain@4.12.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-2026-03-14T19:17:20.621Z [WARNING]: npm warn deprecated webpack-chain@6.5.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-2026-03-14T19:17:20.736Z [WARNING]: npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
-2026-03-14T19:17:21.419Z [WARNING]: npm warn deprecated svgo@1.3.2: This SVGO version is no longer supported. Upgrade to v2.x.x.
-2026-03-14T19:17:21.463Z [WARNING]: npm warn deprecated docsearch.js@2.6.3: This package has been deprecated and is no longer maintained. Please use @docsearch/js.
-2026-03-14T19:17:22.215Z [WARNING]: npm warn deprecated highlight.js@9.18.5: Support has ended for 9.x series. Upgrade to @latest
-2026-03-14T19:17:22.345Z [WARNING]: npm warn deprecated vue@2.7.16: Vue 2 has reached EOL and is no longer actively maintained. See https://v2.vuejs.org/eol/ for more details.
-2026-03-14T19:17:46.736Z [INFO]: added 1688 packages in 2m
-2026-03-14T19:17:46.742Z [INFO]: 172 packages are looking for funding
+2026-03-14T20:18:37.540Z [WARNING]: npm warn deprecated fs-write-stream-atomic@1.0.10: This package is no longer supported.
+2026-03-14T20:18:37.776Z [WARNING]: npm warn deprecated mkdirp@0.3.0: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x. (Note that the API surface has changed to use Promises in 1.x.)
+2026-03-14T20:18:37.841Z [WARNING]: npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+2026-03-14T20:18:37.843Z [WARNING]: npm warn deprecated webpack-chain@4.12.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-03-14T20:18:38.037Z [WARNING]: npm warn deprecated webpack-chain@6.5.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-03-14T20:18:38.126Z [WARNING]: npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+2026-03-14T20:18:38.701Z [WARNING]: npm warn deprecated svgo@1.3.2: This SVGO version is no longer supported. Upgrade to v2.x.x.
+2026-03-14T20:18:38.742Z [WARNING]: npm warn deprecated docsearch.js@2.6.3: This package has been deprecated and is no longer maintained. Please use @docsearch/js.
+2026-03-14T20:18:39.479Z [WARNING]: npm warn deprecated highlight.js@9.18.5: Support has ended for 9.x series. Upgrade to @latest
+2026-03-14T20:18:39.620Z [WARNING]: npm warn deprecated vue@2.7.16: Vue 2 has reached EOL and is no longer actively maintained. See https://v2.vuejs.org/eol/ for more details.
+2026-03-14T20:19:04.124Z [INFO]: added 1688 packages in 2m
+2026-03-14T20:19:04.129Z [INFO]: 172 packages are looking for funding
                                  run `npm fund` for details
-2026-03-14T19:17:46.774Z [INFO]: # Executing command: nvm use 20.18.0
-2026-03-14T19:17:46.966Z [INFO]: Now using node v20.18.0 (npm v10.8.2)
-2026-03-14T19:17:46.967Z [INFO]: # Executing command: node --version
-2026-03-14T19:17:46.971Z [INFO]: v20.18.0
-2026-03-14T19:17:46.971Z [INFO]: # Executing command: npm install --legacy-peer-deps --cache .npm --prefer-offline
-2026-03-14T19:17:47.507Z [WARNING]: npm warn EBADENGINE Unsupported engine {
-                                    npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
-                                    npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
-                                    npm warn EBADENGINE   current: { node: 'v20.18.0', npm: '10.8.2' }
-                                    npm warn EBADENGINE }
-2026-03-14T19:17:52.148Z [WARNING]: npm warn deprecated glob@10.3.10: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-2026-03-14T19:18:02.926Z [WARNING]: npm warn deprecated next@14.2.18: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
-2026-03-14T19:18:03.933Z [INFO]: added 458 packages, and audited 459 packages in 17s
-2026-03-14T19:18:03.933Z [INFO]: 151 packages are looking for funding
+2026-03-14T20:19:04.155Z [INFO]: # Executing command: nvm use 20
+2026-03-14T20:19:04.370Z [INFO]: Now using node v20.20.1 (npm v10.8.2)
+2026-03-14T20:19:04.372Z [INFO]: # Executing command: node --version
+2026-03-14T20:19:04.375Z [INFO]: v20.20.1
+2026-03-14T20:19:04.375Z [INFO]: # Executing command: npm install --cache .npm --prefer-offline
+2026-03-14T20:19:14.321Z [INFO]: added 440 packages, and audited 441 packages in 10s
+2026-03-14T20:19:14.325Z [INFO]: 142 packages are looking for funding
                                  run `npm fund` for details
-2026-03-14T19:18:04.070Z [INFO]: 4 vulnerabilities (3 high, 1 critical)
-                                 To address all issues (including breaking changes), run:
-                                 npm audit fix --force
-                                 Run `npm audit` for details.
-2026-03-14T19:18:04.094Z [INFO]: # Completed phase: preBuild
+                                 found 0 vulnerabilities
+2026-03-14T20:19:14.341Z [INFO]: # Completed phase: preBuild
                                  # Starting phase: build
                                  # Executing command: rm -f .env.production
-2026-03-14T19:18:04.096Z [INFO]: # Executing command: touch .env.production
-2026-03-14T19:18:04.098Z [INFO]: # Executing command: env | grep -e EMAIL_ADMIN_PASSWORD_HASH >> .env.production || true
-2026-03-14T19:18:04.100Z [INFO]: # Executing command: env | grep -e WA_ADMIN_PASSWORD_HASH >> .env.production || true
-2026-03-14T19:18:04.101Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_ID >> .env.production || true
-2026-03-14T19:18:04.103Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_SECRET >> .env.production || true
-2026-03-14T19:18:04.105Z [INFO]: # Executing command: env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
-2026-03-14T19:18:04.107Z [INFO]: # Executing command: env | grep -e FROM_EMAIL >> .env.production || true
-2026-03-14T19:18:04.108Z [INFO]: # Executing command: env | grep -e DYNAMODB_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.110Z [INFO]: # Executing command: env | grep -e WHATSAPP_CONVERSATIONS_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.112Z [INFO]: # Executing command: env | grep -e ADMIN_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.114Z [INFO]: # Executing command: env | grep -e SESSION_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.116Z [INFO]: # Executing command: env | grep -e CAMPAIGNS_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.117Z [INFO]: # Executing command: env | grep -e RECIPIENTS_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.119Z [INFO]: # Executing command: env | grep -e CONTACTS_TABLE_NAME >> .env.production || true
-2026-03-14T19:18:04.121Z [INFO]: # Executing command: env | grep -e WHATSAPP_ACCESS_TOKEN >> .env.production || true
-2026-03-14T19:18:04.124Z [INFO]: # Executing command: env | grep -e META_PHONE_NUMBER_ID >> .env.production || true
-2026-03-14T19:18:04.126Z [INFO]: # Executing command: env | grep -e WHATSAPP_PHONE_ID >> .env.production || true
-2026-03-14T19:18:04.127Z [INFO]: # Executing command: env | grep -e WHATSAPP_VERIFY_TOKEN >> .env.production || true
-2026-03-14T19:18:04.129Z [INFO]: # Executing command: env | grep -e WHATSAPP_APP_SECRET >> .env.production || true
-2026-03-14T19:18:04.131Z [INFO]: # Executing command: env | grep -e META_WABA_ID >> .env.production || true
-2026-03-14T19:18:04.132Z [INFO]: # Executing command: env | grep -e META_DRY_RUN >> .env.production || true
-2026-03-14T19:18:04.134Z [INFO]: # Executing command: env | grep -e INTERNAL_OPERATIONS_KEY >> .env.production || true
-2026-03-14T19:18:04.136Z [INFO]: # Executing command: env | grep -e TRACKING_TOKEN_SECRET >> .env.production || true
-2026-03-14T19:18:04.137Z [INFO]: # Executing command: env | grep -e WHATSAPP_DAILY_LIMIT >> .env.production || true
-2026-03-14T19:18:04.139Z [INFO]: # Executing command: env | grep -e WHATSAPP_RATE_LIMIT_PER_SEC >> .env.production || true
-2026-03-14T19:18:04.141Z [INFO]: # Executing command: env | grep -e META_DAILY_LIMIT >> .env.production || true
-2026-03-14T19:18:04.143Z [INFO]: # Executing command: env | grep -e META_SAFETY_BUFFER >> .env.production || true
-2026-03-14T19:18:04.144Z [INFO]: # Executing command: env | grep -e NEXT_PUBLIC_ >> .env.production || true
-2026-03-14T19:18:04.146Z [INFO]: # Executing command: npm run build
-2026-03-14T19:18:04.262Z [INFO]: > streefl-website@0.1.0 build
+2026-03-14T20:19:14.342Z [INFO]: # Executing command: touch .env.production
+2026-03-14T20:19:14.344Z [INFO]: # Executing command: env | grep -e EMAIL_ADMIN_PASSWORD_HASH >> .env.production || true
+2026-03-14T20:19:14.346Z [INFO]: # Executing command: env | grep -e WA_ADMIN_PASSWORD_HASH >> .env.production || true
+2026-03-14T20:19:14.348Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_ID >> .env.production || true
+2026-03-14T20:19:14.350Z [INFO]: # Executing command: env | grep -e ZOHO_CLIENT_SECRET >> .env.production || true
+2026-03-14T20:19:14.351Z [INFO]: # Executing command: env | grep -e ZOHO_REFRESH_TOKEN >> .env.production || true
+2026-03-14T20:19:14.353Z [INFO]: # Executing command: env | grep -e FROM_EMAIL >> .env.production || true
+2026-03-14T20:19:14.355Z [INFO]: # Executing command: env | grep -e DYNAMODB_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.357Z [INFO]: # Executing command: env | grep -e WHATSAPP_CONVERSATIONS_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.359Z [INFO]: # Executing command: env | grep -e ADMIN_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.361Z [INFO]: # Executing command: env | grep -e SESSION_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.362Z [INFO]: # Executing command: env | grep -e CAMPAIGNS_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.364Z [INFO]: # Executing command: env | grep -e RECIPIENTS_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.366Z [INFO]: # Executing command: env | grep -e CONTACTS_TABLE_NAME >> .env.production || true
+2026-03-14T20:19:14.367Z [INFO]: # Executing command: env | grep -e WHATSAPP_ACCESS_TOKEN >> .env.production || true
+2026-03-14T20:19:14.369Z [INFO]: # Executing command: env | grep -e META_PHONE_NUMBER_ID >> .env.production || true
+2026-03-14T20:19:14.371Z [INFO]: # Executing command: env | grep -e WHATSAPP_PHONE_ID >> .env.production || true
+2026-03-14T20:19:14.373Z [INFO]: # Executing command: env | grep -e WHATSAPP_VERIFY_TOKEN >> .env.production || true
+2026-03-14T20:19:14.374Z [INFO]: # Executing command: env | grep -e WHATSAPP_APP_SECRET >> .env.production || true
+2026-03-14T20:19:14.376Z [INFO]: # Executing command: env | grep -e META_WABA_ID >> .env.production || true
+2026-03-14T20:19:14.378Z [INFO]: # Executing command: env | grep -e META_DRY_RUN >> .env.production || true
+2026-03-14T20:19:14.379Z [INFO]: # Executing command: env | grep -e INTERNAL_OPERATIONS_KEY >> .env.production || true
+2026-03-14T20:19:14.381Z [INFO]: # Executing command: env | grep -e TRACKING_TOKEN_SECRET >> .env.production || true
+2026-03-14T20:19:14.383Z [INFO]: # Executing command: env | grep -e WHATSAPP_DAILY_LIMIT >> .env.production || true
+2026-03-14T20:19:14.384Z [INFO]: # Executing command: env | grep -e WHATSAPP_RATE_LIMIT_PER_SEC >> .env.production || true
+2026-03-14T20:19:14.387Z [INFO]: # Executing command: env | grep -e META_DAILY_LIMIT >> .env.production || true
+2026-03-14T20:19:14.389Z [INFO]: # Executing command: env | grep -e META_SAFETY_BUFFER >> .env.production || true
+2026-03-14T20:19:14.390Z [INFO]: # Executing command: env | grep -e NEXT_PUBLIC_ >> .env.production || true
+2026-03-14T20:19:14.392Z [INFO]: # Executing command: npm run build
+2026-03-14T20:19:14.505Z [INFO]: > streefl-website@0.1.0 build
                                  > next build
-2026-03-14T19:18:04.314Z [WARNING]: ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
-2026-03-14T19:18:04.799Z [WARNING]: 
-2026-03-14T19:18:04.800Z [WARNING]: > Build error occurred
-2026-03-14T19:18:04.801Z [WARNING]: Error: Configuring Next.js via 'next.config.ts' is not supported. Please replace the file with 'next.config.js' or 'next.config.mjs'.
-                                    at loadConfig (/codebuild/output/src2555680271/src/streefi-website/node_modules/next/dist/server/config.js:800:19)
-                                    at async Span.traceAsyncFn (/codebuild/output/src2555680271/src/streefi-website/node_modules/next/dist/trace/trace.js:154:20)
-                                    at async /codebuild/output/src2555680271/src/streefi-website/node_modules/next/dist/build/index.js:370:28
-                                    at async Span.traceAsyncFn (/codebuild/output/src2555680271/src/streefi-website/node_modules/next/dist/trace/trace.js:154:20)
-                                    at async build (/codebuild/output/src2555680271/src/streefi-website/node_modules/next/dist/build/index.js:364:9)
-2026-03-14T19:18:04.816Z [ERROR]: !!! Build failed
-2026-03-14T19:18:04.817Z [INFO]: Please read more about Amplify Hosting's support for SSR frameworks to find if your build failure is related to an unsupported feature: https://docs.aws.amazon.com/amplify/latest/userguide/amplify-ssr-framework-support.html. You may also find this troubleshooting guide useful: https://docs.aws.amazon.com/amplify/latest/userguide/troubleshooting-ssr-deployment.html
-2026-03-14T19:18:04.817Z [ERROR]: !!! Error: Command failed with exit code 1
-2026-03-14T19:18:04.817Z [INFO]: # Starting environment caching...
-2026-03-14T19:18:04.817Z [INFO]: # Environment caching completed
+2026-03-14T20:19:14.628Z [WARNING]: ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+2026-03-14T20:19:15.387Z [INFO]: ▲ Next.js 15.5.12
+2026-03-14T20:19:15.388Z [INFO]: - Environments: .env.production
+2026-03-14T20:19:15.507Z [INFO]: Creating an optimized production build ...
+2026-03-14T20:19:44.553Z [INFO]: ✓ Compiled successfully in 28.7s
+2026-03-14T20:19:44.574Z [INFO]: Linting and checking validity of types ...
+2026-03-14T20:19:57.580Z [INFO]: Collecting page data ...
+2026-03-14T20:19:58.553Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
+2026-03-14T20:19:58.623Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
+2026-03-14T20:19:58.643Z [INFO]: [CampaignRepository] Initialized with buffered metrics (100 updates / 30s flush)
+2026-03-14T20:20:01.445Z [INFO]: Generating static pages (0/37) ...
+2026-03-14T20:20:01.926Z [WARNING]: Error: <Html> should not be imported outside of pages/_document.
+                                    Read more: https://nextjs.org/docs/messages/no-document-import-in-page
+                                    at x (.next/server/chunks/5611.js:6:1351)
+                                    Error occurred prerendering page "/404". Read more: https://nextjs.org/docs/messages/prerender-error
+                                    Error: <Html> should not be imported outside of pages/_document.
+                                    Read more: https://nextjs.org/docs/messages/no-document-import-in-page
+                                    at x (.next/server/chunks/5611.js:6:1351)
+                                    Export encountered an error on /_error: /404, exiting the build.
+2026-03-14T20:20:01.952Z [WARNING]: ⨯ Next.js build worker exited with code: 1 and signal: null
+2026-03-14T20:20:02.039Z [ERROR]: !!! Build failed
+2026-03-14T20:20:02.040Z [INFO]: Please read more about Amplify Hosting's support for SSR frameworks to find if your build failure is related to an unsupported feature: https://docs.aws.amazon.com/amplify/latest/userguide/amplify-ssr-framework-support.html. You may also find this troubleshooting guide useful: https://docs.aws.amazon.com/amplify/latest/userguide/troubleshooting-ssr-deployment.html
+2026-03-14T20:20:02.040Z [ERROR]: !!! Error: Command failed with exit code 1
+2026-03-14T20:20:02.040Z [INFO]: # Starting environment caching...
+2026-03-14T20:20:02.040Z [INFO]: # Environment caching completed
 
