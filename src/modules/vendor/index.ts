@@ -1,2 +1,2 @@
-'use Client';
+'use client';
 export * from './components';
