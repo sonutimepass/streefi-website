@@ -3,8 +3,6 @@
 import { WhatsAppAdminProvider, useWhatsAppAdminContext, LoadingSection, AuthSection } from '@/modules/whatsapp-admin';
 import DashboardContent from '@/modules/whatsapp-admin/components/DashboardContent';
 
-export const dynamic = 'force-dynamic';
-
 export default function WhatsAppDashboardPage() {
   return (
     <WhatsAppAdminProvider>

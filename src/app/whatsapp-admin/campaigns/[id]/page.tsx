@@ -3,8 +3,6 @@
 import { WhatsAppAdminProvider, useWhatsAppAdminContext, LoadingSection, AuthSection } from '@/modules/whatsapp-admin';
 import CampaignDetailPageContent from '@/modules/whatsapp-admin/components/CampaignDetailPageContent';
 
-export const dynamic = 'force-dynamic';
-
 export default function CampaignDetailPage({ params }: { params: { id: string } }) {
   return (
     <WhatsAppAdminProvider>

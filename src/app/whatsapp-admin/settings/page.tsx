@@ -3,8 +3,6 @@
 import { WhatsAppAdminProvider, useWhatsAppAdminContext, LoadingSection, AuthSection } from '@/modules/whatsapp-admin';
 import SettingsPageContent from '@/modules/whatsapp-admin/components/SettingsPageContent';
 
-export const dynamic = 'force-dynamic';
-
 export default function SettingsPage() {
   return (
     <WhatsAppAdminProvider>

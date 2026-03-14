@@ -3,8 +3,6 @@
 import { WhatsAppAdminProvider, useWhatsAppAdminContext, LoadingSection, AuthSection } from '@/modules/whatsapp-admin';
 import TemplatesPageContent from '@/modules/whatsapp-admin/components/TemplatesPageContent';
 
-export const dynamic = 'force-dynamic';
-
 export default function TemplatesPage() {
   return (
     <WhatsAppAdminProvider>
