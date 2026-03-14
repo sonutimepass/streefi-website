@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Ubuntu } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
-import ParticleBackground from "@/components/common/ParticleBackground";
 
 export const dynamic = 'force-dynamic';
 
